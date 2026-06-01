@@ -48,8 +48,8 @@ export function SeriesGrid({ items, density, hasNext, fetchNext }: {
           const start = vrow.index * cols
           const rowItems = items.slice(start, start + cols)
           return (
-            <div key={vrow.key}
-              style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${vrow.start}px)` }}>
+            <div key={vrow.key} data-index={vrow.index} ref={rowVirtualizer.measureElement}
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${vrow.start}px)`, paddingBottom: GAP }}>
               <div className="grid" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0,1fr))`, gap: GAP }}>
                 {rowItems.map((s) => <SeriesCard key={s.id} s={s} />)}
               </div>
