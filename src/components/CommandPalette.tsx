@@ -62,7 +62,7 @@ export function CommandPalette() {
     navigate(`/series/${id}`)
   }
 
-  let recents: { id: string; title: string }[] = []
+  let recents: { id: string; title: string }[]
   try {
     recents = JSON.parse(localStorage.getItem(RECENTS_KEY) ?? '[]')
   } catch {

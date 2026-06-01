@@ -65,7 +65,7 @@ export function LibraryBrowser() {
               items={items}
               density={density}
               hasNext={!!query.hasNextPage}
-              fetchNext={() => { void query.fetchNextPage() }}
+              fetchNext={query.fetchNextPage}
             />
           ) : (
             <SeriesList
@@ -73,7 +73,7 @@ export function LibraryBrowser() {
               filters={filters}
               onFiltersChange={setFilters}
               hasNext={!!query.hasNextPage}
-              fetchNext={() => { void query.fetchNextPage() }}
+              fetchNext={query.fetchNextPage}
             />
           )}
         </div>
