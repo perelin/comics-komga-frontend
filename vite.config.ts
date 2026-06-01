@@ -13,6 +13,10 @@ export default defineConfig(({ mode }) => {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     },
     server: {
+      host: true, // listen on 0.0.0.0 so other machines on the LAN can reach it
+      port: 5173,
+      strictPort: true, // fail instead of picking a random port (predictable URL)
+      allowedHosts: true, // accept requests by hostname (e.g. <machine>.local), not just IP
       proxy: {
         '/komga': {
           target: env.KOMGA_BASE_URL,
