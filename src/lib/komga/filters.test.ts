@@ -24,6 +24,17 @@ describe('URL <-> Filters round-trip', () => {
   })
 })
 
+describe('searchParamsToFilters validation', () => {
+  it('drops invalid enum values and falls back to default sort', () => {
+    const sp = new URLSearchParams('status=BOGUS,ONGOING&readStatus=NOPE,UNREAD&sortKey=hacked&sortDir=sideways')
+    const f = searchParamsToFilters(sp)
+    expect(f.status).toEqual(['ONGOING'])
+    expect(f.readStatus).toEqual(['UNREAD'])
+    expect(f.sortKey).toBe('titleSort')
+    expect(f.sortDir).toBe('asc')
+  })
+})
+
 describe('filtersToKomgaParams', () => {
   it('maps fields to komga query params with OR-within-field', () => {
     const f: Filters = { ...DEFAULT_FILTERS, genre: ['Science Fiction', 'Noir'], readStatus: ['UNREAD'] }

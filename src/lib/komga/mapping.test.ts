@@ -29,6 +29,9 @@ describe('parseGoodreads', () => {
   it('returns undefined when no goodreads link', () => {
     expect(parseGoodreads([{ label: 'Wikipedia', url: 'w' }])).toBeUndefined()
   })
+  it('returns undefined when a Goodreads label has no parseable score', () => {
+    expect(parseGoodreads([{ label: 'See on Goodreads', url: 'u' }])).toBeUndefined()
+  })
 })
 
 describe('pickAuthor', () => {

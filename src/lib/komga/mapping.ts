@@ -34,8 +34,9 @@ export function parseGoodreads(links: KomgaWebLink[]): Goodreads | undefined {
   const link = links.find((l) => l.label.includes('Goodreads'))
   if (!link) return undefined
   const m = GR_RE.exec(link.label)
-  if (!m) return { avg: NaN, votes: '', url: link.url }
-  return { avg: parseFloat(m[1]), votes: m[2], url: link.url }
+  if (!m) return undefined
+  const avg = parseFloat(m[1])
+  return Number.isNaN(avg) ? undefined : { avg, votes: m[2], url: link.url }
 }
 
 export function pickAuthor(authors: KomgaAuthor[]): string {

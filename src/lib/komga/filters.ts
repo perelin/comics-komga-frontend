@@ -38,19 +38,26 @@ export function filtersToSearchParams(f: Filters): URLSearchParams {
   return sp
 }
 
+const VALID_READ_STATUS: ReadStatus[] = ['UNREAD', 'READ', 'IN_PROGRESS']
+const VALID_SERIES_STATUS: SeriesStatus[] = ['ONGOING', 'ENDED', 'HIATUS', 'ABANDONED']
+const VALID_SORT_KEYS: SortKey[] = ['titleSort', 'createdDate', 'lastModified']
+const VALID_SORT_DIRS: SortDir[] = ['asc', 'desc']
+
 export function searchParamsToFilters(sp: URLSearchParams): Filters {
   const split = (v: string | null) => (v ? v.split(',') : [])
+  const rawSortKey = sp.get('sortKey')
+  const rawSortDir = sp.get('sortDir')
   return {
-    readStatus: split(sp.get('readStatus')) as ReadStatus[],
+    readStatus: split(sp.get('readStatus')).filter((v): v is ReadStatus => VALID_READ_STATUS.includes(v as ReadStatus)),
     libraryId: split(sp.get('libraryId')),
     genre: split(sp.get('genre')),
     publisher: split(sp.get('publisher')),
-    status: split(sp.get('status')) as SeriesStatus[],
+    status: split(sp.get('status')).filter((v): v is SeriesStatus => VALID_SERIES_STATUS.includes(v as SeriesStatus)),
     ageRating: split(sp.get('ageRating')),
     oneshot: sp.has('oneshot') ? sp.get('oneshot') === 'true' : undefined,
     search: sp.get('q') ?? undefined,
-    sortKey: (sp.get('sortKey') as SortKey) ?? DEFAULT_FILTERS.sortKey,
-    sortDir: (sp.get('sortDir') as SortDir) ?? DEFAULT_FILTERS.sortDir,
+    sortKey: rawSortKey !== null && VALID_SORT_KEYS.includes(rawSortKey as SortKey) ? (rawSortKey as SortKey) : DEFAULT_FILTERS.sortKey,
+    sortDir: rawSortDir !== null && VALID_SORT_DIRS.includes(rawSortDir as SortDir) ? (rawSortDir as SortDir) : DEFAULT_FILTERS.sortDir,
   }
 }
 
