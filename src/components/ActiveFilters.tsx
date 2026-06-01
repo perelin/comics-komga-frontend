@@ -1,7 +1,7 @@
 import { X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { DEFAULT_FILTERS, type Filters } from '@/lib/komga/filters'
+import { resetFiltersKeepingSort, type Filters } from '@/lib/komga/filters'
 
 type Chip = { field: keyof Filters; label: string; value: string }
 
@@ -29,13 +29,13 @@ export function ActiveFilters({ filters, onChange }: { filters: Filters; onChang
   return (
     <div className="flex flex-wrap items-center gap-2 border-b border-border px-4 py-2">
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Filters</span>
-      {chips.map((c, i) => (
-        <Badge key={i} variant="secondary" className="gap-1">
+      {chips.map((c) => (
+        <Badge key={`${c.field}:${c.value}`} variant="secondary" className="gap-1">
           <span className="text-muted-foreground">{c.label}:</span>{c.value}
           <button onClick={() => remove(c)} aria-label={`remove ${c.label} ${c.value}`}><X className="size-3" /></button>
         </Badge>
       ))}
-      <Button variant="ghost" size="sm" className="h-6" onClick={() => onChange({ ...DEFAULT_FILTERS, sortKey: filters.sortKey, sortDir: filters.sortDir })}>
+      <Button variant="ghost" size="sm" className="h-6" onClick={() => onChange(resetFiltersKeepingSort(filters))}>
         Clear all
       </Button>
     </div>

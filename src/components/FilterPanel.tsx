@@ -3,9 +3,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { DEFAULT_FILTERS, type Filters } from '@/lib/komga/filters'
+import { resetFiltersKeepingSort, type Filters } from '@/lib/komga/filters'
 import type { ReadStatus, SeriesStatus } from '@/lib/komga/types'
-import { prettyLibraryName } from './Sidebar'
+import { prettyLibraryName } from '@/lib/library'
 import { useGenres, usePublishers, useAgeRatings, useLibraries } from '@/lib/komga/queries'
 
 function toggle<T>(arr: T[], v: T): T[] {
@@ -23,15 +23,12 @@ function Facet({ title, children }: { title: string; children: React.ReactNode }
 
 function Opt({ label, checked, onToggle }: { label: string; checked: boolean; onToggle: () => void }) {
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <div role="button" tabIndex={0}
       onClick={onToggle}
       onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
-      className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-    >
-      <Checkbox checked={checked} onCheckedChange={onToggle} aria-label={label} />
-      <span className="truncate" aria-hidden="true">{label}</span>
+      className="flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-sm text-muted-foreground outline-none hover:bg-accent/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring">
+      <Checkbox checked={checked} aria-label={label} tabIndex={-1} className="pointer-events-none" />
+      <span aria-hidden="true" className="truncate">{label}</span>
     </div>
   )
 }
@@ -51,7 +48,7 @@ export function FilterPanel({ filters, onChange }: { filters: Filters; onChange:
     <aside className="flex h-full w-72 shrink-0 flex-col border-l border-border bg-card">
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <span className="font-semibold">Filters</span>
-        <Button variant="ghost" size="sm" className="h-7" onClick={() => onChange({ ...DEFAULT_FILTERS, sortKey: filters.sortKey, sortDir: filters.sortDir })}>Reset</Button>
+        <Button variant="ghost" size="sm" className="h-7" onClick={() => onChange(resetFiltersKeepingSort(filters))}>Reset</Button>
       </div>
       <ScrollArea className="min-h-0 flex-1 px-4">
         <Facet title="Read status">
@@ -65,13 +62,13 @@ export function FilterPanel({ filters, onChange }: { filters: Filters; onChange:
         </Facet>
         <Facet title="Genre">
           <Input value={genreQ} onChange={(e) => setGenreQ(e.target.value)} placeholder="Search genres…" className="mb-1 h-7 text-sm" />
-          {genres.filter((g) => g.toLowerCase().includes(genreQ.toLowerCase())).slice(0, 30).map((g) => (
+          {genres.filter((g) => g.toLowerCase().includes(genreQ.toLowerCase())).slice(0, 100).map((g) => (
             <Opt key={g} label={g} checked={filters.genre.includes(g)} onToggle={() => onChange({ ...filters, genre: toggle(filters.genre, g) })} />
           ))}
         </Facet>
         <Facet title="Publisher">
           <Input value={pubQ} onChange={(e) => setPubQ(e.target.value)} placeholder="Search publishers…" className="mb-1 h-7 text-sm" />
-          {publishers.filter((p) => p.toLowerCase().includes(pubQ.toLowerCase())).slice(0, 30).map((p) => (
+          {publishers.filter((p) => p.toLowerCase().includes(pubQ.toLowerCase())).slice(0, 100).map((p) => (
             <Opt key={p} label={p} checked={filters.publisher.includes(p)} onToggle={() => onChange({ ...filters, publisher: toggle(filters.publisher, p) })} />
           ))}
         </Facet>

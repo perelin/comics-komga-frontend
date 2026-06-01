@@ -2,7 +2,8 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter } from 'react-router-dom'
-import { Sidebar, prettyLibraryName } from './Sidebar'
+import { Sidebar } from './Sidebar'
+import { prettyLibraryName } from '@/lib/library'
 
 vi.mock('@/lib/komga/queries', () => ({
   useLibraries: () => ({ data: [{ id: 'l1', name: 'xCat:Pub Image' }], isLoading: false }),

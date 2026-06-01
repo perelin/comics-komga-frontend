@@ -24,6 +24,10 @@ export const DEFAULT_FILTERS: Filters = {
   sortKey: 'titleSort', sortDir: 'asc',
 }
 
+export function resetFiltersKeepingSort(f: Filters): Filters {
+  return { ...DEFAULT_FILTERS, sortKey: f.sortKey, sortDir: f.sortDir }
+}
+
 const ARRAY_KEYS = ['readStatus', 'libraryId', 'genre', 'publisher', 'status', 'ageRating'] as const
 
 export function filtersToSearchParams(f: Filters): URLSearchParams {

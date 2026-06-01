@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { LayoutGrid, List, SlidersHorizontal, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -23,14 +23,20 @@ export function Toolbar(props: {
   filterOpen: boolean; onToggleFilter: () => void
 }) {
   const { count, filters, onFiltersChange, view, onViewChange, density, onDensityChange, filterOpen, onToggleFilter } = props
+  const filtersRef = useRef(filters)
+  const onFiltersChangeRef = useRef(onFiltersChange)
+  // sync refs after each render so the debounce timer always reads the latest values
+  useLayoutEffect(() => { filtersRef.current = filters })
+  useLayoutEffect(() => { onFiltersChangeRef.current = onFiltersChange })
   const [term, setTerm] = useState(filters.search ?? '')
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sync controlled prop into debounced local state
   useEffect(() => { setTerm(filters.search ?? '') }, [filters.search])
   useEffect(() => {
     const id = setTimeout(() => {
-      if ((filters.search ?? '') !== term) onFiltersChange({ ...filters, search: term || undefined })
+      const current = filtersRef.current
+      if ((current.search ?? '') !== term) onFiltersChangeRef.current({ ...current, search: term || undefined })
     }, 300)
     return () => clearTimeout(id)
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [term])
 
   const sortValue = `${filters.sortKey}:${filters.sortDir}`

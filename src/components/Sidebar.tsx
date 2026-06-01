@@ -1,21 +1,10 @@
 import { useState } from 'react'
-import { Clock, Sparkles, BookOpen, Library, Layers, ListOrdered, Search } from 'lucide-react'
+import { Clock, Library, Layers, ListOrdered, Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useLibraries, useReadLists, useCollections } from '@/lib/komga/queries'
 import { DEFAULT_FILTERS, type Filters } from '@/lib/komga/filters'
-
-export function prettyLibraryName(name: string): string {
-  const m = /^xCat:[A-Za-z]+\s+(.*)$/.exec(name)
-  return m ? m[1].trim() : name
-}
-
-export type SmartFolder = 'continue' | 'recent' | 'unread'
-export const SMART_PRESETS: Record<SmartFolder, { label: string; icon: typeof Clock; filters: Filters }> = {
-  continue: { label: 'Continue reading', icon: Clock, filters: { ...DEFAULT_FILTERS, readStatus: ['IN_PROGRESS'] } },
-  recent: { label: 'Recently added', icon: Sparkles, filters: { ...DEFAULT_FILTERS, sortKey: 'createdDate', sortDir: 'desc' } },
-  unread: { label: 'Unread', icon: BookOpen, filters: { ...DEFAULT_FILTERS, readStatus: ['UNREAD'] } },
-}
+import { prettyLibraryName, SMART_PRESETS, type SmartFolder } from '@/lib/library'
 
 function NavHead({ children }: { children: React.ReactNode }) {
   return <div className="px-2 pb-1.5 pt-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">{children}</div>
