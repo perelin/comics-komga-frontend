@@ -1,0 +1,29 @@
+# Container-internal Caddy (listens on :80, HTTP only — TLS is terminated by the
+# edge Caddy on CT 100). Serves the static SPA and proxies /komga/* to Komga,
+# injecting X-API-Key server-side so the browser never sees the key.
+{
+	admin off
+}
+
+:80 {
+	encode gzip zstd
+
+	# API + thumbnails → Komga. handle_path strips the /komga prefix so
+	# /komga/api/v1/x → /api/v1/x upstream. Mirrors the Vite dev proxy.
+	handle_path /komga/* {
+		reverse_proxy https://komga.p2lab.com {
+			header_up Host komga.p2lab.com
+			# Drop the edge basic-auth Authorization header — otherwise Komga
+			# tries to authenticate it as a Komga user and 401s, ignoring the key.
+			header_up -Authorization
+			header_up X-API-Key {$KOMGA_API_KEY}
+		}
+	}
+
+	# Static SPA with client-side-routing fallback to index.html
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}

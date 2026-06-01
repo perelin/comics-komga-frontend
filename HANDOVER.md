@@ -10,8 +10,11 @@ A power-user web frontend for the Komga comic server at `https://komga.p2lab.com
 **Vertical slice 1 is complete, reviewed, and live-verified.** The **Library
 Browser** is fully wired against the live API; **Series Detail** and the **⌘K
 Command Palette** are functional-but-shallow. Repo:
-`git@github.com:perelin/comics-komga-frontend` (private). Runs on the Mac Mini
-`FreddieMercuryMacMini` and is reachable on the LAN.
+`git@github.com:perelin/comics-komga-frontend` (private). **Live in production at
+https://comics.p2lab.com** — a `caddy:2-alpine` container on the Docker host
+(CT 101) behind the edge Caddy, gated by HTTP basic-auth (user `comics`; creds in
+`pass services/comics/basic-auth`). Deploy details: `deploy/DEPLOY.md`. Also
+runnable locally / on the LAN via `npm run dev`.
 
 ## Quick start
 
@@ -156,11 +159,13 @@ All deferred from slice 1. Endpoints/notes included so you can start fast.
    author isn't a facet yet. Use `?search=` against `/authors` & `/publishers`.
 6. **Migrate `GET /series` → `POST /api/v1/series/list`** (condition body) for
    future-proofing — contained in `client.ts` + `filters.ts`.
-7. **Production hosting — Docker Compose stack** (the spec's explicit prod plan):
-   build the static SPA, serve it behind a reverse proxy (Caddy/nginx) that
-   proxies `/komga/*` to Komga and injects `X-API-Key`. Because the client uses
-   the relative `/komga` path, **no client code changes** — just replicate the
-   dev proxy in the prod proxy. This replaces the dev-server-on-LAN stopgap.
+7. **Production hosting — DONE** (`deploy/`). Deployed as a `caddy:2-alpine`
+   container on CT 101 (`/opt/apps/comics`, port 8091) serving the static `dist/`
+   + proxying `/komga/*` (key injected, `Authorization` stripped), behind the
+   edge Caddy at **https://comics.p2lab.com** with HTTP basic-auth. Updates =
+   `npm run build` + ship `dist/` (see `deploy/DEPLOY.md`). Possible follow-ups:
+   CI build/deploy on push; add `comics` to CT 101's `docker-compose-up-all.sh`
+   for explicit boot ordering (currently relies on `restart: unless-stopped`).
 8. **Light mode, mobile/tablet layout** (desktop-first today).
 9. **Robustness polish:** optional `isFetchingNext` guard on the infinite-scroll
    trigger; comma-in-facet-value edge case in the comma-joined Komga params.

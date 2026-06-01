@@ -27,6 +27,13 @@ Compose stack) can serve the same path with no client changes.
 - `npm run build` — typecheck (`tsc -b`) + production build
 - `npm run lint` — ESLint
 
+## Deploy
+
+Live at **https://comics.p2lab.com** (HTTP basic-auth) — a `caddy:2-alpine`
+container on the Docker host serving the prebuilt `dist/` and proxying `/komga`
+with the key injected server-side. Lightweight: build locally, ship `dist/`,
+done. See [`deploy/DEPLOY.md`](deploy/DEPLOY.md).
+
 ## What works
 
 - **Library Browser** — virtualized grid + list over all series (TanStack
