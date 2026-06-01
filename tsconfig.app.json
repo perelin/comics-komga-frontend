@@ -7,8 +7,7 @@
     "types": ["vite/client", "vitest/globals"],
     "skipLibCheck": true,
 
-    /* Path alias */
-    "baseUrl": ".",
+    /* Path alias (no baseUrl: paths resolve relative to this tsconfig in TS 5+/6) */
     "paths": { "@/*": ["./src/*"] },
 
     /* Bundler mode */
