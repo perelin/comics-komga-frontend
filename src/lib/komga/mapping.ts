@@ -1,4 +1,5 @@
 import type { KomgaAuthor, KomgaWebLink, KomgaSeriesDto, SeriesStatus } from './types'
+import type { Progress } from './progress'
 
 export interface Rating { value: number; needsCheck: boolean }
 export interface Goodreads { avg: number; votes: string; url: string }
@@ -13,7 +14,7 @@ export interface SeriesVM {
   language: string
   ageRating: number | null
   oneshot: boolean
-  progress: { read: number; inProgress: number; unread: number; total: number }
+  progress: Progress
   rating?: Rating
   goodreads?: Goodreads
   coverUrl: string

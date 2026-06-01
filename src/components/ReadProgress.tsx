@@ -1,9 +1,5 @@
-export interface Progress { read: number; inProgress: number; unread: number; total: number }
-
-export function readPct(p: Progress): number {
-  if (!p.total) return 0
-  return Math.round(((p.read + p.inProgress * 0.5) / p.total) * 100)
-}
+import { cn } from '@/lib/utils'
+import { readPct, type Progress } from '@/lib/komga/progress'
 
 export function ReadProgress({ progress, variant }: { progress: Progress; variant: 'ring' | 'bar' }) {
   const done = progress.total > 0 && progress.read >= progress.total
@@ -12,9 +8,9 @@ export function ReadProgress({ progress, variant }: { progress: Progress; varian
     return (
       <div className="flex items-center gap-2">
         <div className="h-1 w-14 overflow-hidden rounded bg-muted">
-          <div className={`h-full rounded ${done ? 'bg-green-500' : 'bg-primary'}`} style={{ width: `${pct}%` }} />
+          <div className={cn('h-full rounded', done ? 'bg-green-500' : 'bg-primary')} style={{ width: `${pct}%` }} />
         </div>
-        <span className={`text-xs tabular-nums ${done ? 'text-green-500' : 'text-muted-foreground'}`}>
+        <span className={cn('text-xs tabular-nums', done ? 'text-green-500' : 'text-muted-foreground')}>
           {progress.read}/{progress.total}
         </span>
       </div>
@@ -27,7 +23,7 @@ export function ReadProgress({ progress, variant }: { progress: Progress; varian
       <circle cx={cx} cy={cy} r={r} fill="rgba(0,0,0,0.65)" stroke="rgba(255,255,255,0.2)" strokeWidth={2} />
       {pct > 0 && (
         <circle cx={cx} cy={cy} r={r} fill="none" strokeWidth={2.4} strokeLinecap="round"
-          className={done ? 'stroke-green-500' : 'stroke-primary'}
+          className={cn(done ? 'stroke-green-500' : 'stroke-primary')}
           strokeDasharray={`${(C * pct) / 100} ${C}`} transform={`rotate(-90 ${cx} ${cy})`} />
       )}
       {done ? (
