@@ -134,43 +134,29 @@ src/
   (inherent TanStack Virtual + React Compiler plugin).
 There are **no errors in app code**.
 
-## Backlog / next passes (roughly prioritized)
+## Planning & backlog → Linear
 
-All deferred from slice 1. Endpoints/notes included so you can start fast.
+Planning lives in **Linear**, not in this repo (no local `BACKLOG.md`/`TODO.md`).
+Follow `external/linear/LINEAR_WORKFLOW.md` in the agents monorepo (team **P2L**,
+GraphQL via `.linear_key`): pick up issues there, move state on start/finish, and
+post **one append-only project update per session** (Current Focus / What Changed
+/ Decisions / Dead Ends / Next Steps / Open Questions).
 
-1. **Write actions** (the biggest value-add):
-   - Mark read / unread: `PATCH /api/v1/books/{id}/read-progress` (`{completed:true}`)
-     or `DELETE` it; series-level "mark all read" iterates books. Wire the
-     hover quick-actions on `SeriesCard` and the Series Detail action row.
-   - **Rating edit:** write the `rating:X.X` tag via
-     `PATCH /api/v1/series/{id}/metadata` (`{tags:[...], tagsLock:true}`) — mirror
-     the convention from the monorepo `komga-ratings` spec. Inline star editor.
-   - Tag / summary inline edit (Series Detail) via the same metadata PATCH;
-     tag combobox sourced from `GET /api/v1/tags`.
-   - Add-to-readlist / collection.
-   - Invalidate the relevant TanStack queries after writes.
-2. **Series Detail depth:** the `Related` and `Metadata` tabs (currently the page
-   is a single read-only view, no tabs yet), file info, reading direction.
-3. **Command Palette actions:** execute "filter by author/tag", "mark series
-   read", quick-jump (⌘1–9); author search via `GET /api/v1/authors?search=`.
-4. **On-Deck smart folder:** `GET /api/v1/books/ondeck` (book-level — needs a
-   book card/list, not just series).
-5. **Author/publisher facets as typeahead:** publisher is a filtered list today;
-   author isn't a facet yet. Use `?search=` against `/authors` & `/publishers`.
-6. **Migrate `GET /series` → `POST /api/v1/series/list`** (condition body) for
-   future-proofing — contained in `client.ts` + `filters.ts`.
-7. **Production hosting — DONE** (`deploy/`). Deployed as a `caddy:2-alpine`
-   container on CT 101 (`/opt/apps/comics`, port 8091) serving the static `dist/`
-   + proxying `/komga/*` (key injected, `Authorization` stripped), behind the
-   edge Caddy at **https://comics.p2lab.com** with HTTP basic-auth. Updates =
-   `npm run build` + ship `dist/` (see `deploy/DEPLOY.md`). Possible follow-ups:
-   CI build/deploy on push; add `comics` to CT 101's `docker-compose-up-all.sh`
-   for explicit boot ordering (currently relies on `restart: unless-stopped`).
-8. **Light mode, mobile/tablet layout** (desktop-first today).
-9. **Robustness polish:** optional `isFetchingNext` guard on the infinite-scroll
-   trigger; comma-in-facet-value edge case in the comma-joined Komga params.
+- **Project:** Komga Power Frontend — https://linear.app/p2lab/project/komga-power-frontend-283daf1afa30
+- **Slice 2 milestone — Write actions & inline editing:** P2L-155 mark read/unread
+  (foundation, Urgent), P2L-156 inline rating edit, P2L-157 tag/summary edit,
+  P2L-158 add-to-readlist.
+- **Backlog (no milestone):** P2L-159 Series Detail tabs · P2L-160 command-palette
+  actions · P2L-161 On-Deck · P2L-162 author/publisher typeahead facets · P2L-163
+  migrate to `POST /series/list` · P2L-164 light mode + responsive · P2L-165
+  robustness polish + CI deploy.
+
+Each issue carries the implementation hints (endpoints, affected files). Production
+hosting is already done — see `deploy/DEPLOY.md`.
 
 ## References
+
+- **Linear project:** https://linear.app/p2lab/project/komga-power-frontend-283daf1afa30 · workflow: `external/linear/LINEAR_WORKFLOW.md` (agents monorepo).
 
 - **Design spec:** `docs/design-spec.md` (in this repo) — also in the agents
   monorepo at `docs/superpowers/specs/2026-06-01-komga-power-frontend-design.md`.
