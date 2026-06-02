@@ -49,7 +49,10 @@ vi.mock('@/lib/komga/mutations', () => ({
   useMarkBook: () => ({ mutate: markBookMutate, isPending: false }),
 }))
 
-beforeEach(() => vi.clearAllMocks())
+beforeEach(() => {
+  vi.clearAllMocks()
+  localStorage.clear() // reset the persisted Books view so each test starts at the default
+})
 
 function renderDetail() {
   const qc = new QueryClient()
@@ -87,6 +90,15 @@ describe('SeriesDetail', () => {
     expect(screen.getByText('Volume 3')).toBeInTheDocument()
   })
 
+  it('defaults to the card view; switching to List reveals the table', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    // card view by default → no per-row table action menu
+    expect(screen.queryByRole('button', { name: 'Volume 1 actions' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'List' }))
+    expect(screen.getByRole('button', { name: 'Volume 1 actions' })).toBeInTheDocument()
+  })
+
   it('Continue reading deep-links into the Komga reader at the in-progress book', () => {
     renderDetail()
     const cta = screen.getByRole('link', { name: /Continue reading/ })
@@ -99,17 +111,19 @@ describe('SeriesDetail', () => {
     expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: true })
   })
 
-  it('a per-row menu marks an unread volume read', async () => {
+  it('a per-row menu marks an unread volume read (list view)', async () => {
     const user = userEvent.setup()
     renderDetail()
+    await user.click(screen.getByRole('button', { name: 'List' }))
     await user.click(screen.getByRole('button', { name: 'Volume 3 actions' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Mark read' }))
     expect(markBookMutate).toHaveBeenCalledWith({ bookId: 'b3', read: true })
   })
 
-  it('a per-row menu marks a read volume unread', async () => {
+  it('a per-row menu marks a read volume unread (list view)', async () => {
     const user = userEvent.setup()
     renderDetail()
+    await user.click(screen.getByRole('button', { name: 'List' }))
     await user.click(screen.getByRole('button', { name: 'Volume 1 actions' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Mark unread' }))
     expect(markBookMutate).toHaveBeenCalledWith({ bookId: 'b1', read: false })

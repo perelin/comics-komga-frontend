@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickContinueBook, bookReadState, releaseYear, bookCoverUrl } from './books'
+import { pickContinueBook, bookReadState, releaseYear, bookCoverUrl, bookProgressPct } from './books'
 import type { KomgaBookDto } from './types'
 
 function book(n: number, progress: KomgaBookDto['readProgress'], pages = 100): KomgaBookDto {
@@ -61,5 +61,19 @@ describe('releaseYear', () => {
 describe('bookCoverUrl', () => {
   it('points at the proxied book thumbnail path', () => {
     expect(bookCoverUrl('b1')).toBe('/komga/api/v1/books/b1/thumbnail')
+  })
+})
+
+describe('bookProgressPct', () => {
+  it('returns the rounded read percentage for an in-progress book', () => {
+    expect(bookProgressPct(inProgress(1, 42))).toBe(42)
+    expect(bookProgressPct(book(1, { page: 2, completed: false, readDate: '' }, 3))).toBe(67)
+  })
+  it('is 100 for a read book and 0 for an unread one', () => {
+    expect(bookProgressPct(read(1))).toBe(100)
+    expect(bookProgressPct(unread(1))).toBe(0)
+  })
+  it('is 0 when the book has no pages (no divide-by-zero)', () => {
+    expect(bookProgressPct(book(1, { page: 0, completed: false, readDate: '' }, 0))).toBe(0)
   })
 })

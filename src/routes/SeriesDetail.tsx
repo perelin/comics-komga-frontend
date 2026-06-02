@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, ExternalLink, Play, Check, CheckCheck, RotateCcw, MoreVertical } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ExternalLink, Play, Check, CheckCheck, RotateCcw, MoreVertical, LayoutGrid, List } from 'lucide-react'
 import {
   useSeries, useSeriesBooks, useRelatedByPublisher, useLibraries,
 } from '@/lib/komga/queries'
@@ -9,11 +9,14 @@ import { mapSeries } from '@/lib/komga/mapping'
 import { pickContinueBook, bookReadState, bookCoverUrl, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
 import { prettyLibraryName } from '@/lib/library'
+import { usePersistentState } from '@/hooks/usePersistentState'
 import { CoverImage } from '@/components/CoverImage'
+import { BookCard } from '@/components/BookCard'
 import { Stars } from '@/components/Stars'
 import { StatusDot } from '@/components/StatusDot'
 import { SeriesCard } from '@/components/SeriesCard'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
@@ -167,7 +170,7 @@ export function SeriesDetail() {
           </TabsList>
 
           <TabsContent value="books" className="pt-4">
-            <BooksTable books={books} seriesId={dto.id} />
+            <BooksTab books={books} seriesId={dto.id} />
           </TabsContent>
 
           <TabsContent value="related" className="pt-4">
@@ -180,6 +183,40 @@ export function SeriesDetail() {
         </Tabs>
       </div>
     </div>
+  )
+}
+
+type BooksView = 'list' | 'card'
+
+/** The Books tab: a persisted card/list switch over the series' volumes. List =
+ *  the dense table; card = a cover-forward grid of BookCards. Defaults to card. */
+function BooksTab({ books, seriesId }: { books: KomgaBookDto[]; seriesId: string }) {
+  const [view, setView] = usePersistentState<BooksView>('komga:booksView', 'card')
+  if (books.length === 0) return <div className="text-sm text-muted-foreground">No volumes.</div>
+  return (
+    <>
+      <div className="mb-3 flex items-center">
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {books.length} volume{books.length === 1 ? '' : 's'}
+        </span>
+        <div className="flex-1" />
+        <div className="flex rounded-md border border-border p-0.5">
+          <Button variant={view === 'card' ? 'secondary' : 'ghost'} size="sm" className="h-7 gap-1" onClick={() => setView('card')}>
+            <LayoutGrid className="size-4" />Card
+          </Button>
+          <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="sm" className="h-7 gap-1" onClick={() => setView('list')}>
+            <List className="size-4" />List
+          </Button>
+        </div>
+      </div>
+      {view === 'card' ? (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
+          {books.map((b) => <BookCard key={b.id} book={b} seriesId={seriesId} />)}
+        </div>
+      ) : (
+        <BooksTable books={books} seriesId={seriesId} />
+      )}
+    </>
   )
 }
 

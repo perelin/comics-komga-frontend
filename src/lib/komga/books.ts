@@ -32,6 +32,15 @@ export function bookCoverUrl(id: string): string {
   return `/komga/api/v1/books/${id}/thumbnail`
 }
 
+/** A book's read progress as a 0–100 integer percentage. 100 if completed,
+ *  0 if unread or page-less (guards divide-by-zero). */
+export function bookProgressPct(b: KomgaBookDto): number {
+  if (b.readProgress?.completed) return 100
+  const { pagesCount } = b.media
+  if (!b.readProgress || !pagesCount) return 0
+  return Math.round((b.readProgress.page / pagesCount) * 100)
+}
+
 /** Year out of an ISO date (or a bare year); null if absent/unparseable. */
 export function releaseYear(date: string | null | undefined): string | null {
   if (!date) return null
