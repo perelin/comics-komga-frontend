@@ -8,8 +8,9 @@
 
 A power-user web frontend for the Komga comic server at `https://komga.p2lab.com`.
 **Vertical slice 1 is complete, reviewed, and live-verified.** The **Library
-Browser** is fully wired against the live API; **Series Detail** and the **⌘K
-Command Palette** are functional-but-shallow. Repo:
+Browser** is fully wired against the live API; **Series Detail** has been rebuilt
+to the design-mock IA (read-only — see below); the **⌘K Command Palette** is
+functional-but-shallow. Repo:
 `git@github.com:perelin/comics-komga-frontend` (private). **Live in production at
 https://comics.p2lab.com** — a `caddy:2-alpine` container on the Docker host
 (CT 101) behind the edge Caddy, gated by HTTP basic-auth (user `comics`; creds in
@@ -45,9 +46,17 @@ client machine. Nothing to install on the client — just a browser.
   filter/sort/view state is in the URL** (deep-linkable + reload-safe).
 - **Sidebar** — smart folders (Continue reading / Recently added / Unread),
   libraries (`xCat:` prefix stripped for display), read-list search.
-- **Series Detail** (`/series/:id`) — real read-only hero (cover, author,
-  publisher, status, rating + Goodreads link, summary) + volume list with
-  per-book read state.
+- **Series Detail** (`/series/:id`) — rebuilt to the design-mock IA (read-only):
+  breadcrumb + "Open in Komga"; hero (cover, "N volumes · M read", status,
+  author·publisher·year·language, rating + Goodreads, genres, summary);
+  **Continue/Start reading** deep-links into Komga's web reader (`/book/{id}/read`);
+  **Books / Related / Metadata tabs** — Books = dense volume table (links to
+  reader), Related = "More from {publisher}", Metadata = all populated fields.
+  Pure logic in `lib/komga/{books,reader}.ts` (unit-tested). **Write/edit actions
+  (mark-read, inline rating/tag/summary, add-to-list) are NOT here yet** — Slice 2
+  (P2L-155…158). Note: `GET /series?author=` is ignored by Komga (returns the
+  whole library), so author/collection-based Related waits on the
+  `POST /series/list` migration (P2L-163).
 - **Command Palette** (⌘K / Ctrl-K) — server-backed series search + navigation,
   jump-to-library, localStorage recents.
 

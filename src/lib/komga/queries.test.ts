@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { nextPageParam, flattenSeries, totalSeries } from './queries'
+import { nextPageParam, flattenSeries, totalSeries, relatedFromPage } from './queries'
 import type { KomgaPage, KomgaSeriesDto } from './types'
 
 const page = (n: number, last: boolean): KomgaPage<KomgaSeriesDto> => ({
@@ -32,5 +32,18 @@ describe('flatten/total helpers', () => {
   it('handles undefined data', () => {
     expect(flattenSeries(undefined)).toEqual([])
     expect(totalSeries(undefined)).toBe(0)
+  })
+
+  describe('relatedFromPage', () => {
+    const pg = (...ids: string[]): KomgaPage<KomgaSeriesDto> => ({
+      ...page(0, true), content: ids.map(dto), totalElements: ids.length,
+    })
+    it('maps to view models and excludes the current series', () => {
+      expect(relatedFromPage(pg('a', 'self', 'b'), 'self').map((s) => s.id)).toEqual(['a', 'b'])
+    })
+    it('caps the list at 12 entries', () => {
+      const many = pg(...Array.from({ length: 20 }, (_, i) => `s${i}`))
+      expect(relatedFromPage(many, 'self')).toHaveLength(12)
+    })
   })
 })

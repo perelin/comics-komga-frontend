@@ -19,6 +19,13 @@ export function totalSeries(data: SeriesData): number {
   return data?.pages[0]?.totalElements ?? 0
 }
 
+const RELATED_LIMIT = 12
+/** View models for the "Related" rail: map a series page, drop the series
+ *  we're already viewing, and cap the list. */
+export function relatedFromPage(page: KomgaPage<KomgaSeriesDto>, excludeId: string): SeriesVM[] {
+  return page.content.map(mapSeries).filter((s) => s.id !== excludeId).slice(0, RELATED_LIMIT)
+}
+
 export function useSeriesInfinite(filters: Filters) {
   return useInfiniteQuery({
     queryKey: ['series', filters],
@@ -37,5 +44,12 @@ export const useAgeRatings = () => useQuery({ queryKey: ['age-ratings'], queryFn
 
 export const useSeries = (id: string) => useQuery({ queryKey: ['series', id], queryFn: () => komga.seriesById(id) })
 export const useSeriesBooks = (id: string) => useQuery({ queryKey: ['series', id, 'books'], queryFn: () => komga.seriesBooks(id) })
+export const useRelatedByPublisher = (publisher: string | undefined, excludeId: string) =>
+  useQuery({
+    queryKey: ['series', 'related', 'publisher', publisher],
+    queryFn: () => komga.seriesByPublisher(publisher!),
+    enabled: !!publisher && publisher !== '—',
+    select: (page) => relatedFromPage(page, excludeId),
+  })
 export const useSearchSeries = (q: string) =>
   useQuery({ queryKey: ['search', q], queryFn: () => komga.searchSeries(q), enabled: q.trim().length > 0 })
