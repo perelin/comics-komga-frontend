@@ -43,11 +43,18 @@ ssh pve-htz-docker 'cd /opt/apps/comics && docker compose up -d'
 cd ~/code/comics-komga-frontend && npm run build
 # replace dist (no rsync on CT 101; rm first to drop stale files)
 ssh pve-htz-docker 'rm -rf /opt/apps/comics/dist' && scp -rq dist pve-htz-docker:/opt/apps/comics/
-# static files are served live; no restart needed. (Caddyfile change → `docker compose restart comics`.)
+# IMPORTANT: dist is a BIND MOUNT (./dist:/srv). `rm -rf` detaches the mount from
+# the running container (it keeps serving the deleted inode → 404 on / and assets,
+# while /komga still proxies fine). Re-bind by recreating the container:
+ssh pve-htz-docker 'cd /opt/apps/comics && docker compose up -d --force-recreate comics'
 ```
+> If you replace the dist **contents in place** instead of `rm -rf`-ing the dir,
+> files are served live and no recreate is needed — but plain `scp -rq dist …`
+> recreates the directory, so with the command above you must recreate.
 
 ## Notes
 - The client uses the relative `/komga` path, so **the same build runs in dev and prod** — only the proxy moves (Vite dev-server ↔ this container's Caddy).
+- **`dist` is bind-mounted** (`./dist:/srv:ro`). Removing the host dir while the container runs breaks the mount until a `docker compose up -d --force-recreate comics` (see Update). Recreating the comics container is safe — it is NOT the global edge Caddy.
 - Edge IP `138.201.193.245` matches the other `*.p2lab.com` Caddy sites; `komga.p2lab.com` itself is on the Cloudron VM (`.254`) — we proxy to its public URL.
 - **The edge basic-auth `Authorization` header must be stripped** before proxying to Komga (`header_up -Authorization` in the container Caddyfile) — otherwise Komga tries to auth it as a Komga user and 401s, ignoring `X-API-Key`.
 - **Reboot survival:** the container has `restart: unless-stopped`, so Docker restarts it after a CT 101 reboot. It is *not* in CT 101's `docker-compose-up-all.sh` ordered list (add `comics` there if you want explicit boot ordering).
