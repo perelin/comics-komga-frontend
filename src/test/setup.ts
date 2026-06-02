@@ -12,3 +12,14 @@ if (_jsdom?.window) {
   if (_ls) Object.defineProperty(globalThis, 'localStorage', { ..._ls, configurable: true })
   if (_ss) Object.defineProperty(globalThis, 'sessionStorage', { ..._ss, configurable: true })
 }
+
+// Base UI (@base-ui/react/menu, used by our dropdown-menu) relies on Pointer
+// Capture + scrollIntoView, which jsdom doesn't implement. Polyfill as no-ops
+// so menus open under test.
+const _proto = globalThis.Element?.prototype as unknown as Record<string, unknown>
+if (_proto) {
+  _proto.hasPointerCapture ??= () => false
+  _proto.releasePointerCapture ??= () => {}
+  _proto.setPointerCapture ??= () => {}
+  _proto.scrollIntoView ??= () => {}
+}

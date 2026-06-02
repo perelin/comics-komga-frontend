@@ -13,6 +13,18 @@ async function get<T>(path: string, params?: URLSearchParams): Promise<T> {
   return (await res.json()) as T
 }
 
+/** Fire a write request (PATCH/POST/DELETE). Komga replies 204 No Content, so
+ *  nothing is parsed — we only assert success. JSON body + header when given. */
+async function send(method: string, path: string, body?: unknown): Promise<void> {
+  const res = await fetch(`${BASE}${path}`, {
+    method,
+    ...(body !== undefined
+      ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
+      : {}),
+  })
+  if (!res.ok) throw new Error(`Komga ${res.status} ${res.statusText} on ${method} ${path}`)
+}
+
 export const komga = {
   series: (f: Filters, page: number, size: number) =>
     get<KomgaPage<KomgaSeriesDto>>('/series', filtersToKomgaParams(f, page, size)),
@@ -29,4 +41,11 @@ export const komga = {
   genres: () => get<string[]>('/genres'),
   publishers: () => get<string[]>('/publishers'),
   ageRatings: () => get<number[]>('/age-ratings'),
+
+  // Write actions (P2L-155). Series-level endpoints mark/clear all books in one
+  // request — preferred over iterating per book.
+  markBookRead: (id: string) => send('PATCH', `/books/${id}/read-progress`, { completed: true }),
+  markBookUnread: (id: string) => send('DELETE', `/books/${id}/read-progress`),
+  markSeriesRead: (id: string) => send('POST', `/series/${id}/read-progress`),
+  markSeriesUnread: (id: string) => send('DELETE', `/series/${id}/read-progress`),
 }

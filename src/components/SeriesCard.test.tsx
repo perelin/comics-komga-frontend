@@ -1,9 +1,14 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { SeriesCard } from './SeriesCard'
 import { SeriesRow } from './SeriesRow'
 import type { SeriesVM } from '@/lib/komga/mapping'
+
+const { markSeriesMutate } = vi.hoisted(() => ({ markSeriesMutate: vi.fn() }))
+vi.mock('@/lib/komga/mutations', () => ({
+  useMarkSeries: () => ({ mutate: markSeriesMutate, isPending: false }),
+}))
 
 const vm: SeriesVM = {
   id: 's1', title: 'Saga', author: 'BKV', publisher: 'Image', status: 'ONGOING',
@@ -12,10 +17,24 @@ const vm: SeriesVM = {
   rating: { value: 4.2, needsCheck: false }, goodreads: undefined,
   coverUrl: '/komga/api/v1/series/s1/thumbnail',
 }
+const doneVm: SeriesVM = { ...vm, progress: { read: 11, inProgress: 0, unread: 0, total: 11 } }
+
+beforeEach(() => vi.clearAllMocks())
+
+function renderCard(s: SeriesVM) {
+  return render(
+    <MemoryRouter initialEntries={['/']}>
+      <Routes>
+        <Route path="/" element={<SeriesCard s={s} />} />
+        <Route path="/series/:id" element={<div>SERIES PAGE</div>} />
+      </Routes>
+    </MemoryRouter>,
+  )
+}
 
 describe('SeriesCard / SeriesRow', () => {
   it('card shows title + author', () => {
-    render(<MemoryRouter><SeriesCard s={vm} /></MemoryRouter>)
+    renderCard(vm)
     expect(screen.getByText('Saga')).toBeInTheDocument()
     expect(screen.getByText('BKV')).toBeInTheDocument()
   })
@@ -24,5 +43,19 @@ describe('SeriesCard / SeriesRow', () => {
     expect(screen.getByText('Saga')).toBeInTheDocument()
     expect(screen.getByText('Image')).toBeInTheDocument()
     expect(screen.getByText('4.2')).toBeInTheDocument()
+  })
+
+  it('quick-action marks an unfinished series read without navigating', () => {
+    renderCard(vm)
+    fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }))
+    expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: true })
+    expect(screen.queryByText('SERIES PAGE')).not.toBeInTheDocument()
+  })
+
+  it('quick-action marks a fully-read series unread', () => {
+    renderCard(doneVm)
+    fireEvent.click(screen.getByRole('button', { name: 'Mark all unread' }))
+    expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: false })
+    expect(screen.queryByText('SERIES PAGE')).not.toBeInTheDocument()
   })
 })

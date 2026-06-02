@@ -1,5 +1,6 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import type { KomgaSeriesDto, KomgaBookDto, KomgaPage } from '@/lib/komga/types'
@@ -39,6 +40,16 @@ vi.mock('@/lib/komga/queries', () => ({
   useRelatedByPublisher: () => ({ data: [], isLoading: false }),
   useLibraries: () => ({ data: [{ id: 'l1', name: 'xCat:Fra Comics' }], isLoading: false }),
 }))
+
+const { markSeriesMutate, markBookMutate } = vi.hoisted(() => ({
+  markSeriesMutate: vi.fn(), markBookMutate: vi.fn(),
+}))
+vi.mock('@/lib/komga/mutations', () => ({
+  useMarkSeries: () => ({ mutate: markSeriesMutate, isPending: false }),
+  useMarkBook: () => ({ mutate: markBookMutate, isPending: false }),
+}))
+
+beforeEach(() => vi.clearAllMocks())
 
 function renderDetail() {
   const qc = new QueryClient()
@@ -80,5 +91,27 @@ describe('SeriesDetail', () => {
     renderDetail()
     const cta = screen.getByRole('link', { name: /Continue reading/ })
     expect(cta).toHaveAttribute('href', 'https://komga.p2lab.com/book/b2/read')
+  })
+
+  it('hero action marks the whole (unfinished) series read', () => {
+    renderDetail()
+    fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }))
+    expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: true })
+  })
+
+  it('a per-row menu marks an unread volume read', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(screen.getByRole('button', { name: 'Volume 3 actions' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Mark read' }))
+    expect(markBookMutate).toHaveBeenCalledWith({ bookId: 'b3', read: true })
+  })
+
+  it('a per-row menu marks a read volume unread', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(screen.getByRole('button', { name: 'Volume 1 actions' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Mark unread' }))
+    expect(markBookMutate).toHaveBeenCalledWith({ bookId: 'b1', read: false })
   })
 })

@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, ExternalLink, Play, Check } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ExternalLink, Play, Check, CheckCheck, RotateCcw, MoreVertical } from 'lucide-react'
 import {
   useSeries, useSeriesBooks, useRelatedByPublisher, useLibraries,
 } from '@/lib/komga/queries'
+import { useMarkSeries, useMarkBook } from '@/lib/komga/mutations'
 import { mapSeries } from '@/lib/komga/mapping'
 import { pickContinueBook, bookReadState, bookCoverUrl, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
@@ -15,6 +16,9 @@ import { SeriesCard } from '@/components/SeriesCard'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
 import type { KomgaBookDto, KomgaSeriesDto } from '@/lib/komga/types'
 
 const READING_DIR: Record<string, string> = {
@@ -24,13 +28,14 @@ const READING_DIR: Record<string, string> = {
   WEBTOON: 'Webtoon',
 }
 
-const ROW = 'grid grid-cols-[2.5rem_1.75rem_minmax(0,1fr)_4rem_4rem_8.5rem] items-center gap-3'
+const ROW = 'grid grid-cols-[2.5rem_1.75rem_minmax(0,1fr)_4rem_4rem_8.5rem_2.25rem] items-center gap-3'
 
 export function SeriesDetail() {
   const { id = '' } = useParams()
   const sq = useSeries(id)
   const bq = useSeriesBooks(id)
   const libs = useLibraries()
+  const markSeries = useMarkSeries()
 
   if (sq.isLoading) return <div className="p-8"><Skeleton className="h-64 w-full" /></div>
   if (sq.isError || !sq.data) return (
@@ -45,6 +50,7 @@ export function SeriesDetail() {
   const cont = pickContinueBook(books)
   const libraryName = prettyLibraryName(libs.data?.find((l) => l.id === dto.libraryId)?.name ?? '')
   const year = releaseYear(dto.booksMetadata.releaseDate)
+  const done = s.progress.total > 0 && s.progress.read >= s.progress.total
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -137,6 +143,15 @@ export function SeriesDetail() {
                   <Check className="size-4 text-green-500" /> All read · re-read from Vol. {books[0].metadata.number}
                 </a>
               ) : null}
+              <button
+                type="button"
+                onClick={() => markSeries.mutate({ seriesId: dto.id, read: !done })}
+                disabled={markSeries.isPending}
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 text-sm text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
+              >
+                {done ? <RotateCcw className="size-4" /> : <CheckCheck className="size-4" />}
+                {done ? 'Mark all unread' : 'Mark all read'}
+              </button>
             </div>
           </div>
         </div>
@@ -152,7 +167,7 @@ export function SeriesDetail() {
           </TabsList>
 
           <TabsContent value="books" className="pt-4">
-            <BooksTable books={books} />
+            <BooksTable books={books} seriesId={dto.id} />
           </TabsContent>
 
           <TabsContent value="related" className="pt-4">
@@ -168,7 +183,8 @@ export function SeriesDetail() {
   )
 }
 
-function BooksTable({ books }: { books: KomgaBookDto[] }) {
+function BooksTable({ books, seriesId }: { books: KomgaBookDto[]; seriesId: string }) {
+  const mark = useMarkBook(seriesId)
   if (books.length === 0) return <div className="text-sm text-muted-foreground">No volumes.</div>
   return (
     <div className="rounded-md border border-border">
@@ -179,22 +195,25 @@ function BooksTable({ books }: { books: KomgaBookDto[] }) {
         <span className="text-right">Pages</span>
         <span>Released</span>
         <span>Read progress</span>
+        <span />
       </div>
       {books.map((b) => {
         const st = bookReadState(b)
         const pct = b.media.pagesCount ? Math.round(((b.readProgress?.page ?? 0) / b.media.pagesCount) * 100) : 0
+        const title = b.metadata.title || b.name
         return (
-          <a key={b.id} href={komgaReaderUrl(b.id)} target="_blank" rel="noreferrer"
-             className={`${ROW} border-b border-border px-4 py-2 last:border-0 hover:bg-accent`}>
+          <div key={b.id} className={`${ROW} border-b border-border px-4 py-2 last:border-0 hover:bg-accent`}>
             <span className={`text-center text-sm tabular-nums ${st === 'UNREAD' ? 'text-muted-foreground/50' : 'text-muted-foreground'}`}>
               {b.metadata.number}
             </span>
-            <div className="h-7 w-5 overflow-hidden rounded-[2px] border border-border">
+            <a href={komgaReaderUrl(b.id)} target="_blank" rel="noreferrer" aria-label={`Read ${title}`}
+               className="h-7 w-5 overflow-hidden rounded-[2px] border border-border">
               <CoverImage src={bookCoverUrl(b.id)} alt="" />
-            </div>
-            <span className={`truncate text-sm ${st === 'UNREAD' ? 'text-foreground/80' : 'font-medium'}`}>
-              {b.metadata.title || b.name}
-            </span>
+            </a>
+            <a href={komgaReaderUrl(b.id)} target="_blank" rel="noreferrer"
+               className={`truncate text-sm hover:underline ${st === 'UNREAD' ? 'text-foreground/80' : 'font-medium'}`}>
+              {title}
+            </a>
             <span className="text-right text-sm tabular-nums text-muted-foreground">{b.media.pagesCount}</span>
             <span className="text-sm tabular-nums text-muted-foreground">{releaseYear(b.metadata.releaseDate) ?? '—'}</span>
             <span className="text-sm">
@@ -211,7 +230,27 @@ function BooksTable({ books }: { books: KomgaBookDto[] }) {
                 <span className="text-muted-foreground/50">Unread</span>
               )}
             </span>
-          </a>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label={`${title} actions`}
+                className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              >
+                <MoreVertical className="size-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                {st !== 'READ' && (
+                  <DropdownMenuItem onClick={() => mark.mutate({ bookId: b.id, read: true })}>
+                    <Check className="size-4" /> Mark read
+                  </DropdownMenuItem>
+                )}
+                {st !== 'UNREAD' && (
+                  <DropdownMenuItem onClick={() => mark.mutate({ bookId: b.id, read: false })}>
+                    <RotateCcw className="size-4" /> Mark unread
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         )
       })}
     </div>
