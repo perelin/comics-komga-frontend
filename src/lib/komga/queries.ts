@@ -53,3 +53,5 @@ export const useRelatedByPublisher = (publisher: string | undefined, excludeId: 
   })
 export const useSearchSeries = (q: string) =>
   useQuery({ queryKey: ['search', q], queryFn: () => komga.searchSeries(q), enabled: q.trim().length > 0 })
+export const useAuthorSearch = (q: string) =>
+  useQuery({ queryKey: ['authors', q], queryFn: () => komga.authorNames(q), enabled: q.trim().length >= 2 })
