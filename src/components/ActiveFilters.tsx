@@ -14,6 +14,7 @@ function chipsFor(f: Filters): Chip[] {
   push('publisher', 'Publisher', f.publisher)
   push('status', 'Status', f.status)
   push('ageRating', 'Age', f.ageRating)
+  push('authors', 'Creator', f.authors)
   if (f.oneshot !== undefined) chips.push({ field: 'oneshot', label: 'One-shot', value: String(f.oneshot) })
   return chips
 }

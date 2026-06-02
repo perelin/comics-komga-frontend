@@ -9,6 +9,7 @@ vi.mock('@/lib/komga/queries', () => ({
   usePublishers: () => ({ data: ['Image', 'Dark Horse'] }),
   useAgeRatings: () => ({ data: [16, 18] }),
   useLibraries: () => ({ data: [{ id: 'l1', name: 'xCat:Pub Image' }] }),
+  useAuthorSearch: () => ({ data: [], isFetching: false }),
 }))
 
 describe('FilterPanel', () => {
@@ -18,5 +19,12 @@ describe('FilterPanel', () => {
     render(<QueryClientProvider client={qc}><FilterPanel filters={DEFAULT_FILTERS} onChange={onChange} /></QueryClientProvider>)
     fireEvent.click(screen.getByLabelText('Unread'))
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ readStatus: ['UNREAD'] }))
+  })
+
+  it('renders the Creators facet', () => {
+    const qc = new QueryClient()
+    render(<QueryClientProvider client={qc}><FilterPanel filters={DEFAULT_FILTERS} onChange={vi.fn()} /></QueryClientProvider>)
+    expect(screen.getByText('Creators')).toBeTruthy()
+    expect(screen.getByPlaceholderText(/search creators/i)).toBeTruthy()
   })
 })

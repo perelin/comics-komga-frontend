@@ -7,6 +7,7 @@ import { resetFiltersKeepingSort, type Filters } from '@/lib/komga/filters'
 import type { ReadStatus, SeriesStatus } from '@/lib/komga/types'
 import { prettyLibraryName } from '@/lib/library'
 import { useGenres, usePublishers, useAgeRatings, useLibraries } from '@/lib/komga/queries'
+import { AuthorFacet } from './AuthorFacet'
 
 function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
@@ -53,6 +54,9 @@ export function FilterPanel({ filters, onChange }: { filters: Filters; onChange:
       <ScrollArea className="min-h-0 flex-1 px-4">
         <Facet title="Read status">
           {READ_STATUS.map(([k, l]) => <Opt key={k} label={l} checked={filters.readStatus.includes(k)} onToggle={() => onChange({ ...filters, readStatus: toggle(filters.readStatus, k) })} />)}
+        </Facet>
+        <Facet title="Creators">
+          <AuthorFacet authors={filters.authors} onChange={(authors) => onChange({ ...filters, authors })} />
         </Facet>
         <Facet title="Library">
           {libraries.map((lib) => <Opt key={lib.id} label={prettyLibraryName(lib.name)} checked={filters.libraryId.includes(lib.id)} onToggle={() => onChange({ ...filters, libraryId: toggle(filters.libraryId, lib.id) })} />)}

@@ -24,7 +24,7 @@ describe('Sidebar', () => {
     const qc = new QueryClient()
     render(
       <QueryClientProvider client={qc}><MemoryRouter>
-        <Sidebar filters={{ readStatus: [], libraryId: [], genre: [], publisher: [], status: [], ageRating: [], sortKey: 'titleSort', sortDir: 'asc' }} onPickSmart={() => {}} />
+        <Sidebar filters={{ readStatus: [], libraryId: [], genre: [], publisher: [], status: [], ageRating: [], authors: [], sortKey: 'titleSort', sortDir: 'asc' }} onPickSmart={() => {}} />
       </MemoryRouter></QueryClientProvider>,
     )
     expect(screen.getByText('Continue reading')).toBeInTheDocument()
