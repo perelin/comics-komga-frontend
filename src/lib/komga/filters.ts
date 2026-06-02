@@ -49,7 +49,7 @@ const VALID_SORT_KEYS: SortKey[] = ['titleSort', 'createdDate', 'lastModified']
 const VALID_SORT_DIRS: SortDir[] = ['asc', 'desc']
 
 export function searchParamsToFilters(sp: URLSearchParams): Filters {
-  const split = (v: string | null) => (v ? v.split(',') : [])
+  const split = (v: string | null) => (v ? v.split(',').filter(Boolean) : [])
   const rawSortKey = sp.get('sortKey')
   const rawSortDir = sp.get('sortDir')
   return {
@@ -71,22 +71,6 @@ const SORT_FIELD: Record<SortKey, string> = {
   titleSort: 'metadata.titleSort',
   createdDate: 'createdDate',
   lastModified: 'lastModified',
-}
-
-export function filtersToKomgaParams(f: Filters, page: number, size: number): URLSearchParams {
-  const p = new URLSearchParams()
-  if (f.readStatus.length) p.set('read_status', f.readStatus.join(','))
-  if (f.libraryId.length) p.set('library_id', f.libraryId.join(','))
-  if (f.genre.length) p.set('genre', f.genre.join(','))
-  if (f.publisher.length) p.set('publisher', f.publisher.join(','))
-  if (f.status.length) p.set('status', f.status.join(','))
-  if (f.ageRating.length) p.set('age_rating', f.ageRating.join(','))
-  if (f.oneshot !== undefined) p.set('oneshot', String(f.oneshot))
-  if (f.search) p.set('search', f.search)
-  p.set('sort', `${SORT_FIELD[f.sortKey]},${f.sortDir}`)
-  p.set('page', String(page))
-  p.set('size', String(size))
-  return p
 }
 
 // --- POST /series/list search DSL (Komga v1.23.6, operator shapes live-verified) ---

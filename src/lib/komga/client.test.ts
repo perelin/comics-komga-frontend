@@ -1,5 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { komga } from './client'
+import { DEFAULT_FILTERS } from './filters'
+
+const page = { content: [], totalElements: 0, totalPages: 0, number: 0, size: 50, first: true, last: true }
 
 type Init = { method?: string; body?: string; headers?: Record<string, string> }
 
@@ -49,5 +52,32 @@ describe('komga read-progress mutations', () => {
   it('throws on a non-2xx response', async () => {
     fetchMock.mockResolvedValueOnce({ ok: false, status: 500, statusText: 'Server Error' })
     await expect(komga.markBookRead('b1')).rejects.toThrow(/500/)
+  })
+})
+
+describe('komga.series POST /series/list', () => {
+  let fetchMock: ReturnType<typeof vi.fn>
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => page })
+    vi.stubGlobal('fetch', fetchMock)
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('POSTs the condition body with sort/page/size query params', async () => {
+    await komga.series({ ...DEFAULT_FILTERS, authors: ['Neil Gaiman'] }, 0, 50)
+    const [url, init] = fetchMock.mock.calls[0] as [string, { method?: string; body?: string; headers?: Record<string, string> }]
+    expect(url).toBe('/komga/api/v1/series/list?sort=metadata.titleSort%2Casc&page=0&size=50')
+    expect(init.method).toBe('POST')
+    expect(init.headers).toMatchObject({ 'Content-Type': 'application/json' })
+    expect(JSON.parse(init.body!)).toEqual({ condition: { author: { operator: 'is', value: { name: 'Neil Gaiman' } } } })
+  })
+
+  it('authorNames GETs /authors/names with the search param', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, statusText: 'OK', json: async () => ['Neil Gaiman'] })
+    const res = await komga.authorNames('gaiman')
+    const [url, init] = fetchMock.mock.calls[0] as [string, { method?: string }]
+    expect(url).toBe('/komga/api/v1/authors/names?search=gaiman')
+    expect(init?.method).toBeUndefined() // plain GET
+    expect(res).toEqual(['Neil Gaiman'])
   })
 })

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  DEFAULT_FILTERS, filtersToSearchParams, searchParamsToFilters, filtersToKomgaParams,
+  DEFAULT_FILTERS, filtersToSearchParams, searchParamsToFilters,
   filtersToCondition, listQueryParams,
   type Filters,
 } from './filters'
@@ -102,22 +102,8 @@ describe('searchParamsToFilters validation', () => {
   })
 })
 
-describe('filtersToKomgaParams', () => {
-  it('maps fields to komga query params with OR-within-field', () => {
-    const f: Filters = { ...DEFAULT_FILTERS, genre: ['Science Fiction', 'Noir'], readStatus: ['UNREAD'] }
-    const p = filtersToKomgaParams(f, 0, 50)
-    expect(p.get('genre')).toBe('Science Fiction,Noir')
-    expect(p.get('read_status')).toBe('UNREAD')
-    expect(p.get('page')).toBe('0')
-    expect(p.get('size')).toBe('50')
-    expect(p.get('sort')).toBe('metadata.titleSort,asc')
-  })
-  it('maps the title sort key to metadata.titleSort and passes others through', () => {
-    expect(filtersToKomgaParams({ ...DEFAULT_FILTERS, sortKey: 'createdDate', sortDir: 'desc' }, 1, 50).get('sort'))
-      .toBe('createdDate,desc')
-  })
-  it('includes oneshot only when defined', () => {
-    expect(filtersToKomgaParams(DEFAULT_FILTERS, 0, 50).has('oneshot')).toBe(false)
-    expect(filtersToKomgaParams({ ...DEFAULT_FILTERS, oneshot: true }, 0, 50).get('oneshot')).toBe('true')
+describe('searchParamsToFilters drops empty author entries', () => {
+  it('ignores blank names from a trailing comma', () => {
+    expect(searchParamsToFilters(new URLSearchParams('authors=Neil Gaiman,')).authors).toEqual(['Neil Gaiman'])
   })
 })
