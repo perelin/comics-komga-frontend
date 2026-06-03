@@ -23,3 +23,19 @@ if (_proto) {
   _proto.setPointerCapture ??= () => {}
   _proto.scrollIntoView ??= () => {}
 }
+
+// jsdom has no matchMedia. Default every test to the desktop layout
+// (matches:false). Mobile tests override per-test via mockViewport()
+// in src/test/viewport.ts (call vi.unstubAllGlobals() in afterEach).
+if (typeof globalThis.matchMedia !== 'function') {
+  globalThis.matchMedia = ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof globalThis.matchMedia
+}
