@@ -10,6 +10,7 @@ import { pickContinueBook, bookReadState, bookCoverUrl, releaseYear } from '@/li
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
 import { prettyLibraryName } from '@/lib/library'
 import { usePersistentState } from '@/hooks/usePersistentState'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { CoverImage } from '@/components/CoverImage'
 import { BookCard } from '@/components/BookCard'
 import { Stars } from '@/components/Stars'
@@ -74,16 +75,17 @@ export function SeriesDetail() {
         <div className="flex-1" />
         <a
           href={komgaSeriesUrl(dto.id)} target="_blank" rel="noreferrer"
+          aria-label="Open in Komga"
           className="inline-flex items-center gap-1.5 rounded-md border border-border px-2.5 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
         >
-          <ExternalLink className="size-3.5" /> Open in Komga
+          <ExternalLink className="size-3.5" /> <span className="hidden md:inline">Open in Komga</span>
         </a>
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
         {/* hero */}
-        <div className="flex gap-7 p-6">
-          <div className="w-48 shrink-0">
+        <div className="flex gap-4 p-4 md:gap-7 md:p-6">
+          <div className="w-28 shrink-0 md:w-48">
             <div className="aspect-[2/3] overflow-hidden rounded-lg border border-border shadow-xl">
               <CoverImage src={s.coverUrl} alt={s.title} />
             </div>
@@ -94,7 +96,7 @@ export function SeriesDetail() {
 
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3">
-              <h1 className="text-3xl font-bold tracking-tight">{s.title}</h1>
+              <h1 className="text-xl font-bold tracking-tight md:text-3xl">{s.title}</h1>
               <StatusDot status={s.status} />
             </div>
 
@@ -128,7 +130,7 @@ export function SeriesDetail() {
               <p className="mt-3.5 max-w-2xl text-sm leading-relaxed text-foreground/90">{dto.metadata.summary}</p>
             )}
 
-            <div className="mt-5 flex items-center gap-2.5">
+            <div className="mt-4 flex flex-wrap items-center gap-2.5 md:mt-5">
               {cont ? (
                 <a href={komgaReaderUrl(cont.book.id)} target="_blank" rel="noreferrer"
                    className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-primary-foreground hover:bg-primary/90">
@@ -191,7 +193,9 @@ type BooksView = 'list' | 'card'
 /** The Books tab: a persisted card/list switch over the series' volumes. List =
  *  the dense table; card = a cover-forward grid of BookCards. Defaults to card. */
 function BooksTab({ books, seriesId }: { books: KomgaBookDto[]; seriesId: string }) {
+  const isMobile = useIsMobile()
   const [view, setView] = usePersistentState<BooksView>('komga:booksView', 'card')
+  const effectiveView = isMobile ? 'card' : view
   if (books.length === 0) return <div className="text-sm text-muted-foreground">No volumes.</div>
   return (
     <>
@@ -200,16 +204,18 @@ function BooksTab({ books, seriesId }: { books: KomgaBookDto[]; seriesId: string
           {books.length} volume{books.length === 1 ? '' : 's'}
         </span>
         <div className="flex-1" />
-        <div className="flex rounded-md border border-border p-0.5">
-          <Button variant={view === 'card' ? 'secondary' : 'ghost'} size="sm" className="h-7 gap-1" onClick={() => setView('card')}>
-            <LayoutGrid className="size-4" />Card
-          </Button>
-          <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="sm" className="h-7 gap-1" onClick={() => setView('list')}>
-            <List className="size-4" />List
-          </Button>
-        </div>
+        {!isMobile && (
+          <div className="flex rounded-md border border-border p-0.5">
+            <Button variant={view === 'card' ? 'secondary' : 'ghost'} size="sm" className="h-7 gap-1" onClick={() => setView('card')}>
+              <LayoutGrid className="size-4" />Card
+            </Button>
+            <Button variant={view === 'list' ? 'secondary' : 'ghost'} size="sm" className="h-7 gap-1" onClick={() => setView('list')}>
+              <List className="size-4" />List
+            </Button>
+          </div>
+        )}
       </div>
-      {view === 'card' ? (
+      {effectiveView === 'card' ? (
         <div className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4">
           {books.map((b) => <BookCard key={b.id} book={b} seriesId={seriesId} />)}
         </div>

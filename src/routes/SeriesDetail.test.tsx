@@ -1,9 +1,10 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import type { KomgaSeriesDto, KomgaBookDto, KomgaPage } from '@/lib/komga/types'
+import { mockViewport } from '@/test/viewport'
 
 const seriesDto: KomgaSeriesDto = {
   id: 's1', libraryId: 'l1', name: 'Saga', oneshot: false,
@@ -53,6 +54,7 @@ beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear() // reset the persisted Books view so each test starts at the default
 })
+afterEach(() => vi.unstubAllGlobals())
 
 function renderDetail() {
   const qc = new QueryClient()
@@ -127,5 +129,17 @@ describe('SeriesDetail', () => {
     await user.click(screen.getByRole('button', { name: 'Volume 1 actions' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Mark unread' }))
     expect(markBookMutate).toHaveBeenCalledWith({ bookId: 'b1', read: false })
+  })
+
+  it('forces the Books card view and hides the view toggle on mobile', () => {
+    mockViewport(true)
+    renderDetail()
+    // toggle is gone…
+    expect(screen.queryByRole('button', { name: 'List' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Card' })).not.toBeInTheDocument()
+    // …and the dense table (its per-row action menus) is not rendered
+    expect(screen.queryByRole('button', { name: 'Volume 1 actions' })).not.toBeInTheDocument()
+    // card view content is present
+    expect(screen.getByText('Volume 1')).toBeInTheDocument()
   })
 })
