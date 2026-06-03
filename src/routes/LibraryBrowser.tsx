@@ -12,16 +12,24 @@ import { useFilters } from '@/hooks/useFilters'
 import { usePersistentState } from '@/hooks/usePersistentState'
 import { useSeriesInfinite, flattenSeries, totalSeries } from '@/lib/komga/queries'
 import type { View, Density } from '@/lib/komga/filters'
+import { useIsMobile } from '@/hooks/useIsMobile'
+import { MobileFilterSheet } from '@/components/MobileFilterSheet'
 
 export function LibraryBrowser() {
   const [filters, setFilters] = useFilters()
   const [view, setView] = usePersistentState<View>('view', 'grid')
   const [density, setDensity] = usePersistentState<Density>('density', 'm')
-  const [filterOpen, setFilterOpen] = useState(true)
+  const isMobile = useIsMobile()
+  // Desktop: the inline panel is open by default (as before). Mobile: the sheet
+  // starts closed. Computed once at mount so the first paint is correct.
+  const [filterOpen, setFilterOpen] = useState(
+    () => typeof window === 'undefined' || !window.matchMedia('(max-width: 767px)').matches,
+  )
 
   const query = useSeriesInfinite(filters)
   const items = flattenSeries(query.data)
   const count = totalSeries(query.data)
+  const effectiveView = isMobile ? 'grid' : view
 
   return (
     <AppShell sidebar={<Sidebar filters={filters} onPickSmart={setFilters} />}>
@@ -60,7 +68,7 @@ export function LibraryBrowser() {
             <div className="flex flex-1 items-center justify-center text-muted-foreground">
               No series match these filters.
             </div>
-          ) : view === 'grid' ? (
+          ) : effectiveView === 'grid' ? (
             <SeriesGrid
               items={items}
               density={density}
@@ -77,8 +85,11 @@ export function LibraryBrowser() {
             />
           )}
         </div>
-        {filterOpen && <FilterPanel filters={filters} onChange={setFilters} />}
+        {!isMobile && filterOpen && <FilterPanel filters={filters} onChange={setFilters} />}
       </div>
+      {isMobile && (
+        <MobileFilterSheet open={filterOpen} onOpenChange={setFilterOpen} filters={filters} onChange={setFilters} />
+      )}
     </AppShell>
   )
 }
