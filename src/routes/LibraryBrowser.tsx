@@ -12,7 +12,7 @@ import { useFilters } from '@/hooks/useFilters'
 import { usePersistentState } from '@/hooks/usePersistentState'
 import { useSeriesInfinite, flattenSeries, totalSeries } from '@/lib/komga/queries'
 import type { View, Density } from '@/lib/komga/filters'
-import { useIsMobile } from '@/hooks/useIsMobile'
+import { useIsMobile, MOBILE_QUERY } from '@/hooks/useIsMobile'
 import { MobileFilterSheet } from '@/components/MobileFilterSheet'
 
 export function LibraryBrowser() {
@@ -23,7 +23,7 @@ export function LibraryBrowser() {
   // Desktop: the inline panel is open by default (as before). Mobile: the sheet
   // starts closed. Computed once at mount so the first paint is correct.
   const [filterOpen, setFilterOpen] = useState(
-    () => typeof window === 'undefined' || !window.matchMedia('(max-width: 767px)').matches,
+    () => typeof window === 'undefined' || !window.matchMedia(MOBILE_QUERY).matches,
   )
 
   const query = useSeriesInfinite(filters)

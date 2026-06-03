@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const MOBILE_QUERY = '(max-width: 767px)'
+export const MOBILE_QUERY = '(max-width: 767px)'
 
 /** True below the `md` (768px) breakpoint. Drives mobile-only *structural*
  *  rendering (nav drawer, filter sheet, suppressed hover actions, forced
