@@ -37,7 +37,7 @@ function Opt({ label, checked, onToggle }: { label: string; checked: boolean; on
 const READ_STATUS: [ReadStatus, string][] = [['UNREAD', 'Unread'], ['IN_PROGRESS', 'In progress'], ['READ', 'Read']]
 const STATUS: [SeriesStatus, string][] = [['ONGOING', 'Ongoing'], ['ENDED', 'Ended'], ['HIATUS', 'Hiatus'], ['ABANDONED', 'Abandoned']]
 
-export function FilterPanel({ filters, onChange }: { filters: Filters; onChange: (f: Filters) => void }) {
+export function FilterPanelInner({ filters, onChange }: { filters: Filters; onChange: (f: Filters) => void }) {
   const genres = useGenres().data ?? []
   const publishers = usePublishers().data ?? []
   const ageRatings = useAgeRatings().data ?? []
@@ -46,7 +46,7 @@ export function FilterPanel({ filters, onChange }: { filters: Filters; onChange:
   const [pubQ, setPubQ] = useState('')
 
   return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-l border-border bg-card">
+    <>
       <div className="flex items-center justify-between border-b border-border px-4 py-3">
         <span className="font-semibold">Filters</span>
         <Button variant="ghost" size="sm" className="h-7" onClick={() => onChange(resetFiltersKeepingSort(filters))}>Reset</Button>
@@ -83,6 +83,14 @@ export function FilterPanel({ filters, onChange }: { filters: Filters; onChange:
           <Opt label="One-shots only" checked={filters.oneshot === true} onToggle={() => onChange({ ...filters, oneshot: filters.oneshot === true ? undefined : true })} />
         </Facet>
       </ScrollArea>
+    </>
+  )
+}
+
+export function FilterPanel({ filters, onChange }: { filters: Filters; onChange: (f: Filters) => void }) {
+  return (
+    <aside className="flex h-full w-72 shrink-0 flex-col border-l border-border bg-card">
+      <FilterPanelInner filters={filters} onChange={onChange} />
     </aside>
   )
 }
