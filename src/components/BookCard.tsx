@@ -1,6 +1,7 @@
 import { Play, Check, RotateCcw } from 'lucide-react'
 import type { KomgaBookDto } from '@/lib/komga/types'
 import { useMarkBook } from '@/lib/komga/mutations'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { bookReadState, bookCoverUrl, bookProgressPct, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl } from '@/lib/komga/reader'
 import { CoverImage } from './CoverImage'
@@ -10,6 +11,7 @@ import { CoverImage } from './CoverImage'
  *  with a hover quick-action to mark read/unread (stops link navigation). */
 export function BookCard({ book, seriesId }: { book: KomgaBookDto; seriesId: string }) {
   const mark = useMarkBook(seriesId)
+  const isMobile = useIsMobile()
   const state = bookReadState(book)
   const read = state === 'READ'
   const pct = bookProgressPct(book)
@@ -38,18 +40,20 @@ export function BookCard({ book, seriesId }: { book: KomgaBookDto; seriesId: str
             {pct}%
           </div>
         )}
-        <div className="pointer-events-none absolute inset-0 flex items-end gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
-          <span className="rounded bg-primary p-1.5 text-primary-foreground"><Play className="size-3.5" /></span>
-          <button
-            type="button"
-            onClick={onMark}
-            disabled={mark.isPending}
-            aria-label={read ? 'Mark unread' : 'Mark read'}
-            className="pointer-events-auto rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80 disabled:opacity-50"
-          >
-            {read ? <RotateCcw className="size-3.5" /> : <Check className="size-3.5" />}
-          </button>
-        </div>
+        {!isMobile && (
+          <div className="pointer-events-none absolute inset-0 flex items-end gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="rounded bg-primary p-1.5 text-primary-foreground"><Play className="size-3.5" /></span>
+            <button
+              type="button"
+              onClick={onMark}
+              disabled={mark.isPending}
+              aria-label={read ? 'Mark unread' : 'Mark read'}
+              className="pointer-events-auto rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80 disabled:opacity-50"
+            >
+              {read ? <RotateCcw className="size-3.5" /> : <Check className="size-3.5" />}
+            </button>
+          </div>
+        )}
       </div>
       <div className="mt-2">
         <div className="truncate text-sm">

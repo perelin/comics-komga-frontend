@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { mockViewport } from '@/test/viewport'
 import { BookCard } from './BookCard'
 import type { KomgaBookDto } from '@/lib/komga/types'
 
@@ -21,6 +22,7 @@ const inProgress = book({ page: 62, completed: false, readDate: '2026-01-01' })
 const unread = book(null)
 
 beforeEach(() => vi.clearAllMocks())
+afterEach(() => vi.unstubAllGlobals())
 
 describe('BookCard', () => {
   it('shows the volume number, title, and a reader deep-link', () => {
@@ -50,6 +52,13 @@ describe('BookCard', () => {
     expect(screen.getByTestId('book-read')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Mark unread' }))
     expect(markBookMutate).toHaveBeenCalledWith({ bookId: 'b1', read: false })
+  })
+
+  it('renders no hover quick-actions on mobile', () => {
+    mockViewport(true)
+    render(<BookCard book={unread} seriesId="s1" />)
+    expect(screen.getByText('Days Gone Bye')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Mark read' })).not.toBeInTheDocument()
   })
 
   it('shows the read percentage for an in-progress book', () => {

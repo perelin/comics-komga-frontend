@@ -1,5 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { mockViewport } from '@/test/viewport'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
 import { SeriesCard } from './SeriesCard'
 import { SeriesRow } from './SeriesRow'
@@ -20,6 +21,7 @@ const vm: SeriesVM = {
 const doneVm: SeriesVM = { ...vm, progress: { read: 11, inProgress: 0, unread: 0, total: 11 } }
 
 beforeEach(() => vi.clearAllMocks())
+afterEach(() => vi.unstubAllGlobals())
 
 function renderCard(s: SeriesVM) {
   return render(
@@ -50,6 +52,13 @@ describe('SeriesCard / SeriesRow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }))
     expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: true })
     expect(screen.queryByText('SERIES PAGE')).not.toBeInTheDocument()
+  })
+
+  it('renders no hover quick-actions on mobile', () => {
+    mockViewport(true)
+    renderCard(vm)
+    expect(screen.getByText('Saga')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Mark all read' })).not.toBeInTheDocument()
   })
 
   it('quick-action marks a fully-read series unread', () => {

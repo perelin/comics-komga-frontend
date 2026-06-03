@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { Play, CheckCheck, RotateCcw, Pencil } from 'lucide-react'
 import type { SeriesVM } from '@/lib/komga/mapping'
 import { useMarkSeries } from '@/lib/komga/mutations'
+import { useIsMobile } from '@/hooks/useIsMobile'
 import { CoverImage } from './CoverImage'
 import { ReadProgress } from './ReadProgress'
 import { Stars } from './Stars'
@@ -10,6 +11,7 @@ import { StatusDot } from './StatusDot'
 export function SeriesCard({ s }: { s: SeriesVM }) {
   const done = s.progress.total > 0 && s.progress.read >= s.progress.total
   const markSeries = useMarkSeries()
+  const isMobile = useIsMobile()
   const onMark = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -20,19 +22,21 @@ export function SeriesCard({ s }: { s: SeriesVM }) {
       <div className="relative aspect-[2/3] overflow-hidden rounded-md border border-border bg-muted">
         <CoverImage src={s.coverUrl} alt={s.title} />
         {!done && <div className="absolute right-1.5 top-1.5"><ReadProgress variant="ring" progress={s.progress} /></div>}
-        <div className="pointer-events-none absolute inset-0 flex items-end gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
-          <span className="rounded bg-primary p-1.5 text-primary-foreground"><Play className="size-3.5" /></span>
-          <button
-            type="button"
-            onClick={onMark}
-            disabled={markSeries.isPending}
-            aria-label={done ? 'Mark all unread' : 'Mark all read'}
-            className="pointer-events-auto rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80 disabled:opacity-50"
-          >
-            {done ? <RotateCcw className="size-3.5" /> : <CheckCheck className="size-3.5" />}
-          </button>
-          <span className="rounded bg-black/60 p-1.5 text-white"><Pencil className="size-3.5" /></span>
-        </div>
+        {!isMobile && (
+          <div className="pointer-events-none absolute inset-0 flex items-end gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
+            <span className="rounded bg-primary p-1.5 text-primary-foreground"><Play className="size-3.5" /></span>
+            <button
+              type="button"
+              onClick={onMark}
+              disabled={markSeries.isPending}
+              aria-label={done ? 'Mark all unread' : 'Mark all read'}
+              className="pointer-events-auto rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80 disabled:opacity-50"
+            >
+              {done ? <RotateCcw className="size-3.5" /> : <CheckCheck className="size-3.5" />}
+            </button>
+            <span className="rounded bg-black/60 p-1.5 text-white"><Pencil className="size-3.5" /></span>
+          </div>
+        )}
       </div>
       <div className="mt-2">
         <div className="truncate text-sm font-semibold text-foreground">{s.title}</div>
