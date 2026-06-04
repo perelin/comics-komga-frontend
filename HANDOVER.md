@@ -124,11 +124,18 @@ src/
    wrap a cmdk `Command`, so `CommandPalette.tsx` composes `Dialog` + `Command`
    directly with `shouldFilter={false}` (results come from the server — do NOT
    let cmdk re-filter them).
-2. **Rating convention** (read-only this slice): series tag `rating:X.X`
-   (Goodreads avg, 1.0–5.0 in 0.2 steps) + `rating:check` (low-confidence →
-   amber warning) + a `links[]` entry `★ <avg> · Goodreads (<votes>)`. Komga
-   **cannot sort by a tag value** → rating is filter-only; do not add a rating
-   sort.
+2. **Rating convention** (read-only this slice): series tag `rating:X.XX`
+   (Goodreads avg, 1.0–5.0 in **0.05 steps, two decimals** — e.g. `rating:4.15`)
+   + `rating:check` (low-confidence → amber warning) + a `links[]` entry
+   `★ <avg> · Goodreads (<votes>)`. Komga **cannot sort by a tag value** →
+   rating is filter-only; do not add a rating sort.
+   - `parseRating` (`mapping.ts`) accepts **one or two** decimals
+     (`/^rating:(\d(?:\.\d{1,2})?)$/`) so both legacy `rating:4.2` and current
+     `rating:4.15` tags parse — keep this if you touch the regex. `Stars.tsx`
+     renders the value with `toFixed(2)` so 0.05 buckets stay distinguishable.
+   - History: buckets were 0.2/one-decimal until 2026-06-04, when the backfill
+     tool (`comics-komga-ratings`) re-bucketed to 0.05; this repo's parser +
+     display were widened in the same change.
 3. **`GET /api/v1/series` is deprecated** (since Komga 1.19, use
    `POST /api/v1/series/list`) but works on 1.23.6 with query-param filters. It's
    isolated in `client.ts` — migrating is a one-file change (see Backlog).

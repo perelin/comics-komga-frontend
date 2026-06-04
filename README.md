@@ -52,11 +52,13 @@ done. See [`deploy/DEPLOY.md`](deploy/DEPLOY.md).
 ## Ratings
 
 Komga has no native rating field. Ratings are read from a tag convention written
-by a separate backfill tool: `rating:X.X` (Goodreads average, 1.0–5.0 in 0.2
-steps), an optional `rating:check` (low-confidence match → warning icon), and a
-`links[]` entry `★ <avg> · Goodreads (<votes>)`. The app parses these into a
-star display + Goodreads click-through. Komga cannot sort by a tag value, so
-rating is **filterable but not sortable** (no rating sort option is offered).
+by a separate backfill tool: `rating:X.XX` (Goodreads average, 1.0–5.0 in 0.05
+steps, two decimals — e.g. `rating:4.15`), an optional `rating:check`
+(low-confidence match → warning icon), and a `links[]` entry
+`★ <avg> · Goodreads (<votes>)`. The parser accepts one or two decimals, so
+legacy `rating:4.2` tags still work. The app parses these into a star display
+(two-decimal value) + Goodreads click-through. Komga cannot sort by a tag value,
+so rating is **filterable but not sortable** (no rating sort option is offered).
 
 ## Stack
 
