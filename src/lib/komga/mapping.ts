@@ -20,7 +20,8 @@ export interface SeriesVM {
   coverUrl: string
 }
 
-const RATING_RE = /^rating:(\d(?:\.\d)?)$/
+// One or two decimals: old 0.2-step tags (rating:4.2) and new 0.05-step tags (rating:4.15).
+const RATING_RE = /^rating:(\d(?:\.\d{1,2})?)$/
 export function parseRating(tags: string[]): Rating | undefined {
   const needsCheck = tags.includes('rating:check')
   for (const t of tags) {

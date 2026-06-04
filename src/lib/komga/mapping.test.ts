@@ -6,6 +6,9 @@ describe('parseRating', () => {
   it('parses a rating tag to a 0-5 number', () => {
     expect(parseRating(['rating:4.2'])).toEqual({ value: 4.2, needsCheck: false })
   })
+  it('parses a two-decimal (0.05-step) rating tag', () => {
+    expect(parseRating(['rating:4.15'])).toEqual({ value: 4.15, needsCheck: false })
+  })
   it('flags low-confidence when rating:check present', () => {
     expect(parseRating(['rating:check', 'rating:4.2'])).toEqual({ value: 4.2, needsCheck: true })
   })
