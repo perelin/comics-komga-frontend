@@ -24,7 +24,7 @@ cp .env.example .env        # set KOMGA_BASE_URL + KOMGA_API_KEY (same values as
                             # the agents monorepo applications/komga/.env)
 npm install
 npm run dev                 # http://localhost:5173  (also LAN: see below)
-npm test                    # 38 tests (Vitest)
+npm test                    # 116 tests (Vitest)
 npm run build               # tsc -b + vite build
 npm run lint                # ESLint (see "Lint baseline" — 4 known non-issues)
 ```
