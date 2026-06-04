@@ -44,7 +44,7 @@ describe('SeriesCard / SeriesRow', () => {
     render(<MemoryRouter><SeriesRow s={vm} /></MemoryRouter>)
     expect(screen.getByText('Saga')).toBeInTheDocument()
     expect(screen.getByText('Image')).toBeInTheDocument()
-    expect(screen.getByText('4.2')).toBeInTheDocument()
+    expect(screen.getByText('4.20')).toBeInTheDocument()
   })
 
   it('quick-action marks an unfinished series read without navigating', () => {

@@ -8,7 +8,7 @@ import { CoverImage } from './CoverImage'
 describe('Stars', () => {
   it('shows the numeric value and a check warning when flagged', () => {
     render(<Stars rating={{ value: 4.2, needsCheck: true }} />)
-    expect(screen.getByText('4.2')).toBeInTheDocument()
+    expect(screen.getByText('4.20')).toBeInTheDocument()
     expect(screen.getByTestId('rating-check')).toBeInTheDocument()
   })
   it('renders nothing interactive when unrated', () => {

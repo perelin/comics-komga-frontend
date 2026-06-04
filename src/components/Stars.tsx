@@ -14,7 +14,7 @@ export function Stars({ rating, size = 14 }: { rating?: Rating; size?: number })
           {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={size} fill="currentColor" />)}
         </span>
       </span>
-      <span className="text-xs tabular-nums text-muted-foreground">{rating.value.toFixed(1)}</span>
+      <span className="text-xs tabular-nums text-muted-foreground">{rating.value.toFixed(2)}</span>
       {rating.needsCheck && (
         <TriangleAlert data-testid="rating-check" size={size - 2} className="text-amber-500" aria-label="low-confidence match" />
       )}
