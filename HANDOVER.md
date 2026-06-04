@@ -13,7 +13,7 @@ to the design-mock IA (read-only — see below); the **⌘K Command Palette** is
 functional-but-shallow. Repo:
 `git@github.com:perelin/comics-komga-frontend` (private). **Live in production at
 https://comics.p2lab.com** — a `caddy:2-alpine` container on the Docker host
-(CT 101) behind the edge Caddy, gated by HTTP basic-auth (user `comics`; creds in
+(CT 101) behind the edge Caddy, gated by HTTP basic-auth (user `perelin`; creds in
 `pass services/comics/basic-auth`). Deploy details: `deploy/DEPLOY.md`. Also
 runnable locally / on the LAN via `npm run dev`.
 
@@ -83,6 +83,20 @@ client machine. Nothing to install on the client — just a browser.
   (from the URL via `useFilters`) + `view`/`density` (localStorage via
   `usePersistentState`) — and fans them one-directionally to Sidebar / Toolbar /
   FilterPanel / ActiveFilters / Grid / List. Every child mutates via `setFilters`.
+- **Responsive (P2L-164, shipped):** mobile-first below the `md` (768px)
+  breakpoint; tablet uses the desktop layout. A `useIsMobile()` hook
+  (`hooks/useIsMobile.ts`, matchMedia `(max-width: 767px)`, exports
+  `MOBILE_QUERY`) gates *structural* changes; styling-only changes use Tailwind
+  `md:`. On mobile: `AppShell` renders a top bar + hamburger **left-`Sheet`
+  drawer** (reusing `<Sidebar>` verbatim); the filter panel is a **right-`Sheet`**
+  (`MobileFilterSheet`, sharing `FilterPanelInner` with the desktop `<aside>`);
+  the Toolbar makes search full-width and hides the view/density toggles, and the
+  grid is forced (dense list is desktop-only); `SeriesDetail` uses a compact hero,
+  forces the Books **card** view, and makes "Open in Komga" icon-only. Card hover
+  quick-actions are **not rendered** on mobile (they were touch-unreachable — and
+  the invisible mark-read button was tappable; both fixed). Tests use the
+  `matchMedia` mock in `src/test/setup.ts` + `mockViewport()` in
+  `src/test/viewport.ts`. **Light mode** is split out to **P2L-168** (deferred).
 
 ## File map
 
@@ -157,7 +171,7 @@ post **one append-only project update per session** (Current Focus / What Change
   P2L-158 add-to-readlist.
 - **Backlog (no milestone):** P2L-159 Series Detail tabs · P2L-160 command-palette
   actions · P2L-161 On-Deck · P2L-162 author/publisher typeahead facets · P2L-163
-  migrate to `POST /series/list` · P2L-164 light mode + responsive · P2L-165
+  migrate to `POST /series/list` · ~~P2L-164 light mode + responsive~~ → responsive **shipped** (In Review), light mode split to **P2L-168** · P2L-165
   robustness polish + CI deploy.
 
 Each issue carries the implementation hints (endpoints, affected files). Production
