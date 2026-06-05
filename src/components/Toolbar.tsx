@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { LayoutGrid, List, SlidersHorizontal, Search } from 'lucide-react'
+import { LayoutGrid, List, SlidersHorizontal, Search, ArrowUp, ArrowDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,12 +9,29 @@ import type { Filters, View, Density, SortKey, SortDir } from '@/lib/komga/filte
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { ScopePicker } from '@/components/ScopePicker'
 
-type SortOption = { value: string; label: string; sortKey: SortKey; sortDir: SortDir }
-const SORTS: SortOption[] = [
-  { value: 'titleSort:asc', label: 'Title (A–Z)', sortKey: 'titleSort', sortDir: 'asc' },
-  { value: 'createdDate:desc', label: 'Recently added', sortKey: 'createdDate', sortDir: 'desc' },
-  { value: 'lastModified:desc', label: 'Recently updated', sortKey: 'lastModified', sortDir: 'desc' },
+export type SortOption = {
+  key: SortKey
+  label: string
+  defaultDir: SortDir
+  directional: boolean
+  dirLabels: { asc: string; desc: string }
+}
+
+export const SORT_OPTIONS: SortOption[] = [
+  { key: 'titleSort',    label: 'Title',        defaultDir: 'asc',  directional: true,  dirLabels: { asc: 'A → Z',        desc: 'Z → A' } },
+  { key: 'createdDate',  label: 'Date added',   defaultDir: 'desc', directional: true,  dirLabels: { asc: 'Oldest first', desc: 'Newest first' } },
+  { key: 'lastModified', label: 'Date updated', defaultDir: 'desc', directional: true,  dirLabels: { asc: 'Oldest first', desc: 'Newest first' } },
+  { key: 'releaseDate',  label: 'Release date', defaultDir: 'desc', directional: true,  dirLabels: { asc: 'Oldest first', desc: 'Newest first' } },
+  { key: 'booksCount',   label: 'Books',        defaultDir: 'desc', directional: true,  dirLabels: { asc: 'Fewest first', desc: 'Most first' } },
+  { key: 'readDate',     label: 'Last read',    defaultDir: 'desc', directional: true,  dirLabels: { asc: 'Oldest first', desc: 'Recently read' } },
+  { key: 'random',       label: 'Random',       defaultDir: 'desc', directional: false, dirLabels: { asc: '', desc: '' } },
 ]
+
+/** Switching the sort field resets the direction to that field's sensible default. */
+export function applySortField(f: Filters, key: SortKey): Filters {
+  const o = SORT_OPTIONS.find((x) => x.key === key) ?? SORT_OPTIONS[0]
+  return { ...f, sortKey: o.key, sortDir: o.defaultDir }
+}
 
 export function Toolbar(props: {
   count: number
@@ -42,7 +59,7 @@ export function Toolbar(props: {
     return () => clearTimeout(id)
   }, [term])
 
-  const sortValue = `${filters.sortKey}:${filters.sortDir}`
+  const activeSort = SORT_OPTIONS.find((o) => o.key === filters.sortKey) ?? SORT_OPTIONS[0]
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2.5 md:flex-nowrap">
       <div className="flex items-center gap-2 whitespace-nowrap">
@@ -73,15 +90,26 @@ export function Toolbar(props: {
           )}
         </>
       )}
-      <Select value={sortValue} onValueChange={(v) => {
-        const s = SORTS.find((o) => `${o.sortKey}:${o.sortDir}` === v)!
-        onFiltersChange({ ...filters, sortKey: s.sortKey, sortDir: s.sortDir })
-      }}>
-        <SelectTrigger className="h-9 w-44"><SelectValue /></SelectTrigger>
-        <SelectContent>
-          {SORTS.map((o) => <SelectItem key={o.value} value={`${o.sortKey}:${o.sortDir}`}>{o.label}</SelectItem>)}
-        </SelectContent>
-      </Select>
+      <div className="flex items-center gap-1">
+        <Select value={filters.sortKey} onValueChange={(v) => onFiltersChange(applySortField(filters, v as SortKey))}>
+          <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {SORT_OPTIONS.map((o) => <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        {activeSort.directional && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 w-9 p-0"
+            aria-label={`Sort direction: ${activeSort.dirLabels[filters.sortDir]}`}
+            title={activeSort.dirLabels[filters.sortDir]}
+            onClick={() => onFiltersChange({ ...filters, sortDir: filters.sortDir === 'asc' ? 'desc' : 'asc' })}
+          >
+            {filters.sortDir === 'asc' ? <ArrowUp className="size-4" /> : <ArrowDown className="size-4" />}
+          </Button>
+        )}
+      </div>
       {isMobile && (
         <Button variant={filterOpen ? 'secondary' : 'outline'} size="sm" className="h-9 gap-1.5" onClick={onToggleFilter}>
           <SlidersHorizontal className="size-4" />Filters
