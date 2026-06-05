@@ -15,7 +15,8 @@ const ALL_LABEL = 'All libraries'
 export function ScopePicker({ value, onChange }: { value: string | undefined; onChange: (libraryId: string | undefined) => void }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
-  const libs = useLibraries().data ?? []
+  const { data } = useLibraries()
+  const libs = useMemo(() => data ?? [], [data])
   const groups = useMemo(() => groupLibraries(libs), [libs])
 
   const active = useMemo(() => {
