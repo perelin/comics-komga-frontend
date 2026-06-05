@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import type { SeriesVM } from '@/lib/komga/mapping'
 import type { Density } from '@/lib/komga/filters'
@@ -25,16 +25,25 @@ function useColumns(ref: React.RefObject<HTMLDivElement | null>, colMin: number)
   return cols
 }
 
-export function SeriesGrid({ items, density, hasNext, fetchNext }: {
+export function SeriesGrid({ items, density, hasNext, fetchNext, initialOffset, onScroll }: {
   items: SeriesVM[]; density: Density; hasNext: boolean; fetchNext: () => void
+  initialOffset: number; onScroll: (el: HTMLElement) => void
 }) {
   const parentRef = useRef<HTMLDivElement>(null)
   const cols = useColumns(parentRef, COL_MIN[density])
   const rowCount = Math.ceil(items.length / cols)
   const rowVirtualizer = useVirtualizer({
     count: rowCount, getScrollElement: () => parentRef.current, estimateSize: () => ROW_H[density] + GAP, overscan: 4,
+    initialOffset,
   })
   const virtualRows = rowVirtualizer.getVirtualItems()
+
+  const restored = useRef(false)
+  useLayoutEffect(() => {
+    if (restored.current) return
+    restored.current = true
+    if (parentRef.current && initialOffset) parentRef.current.scrollTop = initialOffset
+  }, [initialOffset])
 
   useEffect(() => {
     const last = virtualRows.at(-1)
@@ -42,7 +51,7 @@ export function SeriesGrid({ items, density, hasNext, fetchNext }: {
   }, [virtualRows, rowCount, hasNext, fetchNext])
 
   return (
-    <div ref={parentRef} className="min-h-0 flex-1 overflow-auto p-4">
+    <div ref={parentRef} onScroll={(e) => onScroll(e.currentTarget)} className="min-h-0 flex-1 overflow-auto p-4">
       <div style={{ height: rowVirtualizer.getTotalSize(), position: 'relative' }}>
         {virtualRows.map((vrow) => {
           const start = vrow.index * cols
