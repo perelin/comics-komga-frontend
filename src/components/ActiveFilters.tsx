@@ -9,7 +9,6 @@ function chipsFor(f: Filters): Chip[] {
   const chips: Chip[] = []
   const push = (field: keyof Filters, label: string, arr: string[]) => arr.forEach((v) => chips.push({ field, label, value: v }))
   push('readStatus', 'Read', f.readStatus)
-  push('libraryId', 'Library', f.libraryId)
   push('genre', 'Genre', f.genre)
   push('publisher', 'Publisher', f.publisher)
   push('status', 'Status', f.status)

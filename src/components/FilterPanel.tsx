@@ -5,8 +5,7 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { resetFiltersKeepingSort, type Filters } from '@/lib/komga/filters'
 import type { ReadStatus, SeriesStatus } from '@/lib/komga/types'
-import { prettyLibraryName } from '@/lib/library'
-import { useGenres, usePublishers, useAgeRatings, useLibraries } from '@/lib/komga/queries'
+import { useGenres, usePublishers, useAgeRatings } from '@/lib/komga/queries'
 import { AuthorFacet } from './AuthorFacet'
 
 function toggle<T>(arr: T[], v: T): T[] {
@@ -41,7 +40,6 @@ export function FilterPanelInner({ filters, onChange }: { filters: Filters; onCh
   const genres = useGenres().data ?? []
   const publishers = usePublishers().data ?? []
   const ageRatings = useAgeRatings().data ?? []
-  const libraries = useLibraries().data ?? []
   const [genreQ, setGenreQ] = useState('')
   const [pubQ, setPubQ] = useState('')
 
@@ -57,9 +55,6 @@ export function FilterPanelInner({ filters, onChange }: { filters: Filters; onCh
         </Facet>
         <Facet title="Creators">
           <AuthorFacet authors={filters.authors} onChange={(authors) => onChange({ ...filters, authors })} />
-        </Facet>
-        <Facet title="Library">
-          {libraries.map((lib) => <Opt key={lib.id} label={prettyLibraryName(lib.name)} checked={filters.libraryId.includes(lib.id)} onToggle={() => onChange({ ...filters, libraryId: toggle(filters.libraryId, lib.id) })} />)}
         </Facet>
         <Facet title="Status">
           {STATUS.map(([k, l]) => <Opt key={k} label={l} checked={filters.status.includes(k)} onToggle={() => onChange({ ...filters, status: toggle(filters.status, k) })} />)}

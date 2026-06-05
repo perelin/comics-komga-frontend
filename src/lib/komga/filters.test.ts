@@ -13,7 +13,7 @@ describe('URL <-> Filters round-trip', () => {
     const f: Filters = {
       ...DEFAULT_FILTERS,
       readStatus: ['UNREAD'], genre: ['Science Fiction', 'Noir'],
-      libraryId: ['lib1'], publisher: ['Image'], status: ['ONGOING'],
+      library: 'lib1', publisher: ['Image'], status: ['ONGOING'],
       ageRating: ['16'], oneshot: false, search: 'incal',
       sortKey: 'createdDate', sortDir: 'desc',
     }
@@ -33,6 +33,17 @@ describe('URL <-> Filters round-trip', () => {
 })
 
 describe('filtersToCondition', () => {
+  it('single library scope → one `is` libraryId condition', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, library: 'lib1' }))
+      .toEqual({ condition: { libraryId: { operator: 'is', value: 'lib1' } } })
+  })
+  it('combines library scope with another facet via allOf', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, library: 'lib1', readStatus: ['UNREAD'] }))
+      .toEqual({ condition: { allOf: [
+        { readStatus: { operator: 'is', value: 'UNREAD' } },
+        { libraryId: { operator: 'is', value: 'lib1' } },
+      ] } })
+  })
   it('empty filters → no condition, no fullTextSearch', () => {
     expect(filtersToCondition(DEFAULT_FILTERS)).toEqual({})
   })
@@ -92,6 +103,9 @@ describe('listQueryParams', () => {
 })
 
 describe('searchParamsToFilters validation', () => {
+  it('ignores a legacy repeatable ?libraryId= param', () => {
+    expect(searchParamsToFilters(new URLSearchParams('libraryId=old1,old2')).library).toBeUndefined()
+  })
   it('drops invalid enum values and falls back to default sort', () => {
     const sp = new URLSearchParams('status=BOGUS,ONGOING&readStatus=NOPE,UNREAD&sortKey=hacked&sortDir=sideways')
     const f = searchParamsToFilters(sp)

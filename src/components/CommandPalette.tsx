@@ -123,7 +123,7 @@ export function CommandPalette() {
                   value={`lib-${l.id}`}
                   onSelect={() => {
                     setOpen(false)
-                    navigate(`/?libraryId=${l.id}`)
+                    navigate(`/?library=${l.id}`)
                   }}
                 >
                   <Library className="mr-2 size-4" />

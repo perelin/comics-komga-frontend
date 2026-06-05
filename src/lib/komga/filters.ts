@@ -7,7 +7,7 @@ export type SortDir = 'asc' | 'desc'
 
 export interface Filters {
   readStatus: ReadStatus[]
-  libraryId: string[]
+  library?: string
   genre: string[]
   publisher: string[]
   status: SeriesStatus[]
@@ -20,22 +20,23 @@ export interface Filters {
 }
 
 export const DEFAULT_FILTERS: Filters = {
-  readStatus: [], libraryId: [], genre: [], publisher: [], status: [],
+  readStatus: [], library: undefined, genre: [], publisher: [], status: [],
   ageRating: [], authors: [], oneshot: undefined, search: undefined,
   sortKey: 'titleSort', sortDir: 'asc',
 }
 
 export function resetFiltersKeepingSort(f: Filters): Filters {
-  return { ...DEFAULT_FILTERS, sortKey: f.sortKey, sortDir: f.sortDir }
+  return { ...DEFAULT_FILTERS, library: f.library, sortKey: f.sortKey, sortDir: f.sortDir }
 }
 
-const ARRAY_KEYS = ['readStatus', 'libraryId', 'genre', 'publisher', 'status', 'ageRating', 'authors'] as const
+const ARRAY_KEYS = ['readStatus', 'genre', 'publisher', 'status', 'ageRating', 'authors'] as const
 
 export function filtersToSearchParams(f: Filters): URLSearchParams {
   const sp = new URLSearchParams()
   for (const k of ARRAY_KEYS) {
     if (f[k].length) sp.set(k, (f[k] as string[]).join(','))
   }
+  if (f.library) sp.set('library', f.library)
   if (f.oneshot !== undefined) sp.set('oneshot', String(f.oneshot))
   if (f.search) sp.set('q', f.search)
   if (f.sortKey !== DEFAULT_FILTERS.sortKey) sp.set('sortKey', f.sortKey)
@@ -54,7 +55,7 @@ export function searchParamsToFilters(sp: URLSearchParams): Filters {
   const rawSortDir = sp.get('sortDir')
   return {
     readStatus: split(sp.get('readStatus')).filter((v): v is ReadStatus => VALID_READ_STATUS.includes(v as ReadStatus)),
-    libraryId: split(sp.get('libraryId')),
+    library: sp.get('library') ?? undefined,
     genre: split(sp.get('genre')),
     publisher: split(sp.get('publisher')),
     status: split(sp.get('status')).filter((v): v is SeriesStatus => VALID_SERIES_STATUS.includes(v as SeriesStatus)),
@@ -97,7 +98,7 @@ export function filtersToCondition(f: Filters): SeriesListBody {
   const add = (c: Condition | null) => { if (c) parts.push(c) }
 
   add(orFacet('readStatus', f.readStatus))
-  add(orFacet('libraryId', f.libraryId))
+  if (f.library) add(isEq('libraryId', f.library))
   add(orFacet('genre', f.genre))
   add(orFacet('publisher', f.publisher))
   add(orFacet('seriesStatus', f.status))
