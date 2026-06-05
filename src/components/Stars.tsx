@@ -8,10 +8,12 @@ export function Stars({ rating, size = 14 }: { rating?: Rating; size?: number })
     <span data-testid="stars" className="inline-flex items-center gap-1.5">
       <span className="relative inline-block" style={{ height: size }}>
         <span className="flex text-muted-foreground/30">
-          {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={size} />)}
+          {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={size} className="shrink-0" />)}
         </span>
-        <span className="absolute inset-0 flex overflow-hidden text-yellow-500" style={{ width: `${pct}%` }}>
-          {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={size} fill="currentColor" />)}
+        <span className="absolute inset-0 overflow-hidden text-yellow-500" style={{ width: `${pct}%` }}>
+          <span className="flex" style={{ width: size * 5 }}>
+            {[0, 1, 2, 3, 4].map((i) => <Star key={i} size={size} className="shrink-0" fill="currentColor" />)}
+          </span>
         </span>
       </span>
       <span className="text-xs tabular-nums text-muted-foreground">{rating.value.toFixed(2)}</span>
