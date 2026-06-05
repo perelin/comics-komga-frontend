@@ -98,6 +98,25 @@ client machine. Nothing to install on the client — just a browser.
   `matchMedia` mock in `src/test/setup.ts` + `mockViewport()` in
   `src/test/viewport.ts`. **Light mode** is split out to **P2L-168** (deferred).
 
+## Filter & Navigation IA redesign (as-built, P2L-164 + P2L-162/163 scope)
+
+- **Library scope (not a facet):** `Filters.library?: string` is a single-select
+  scope surfaced as a grouped (Franchise / Publisher / Universe), searchable
+  `ScopePicker` in the top toolbar — **not** a multi-select facet. URL param is
+  `?library=<id>`. The old repeatable `?libraryId=` param is not back-compat
+  shimmed; it is silently ignored on read.
+- **Left rail is now `FacetRail`:** scope-aware SmartFolders + the facet list.
+  The old nav `Sidebar`, its Collections and Read-Lists sections, and the
+  associated TanStack queries + client methods/DTOs have been deleted.
+- **Mobile layout:** one filter sheet, opened from the toolbar's **Filters**
+  button (mobile-only). The old hamburger drawer is gone. Desktop keeps the
+  two-column grid with the rail always visible.
+- **Scope-aware smart folders:** applying a smart folder preserves the active
+  `library` scope and clears every other facet. A facet "Reset" / "Clear all"
+  also preserves the scope (scope lives in the toolbar, not the filter chips).
+- **Still deferred:** facet counts (P2L-167), rating writes (P2L-156), light
+  mode (P2L-168).
+
 ## File map
 
 ```
