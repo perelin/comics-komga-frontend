@@ -1,6 +1,5 @@
 import type {
   KomgaSeriesDto, KomgaBookDto, KomgaPage, KomgaLibrary,
-  KomgaCollectionDto, KomgaReadListDto,
 } from './types'
 import { filtersToCondition, listQueryParams, type Filters } from './filters'
 
@@ -48,8 +47,6 @@ export const komga = {
   seriesByPublisher: (publisher: string) =>
     get<KomgaPage<KomgaSeriesDto>>('/series', new URLSearchParams({ publisher, size: '24', sort: 'metadata.titleSort,asc' })),
   libraries: () => get<KomgaLibrary[]>('/libraries'),
-  collections: () => get<KomgaPage<KomgaCollectionDto>>('/collections', new URLSearchParams({ size: '500' })),
-  readlists: () => get<KomgaPage<KomgaReadListDto>>('/readlists', new URLSearchParams({ size: '500' })),
   genres: () => get<string[]>('/genres'),
   publishers: () => get<string[]>('/publishers'),
   ageRatings: () => get<number[]>('/age-ratings'),

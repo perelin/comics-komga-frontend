@@ -36,8 +36,6 @@ export function useSeriesInfinite(filters: Filters) {
 }
 
 export const useLibraries = () => useQuery({ queryKey: ['libraries'], queryFn: komga.libraries })
-export const useCollections = () => useQuery({ queryKey: ['collections'], queryFn: komga.collections })
-export const useReadLists = () => useQuery({ queryKey: ['readlists'], queryFn: komga.readlists })
 export const useGenres = () => useQuery({ queryKey: ['genres'], queryFn: komga.genres })
 export const usePublishers = () => useQuery({ queryKey: ['publishers'], queryFn: komga.publishers })
 export const useAgeRatings = () => useQuery({ queryKey: ['age-ratings'], queryFn: komga.ageRatings })
