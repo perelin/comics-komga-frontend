@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { AppShell } from '@/components/AppShell'
-import { Sidebar } from '@/components/Sidebar'
+import { FacetRail } from '@/components/FacetRail'
 import { Toolbar } from '@/components/Toolbar'
 import { ActiveFilters } from '@/components/ActiveFilters'
 import { FilterPanel } from '@/components/FilterPanel'
@@ -32,7 +32,7 @@ export function LibraryBrowser() {
   const effectiveView = isMobile ? 'grid' : view
 
   return (
-    <AppShell sidebar={<Sidebar filters={filters} onPickSmart={setFilters} />}>
+    <AppShell sidebar={<FacetRail filters={filters} onChange={setFilters} />}>
       <CommandPalette />
       <Toolbar
         count={count}
