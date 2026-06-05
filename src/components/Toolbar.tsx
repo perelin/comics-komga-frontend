@@ -7,6 +7,7 @@ import {
 } from '@/components/ui/select'
 import type { Filters, View, Density, SortKey, SortDir } from '@/lib/komga/filters'
 import { useIsMobile } from '@/hooks/useIsMobile'
+import { ScopePicker } from '@/components/ScopePicker'
 
 type SortOption = { value: string; label: string; sortKey: SortKey; sortDir: SortDir }
 const SORTS: SortOption[] = [
@@ -44,8 +45,8 @@ export function Toolbar(props: {
   const sortValue = `${filters.sortKey}:${filters.sortDir}`
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2.5 md:flex-nowrap">
-      <div className="flex items-baseline gap-2 whitespace-nowrap">
-        <span className="text-base font-semibold">All series</span>
+      <div className="flex items-center gap-2 whitespace-nowrap">
+        <ScopePicker value={filters.library} onChange={(library) => onFiltersChange({ ...filters, library })} />
         <span className="text-sm tabular-nums text-muted-foreground">{count.toLocaleString()}</span>
       </div>
       <div className="flex-1" />
@@ -81,9 +82,11 @@ export function Toolbar(props: {
           {SORTS.map((o) => <SelectItem key={o.value} value={`${o.sortKey}:${o.sortDir}`}>{o.label}</SelectItem>)}
         </SelectContent>
       </Select>
-      <Button variant={filterOpen ? 'secondary' : 'outline'} size="sm" className="h-9 gap-1.5" onClick={onToggleFilter}>
-        <SlidersHorizontal className="size-4" />Filters
-      </Button>
+      {isMobile && (
+        <Button variant={filterOpen ? 'secondary' : 'outline'} size="sm" className="h-9 gap-1.5" onClick={onToggleFilter}>
+          <SlidersHorizontal className="size-4" />Filters
+        </Button>
+      )}
     </div>
   )
 }
