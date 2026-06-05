@@ -39,12 +39,3 @@ if (typeof globalThis.matchMedia !== 'function') {
     dispatchEvent: () => false,
   })) as unknown as typeof globalThis.matchMedia
 }
-
-// jsdom has no ResizeObserver; SeriesGrid's useColumns needs one. No-op shim.
-if (typeof globalThis.ResizeObserver !== 'function') {
-  globalThis.ResizeObserver = class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  } as unknown as typeof globalThis.ResizeObserver
-}
