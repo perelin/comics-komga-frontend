@@ -50,6 +50,9 @@ vi.mock('@/lib/komga/mutations', () => ({
   useMarkBook: () => ({ mutate: markBookMutate, isPending: false }),
 }))
 
+const { backSpy } = vi.hoisted(() => ({ backSpy: vi.fn() }))
+vi.mock('@/hooks/useSmartBack', () => ({ useSmartBack: () => backSpy }))
+
 beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear() // reset the persisted Books view so each test starts at the default
@@ -141,5 +144,17 @@ describe('SeriesDetail', () => {
     expect(screen.queryByRole('button', { name: 'Volume 1 actions' })).not.toBeInTheDocument()
     // card view content is present
     expect(screen.getByText('Volume 1')).toBeInTheDocument()
+  })
+
+  it('the breadcrumb library name links to that library, freshly scoped', () => {
+    renderDetail()
+    const link = screen.getByRole('link', { name: 'Comics' }) // prettyLibraryName('xCat:Fra Comics')
+    expect(link).toHaveAttribute('href', '/?library=l1')
+  })
+
+  it('the back button invokes smart back', () => {
+    renderDetail()
+    fireEvent.click(screen.getByRole('button', { name: 'Back to library' }))
+    expect(backSpy).toHaveBeenCalledTimes(1)
   })
 })

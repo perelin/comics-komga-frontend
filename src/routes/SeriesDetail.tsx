@@ -9,6 +9,7 @@ import { mapSeries } from '@/lib/komga/mapping'
 import { pickContinueBook, bookReadState, bookCoverUrl, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
 import { prettyLibraryName } from '@/lib/library'
+import { useSmartBack } from '@/hooks/useSmartBack'
 import { usePersistentState } from '@/hooks/usePersistentState'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { CoverImage } from '@/components/CoverImage'
@@ -40,11 +41,12 @@ export function SeriesDetail() {
   const bq = useSeriesBooks(id)
   const libs = useLibraries()
   const markSeries = useMarkSeries()
+  const back = useSmartBack()
 
   if (sq.isLoading) return <div className="p-8"><Skeleton className="h-64 w-full" /></div>
   if (sq.isError || !sq.data) return (
     <div className="p-8 text-muted-foreground">
-      Couldn&apos;t load this series. <Link to="/" className="underline">Back</Link>
+      Couldn&apos;t load this series. <button onClick={back} className="underline">Back</button>
     </div>
   )
 
@@ -60,13 +62,13 @@ export function SeriesDetail() {
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       {/* top bar */}
       <div className="flex h-12 shrink-0 items-center gap-2 border-b border-border px-4">
-        <Link to="/" className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" aria-label="Back to library">
+        <button onClick={back} className="rounded-md p-1.5 text-muted-foreground hover:bg-accent hover:text-foreground" aria-label="Back to library">
           <ArrowLeft className="size-4" />
-        </Link>
+        </button>
         <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
           {libraryName && (
             <>
-              <Link to="/" className="hover:text-foreground">{libraryName}</Link>
+              <Link to={`/?library=${dto.libraryId}`} className="hover:text-foreground">{libraryName}</Link>
               <ChevronRight className="size-3.5 text-muted-foreground/50" />
             </>
           )}
