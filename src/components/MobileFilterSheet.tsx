@@ -1,9 +1,10 @@
 import { Sheet, SheetContent, SheetTitle } from '@/components/ui/sheet'
+import { SmartFolders } from './SmartFolders'
 import { FilterPanelInner } from './FilterPanel'
 import type { Filters } from '@/lib/komga/filters'
 
-/** The filter facets in a right-side Sheet for mobile. Reuses FilterPanelInner
- *  (the same body as the desktop inline panel). */
+/** The single mobile filter surface: scope-aware smart folders + the facet list
+ *  in one right-side sheet (replaces the old hamburger drawer + separate sheet). */
 export function MobileFilterSheet({
   open, onOpenChange, filters, onChange,
 }: {
@@ -16,6 +17,7 @@ export function MobileFilterSheet({
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="flex flex-col gap-0 p-0">
         <SheetTitle className="sr-only">Filters</SheetTitle>
+        <SmartFolders filters={filters} onChange={onChange} />
         <FilterPanelInner filters={filters} onChange={onChange} />
       </SheetContent>
     </Sheet>

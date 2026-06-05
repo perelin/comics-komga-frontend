@@ -82,10 +82,3 @@ export function FilterPanelInner({ filters, onChange }: { filters: Filters; onCh
   )
 }
 
-export function FilterPanel({ filters, onChange }: { filters: Filters; onChange: (f: Filters) => void }) {
-  return (
-    <aside className="flex h-full w-72 shrink-0 flex-col border-l border-border bg-card">
-      <FilterPanelInner filters={filters} onChange={onChange} />
-    </aside>
-  )
-}

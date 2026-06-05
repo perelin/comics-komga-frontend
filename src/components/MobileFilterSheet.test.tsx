@@ -14,9 +14,10 @@ function renderSheet(open: boolean) {
 }
 
 describe('MobileFilterSheet', () => {
-  it('renders the facet panel when open', async () => {
+  it('renders smart folders + facets when open', async () => {
     renderSheet(true)
     expect(await screen.findByText('Read status')).toBeInTheDocument()
+    expect(screen.getByText('Continue reading')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Reset' })).toBeInTheDocument()
   })
 
