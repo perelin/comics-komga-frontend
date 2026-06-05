@@ -2,7 +2,9 @@ import type { ReadStatus, SeriesStatus } from './types'
 
 export type View = 'grid' | 'list'
 export type Density = 's' | 'm' | 'l'
-export type SortKey = 'titleSort' | 'createdDate' | 'lastModified'
+export type SortKey =
+  | 'titleSort' | 'createdDate' | 'lastModified'
+  | 'releaseDate' | 'booksCount' | 'readDate' | 'random'
 export type SortDir = 'asc' | 'desc'
 
 export interface Filters {
@@ -46,7 +48,10 @@ export function filtersToSearchParams(f: Filters): URLSearchParams {
 
 const VALID_READ_STATUS: ReadStatus[] = ['UNREAD', 'READ', 'IN_PROGRESS']
 const VALID_SERIES_STATUS: SeriesStatus[] = ['ONGOING', 'ENDED', 'HIATUS', 'ABANDONED']
-const VALID_SORT_KEYS: SortKey[] = ['titleSort', 'createdDate', 'lastModified']
+const VALID_SORT_KEYS: SortKey[] = [
+  'titleSort', 'createdDate', 'lastModified',
+  'releaseDate', 'booksCount', 'readDate', 'random',
+]
 const VALID_SORT_DIRS: SortDir[] = ['asc', 'desc']
 
 export function searchParamsToFilters(sp: URLSearchParams): Filters {
@@ -72,6 +77,10 @@ const SORT_FIELD: Record<SortKey, string> = {
   titleSort: 'metadata.titleSort',
   createdDate: 'createdDate',
   lastModified: 'lastModified',
+  releaseDate: 'booksMetadata.releaseDate',
+  booksCount: 'booksCount',
+  readDate: 'readDate',
+  random: 'random',
 }
 
 // --- POST /series/list search DSL (Komga v1.23.6, operator shapes live-verified) ---

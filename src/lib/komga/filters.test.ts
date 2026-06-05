@@ -121,3 +121,22 @@ describe('searchParamsToFilters drops empty author entries', () => {
     expect(searchParamsToFilters(new URLSearchParams('authors=Neil Gaiman,')).authors).toEqual(['Neil Gaiman'])
   })
 })
+
+describe('new sort options', () => {
+  const NEW_SORTS = [
+    { key: 'releaseDate', field: 'booksMetadata.releaseDate' },
+    { key: 'booksCount', field: 'booksCount' },
+    { key: 'readDate', field: 'readDate' },
+    { key: 'random', field: 'random' },
+  ] as const
+
+  it.each(NEW_SORTS)('round-trips sortKey=$key through the URL', ({ key }) => {
+    const f: Filters = { ...DEFAULT_FILTERS, sortKey: key, sortDir: 'desc' }
+    expect(searchParamsToFilters(filtersToSearchParams(f))).toEqual(f)
+  })
+
+  it.each(NEW_SORTS)('listQueryParams maps $key → $field', ({ key, field }) => {
+    const f: Filters = { ...DEFAULT_FILTERS, sortKey: key, sortDir: 'desc' }
+    expect(listQueryParams(f, 0, 20).get('sort')).toBe(`${field},desc`)
+  })
+})
