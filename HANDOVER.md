@@ -24,7 +24,7 @@ cp .env.example .env        # set KOMGA_BASE_URL + KOMGA_API_KEY (same values as
                             # the agents monorepo applications/komga/.env)
 npm install
 npm run dev                 # http://localhost:5173  (also LAN: see below)
-npm test                    # 146 tests (Vitest)
+npm test                    # 161 tests (Vitest)
 npm run build               # tsc -b + vite build
 npm run lint                # ESLint (see "Lint baseline" — 4 known non-issues)
 ```
@@ -40,8 +40,9 @@ client machine. Nothing to install on the client — just a browser.
 
 - **Library Browser** — virtualized grid + list over all **1947 series**
   (TanStack Virtual; only the visible window renders), real covers /
-  read-progress / ratings, live result count, debounced search-within, sort
-  (Title / Recently added / Recently updated), multi-facet filters
+  read-progress / ratings, live result count, debounced search-within, **sort**
+  (Title / Date added / Date updated / Release date / Books / Last read / Random,
+  each with an asc/desc direction toggle), multi-facet filters
   (read-status, library, status, genre, publisher, age-rating, one-shot). **All
   filter/sort/view state is in the URL** (deep-linkable + reload-safe).
 - **Sidebar** — smart folders (Continue reading / Recently added / Unread),
@@ -208,6 +209,17 @@ src/
    virtualization) sharing the `SERIES_GRID_COLS` template between header and
    rows. Both trigger infinite-scroll near the end via TanStack Query's stable
    `fetchNextPage` (idempotent while in-flight).
+7. **Komga silently ignores unknown sort fields.** `POST /series/list?sort=<field>,<dir>`
+   returns 200 for **any** field but only actually sorts on known ones — verify a
+   new sort field by comparing the first result of `asc` vs `desc` (identical =
+   no-op). Working series fields: `metadata.titleSort`, `createdDate`,
+   `lastModified`, `booksMetadata.releaseDate`, `booksCount`, `readDate`,
+   `random` (reshuffles per request — incoherent across paginated pages, no
+   stable seed), `relevance` (search only). No-ops to avoid (look valid, do
+   nothing): `metadata.releaseDate`, `releaseDate`, `metadata.readDate`,
+   `folderName`, `metadata.status`, `metadata.title`. The sort UI config lives in
+   `src/components/sort-options.ts` (`SORT_OPTIONS` + `applySortField`), kept out
+   of `Toolbar.tsx` per gotcha #5.
 
 ## Lint baseline (NOT regressions — leave them)
 
