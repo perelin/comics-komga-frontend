@@ -1,4 +1,4 @@
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, fireEvent } from '@testing-library/react'
 
 // jsdom has no ResizeObserver; SeriesGrid's useColumns needs one. No-op shim,
@@ -12,28 +12,41 @@ if (typeof globalThis.ResizeObserver !== 'function') {
   } as unknown as typeof globalThis.ResizeObserver
 }
 
-const capturedOpts = vi.fn()
+const scrollToIndex = vi.fn()
 vi.mock('@tanstack/react-virtual', () => ({
-  useVirtualizer: (opts: unknown) => {
-    capturedOpts(opts)
-    return { getVirtualItems: () => [], getTotalSize: () => 0, measureElement: () => {} }
-  },
+  useVirtualizer: () => ({
+    getVirtualItems: () => [{ index: 0, key: 0, start: 0, end: 300, size: 300, lane: 0 }],
+    getTotalSize: () => 300,
+    measureElement: () => {},
+    scrollToIndex,
+  }),
 }))
+vi.mock('./SeriesCard', () => ({ SeriesCard: () => null }))
 
 import { SeriesGrid } from './SeriesGrid'
+import type { SeriesVM } from '@/lib/komga/mapping'
 
-describe('SeriesGrid scroll restore', () => {
-  it('forwards initialOffset to the virtualizer', () => {
-    render(<SeriesGrid items={[]} density="m" hasNext={false} fetchNext={() => {}} initialOffset={420} onScroll={() => {}} />)
-    expect(capturedOpts).toHaveBeenCalled()
-    expect(capturedOpts.mock.calls[0][0].initialOffset).toBe(420)
+const items = (n: number) => Array.from({ length: n }, (_, i) => ({ id: 's' + i }) as unknown as SeriesVM)
+const base = { density: 'm' as const, hasNext: false, fetchNext: () => {} }
+
+describe('SeriesGrid scroll restore (anchor)', () => {
+  beforeEach(() => scrollToIndex.mockClear())
+
+  it('scrolls the saved item row to the top on mount', () => {
+    render(<SeriesGrid {...base} items={items(12)} initialIndex={7} onTopIndex={() => {}} />)
+    // jsdom container width 0 → cols clamps to 1 → rowIndex === item index
+    expect(scrollToIndex).toHaveBeenCalledWith(7, { align: 'start' })
   })
 
-  it('calls onScroll with the scroll container element when scrolled', () => {
-    const onScroll = vi.fn()
-    const { container } = render(<SeriesGrid items={[]} density="m" hasNext={false} fetchNext={() => {}} initialOffset={0} onScroll={onScroll} />)
-    const scroller = container.querySelector('.overflow-auto') as HTMLElement
-    fireEvent.scroll(scroller)
-    expect(onScroll).toHaveBeenCalledWith(scroller)
+  it('does not scroll when no anchor is saved', () => {
+    render(<SeriesGrid {...base} items={items(3)} onTopIndex={() => {}} />)
+    expect(scrollToIndex).not.toHaveBeenCalled()
+  })
+
+  it('reports the first visible item index while scrolling', () => {
+    const onTopIndex = vi.fn()
+    const { container } = render(<SeriesGrid {...base} items={items(2)} onTopIndex={onTopIndex} />)
+    fireEvent.scroll(container.querySelector('.overflow-auto') as HTMLElement)
+    expect(onTopIndex).toHaveBeenCalledWith(0) // top row index 0 × cols
   })
 })

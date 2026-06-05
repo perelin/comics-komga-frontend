@@ -32,7 +32,7 @@ export function LibraryBrowser() {
   const { key: locationKey } = useLocation()
   // Per history-entry + per-view scroll offset, restored when we return from a
   // series detail page. See useScrollRestore + the design spec.
-  const { initialOffset, save } = useScrollRestore(`${locationKey}|${effectiveView}`)
+  const { initialIndex, save } = useScrollRestore(`${locationKey}|${effectiveView}`)
 
   return (
     <AppShell sidebar={<FacetRail filters={filters} onChange={setFilters} />}>
@@ -76,8 +76,8 @@ export function LibraryBrowser() {
             density={density}
             hasNext={!!query.hasNextPage}
             fetchNext={query.fetchNextPage}
-            initialOffset={initialOffset}
-            onScroll={save}
+            initialIndex={initialIndex}
+            onTopIndex={save}
           />
         ) : (
           <SeriesList
@@ -86,8 +86,8 @@ export function LibraryBrowser() {
             onFiltersChange={setFilters}
             hasNext={!!query.hasNextPage}
             fetchNext={query.fetchNextPage}
-            initialOffset={initialOffset}
-            onScroll={save}
+            initialIndex={initialIndex}
+            onTopIndex={save}
           />
         )}
       </div>

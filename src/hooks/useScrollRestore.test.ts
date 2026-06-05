@@ -5,23 +5,23 @@ import { useScrollRestore, __resetScrollCache } from './useScrollRestore'
 describe('useScrollRestore', () => {
   beforeEach(() => __resetScrollCache())
 
-  it('returns offset 0 for an unknown key', () => {
+  it('returns undefined for an unknown key', () => {
     const { result } = renderHook(() => useScrollRestore('a|grid'))
-    expect(result.current.initialOffset).toBe(0)
+    expect(result.current.initialIndex).toBeUndefined()
   })
 
-  it('saves scrollTop and restores it on a fresh mount with the same key', () => {
+  it('saves an anchor index and restores it on a fresh mount with the same key', () => {
     const first = renderHook(() => useScrollRestore('a|grid'))
-    act(() => first.result.current.save({ scrollTop: 250 } as HTMLElement))
+    act(() => first.result.current.save(205))
     first.unmount()
     const second = renderHook(() => useScrollRestore('a|grid'))
-    expect(second.result.current.initialOffset).toBe(250)
+    expect(second.result.current.initialIndex).toBe(205)
   })
 
-  it('keeps offsets independent per key', () => {
+  it('keeps anchors independent per key', () => {
     const a = renderHook(() => useScrollRestore('a|grid'))
-    act(() => a.result.current.save({ scrollTop: 100 } as HTMLElement))
+    act(() => a.result.current.save(100))
     const b = renderHook(() => useScrollRestore('b|list'))
-    expect(b.result.current.initialOffset).toBe(0)
+    expect(b.result.current.initialIndex).toBeUndefined()
   })
 })

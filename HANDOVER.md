@@ -126,17 +126,33 @@ client machine. Nothing to install on the client — just a browser.
   (filters/sort/scope/search) and works for the browser/trackpad back gesture too.
 - **Breadcrumb library name** = a distinct `<Link to={`/?library=${libraryId}`}>`
   — jumps to that library scoped (fresh list), no longer a duplicate "back".
-- **Scroll position** is restored per `` `${location.key}|${view}` `` via
-  `useScrollRestore` (module `Map`, `src/hooks/useScrollRestore.ts`):
-  `LibraryBrowser` passes `initialOffset` + `save` to `SeriesGrid`/`SeriesList`,
-  which feed `initialOffset` to the TanStack Virtual virtualizer and set
-  `scrollTop` once in a mount `useLayoutEffect`; the scroll container's
-  `onScroll` keeps the cache fresh. In-memory only (resets on full reload); if
-  the query cache is evicted (> `gcTime`) the offset clamps to available content.
+- **Scroll position** is restored by **anchoring to an item index**, NOT a pixel
+  offset (`useScrollRestore`, module `Map` keyed `` `${location.key}|${view}` ``,
+  `src/hooks/useScrollRestore.ts`). On scroll, the grid/list report the first
+  visible item's index (`onTopIndex` → `save`). On return, `LibraryBrowser` reads
+  `initialIndex` and the grid/list call `virtualizer.scrollToIndex(rowOf(index),
+  { align: 'start' })`. Anchoring is **column- and row-height-independent** and
+  `scrollToIndex` self-corrects as rows are measured. In-memory only (resets on
+  full reload). Precision: the saved item lands at the **top of the viewport**
+  (row-level; exact pixels within the row aren't preserved — a deliberate trade
+  for robustness).
+  - **Why not a pixel offset (the original, reverted approach):** SeriesGrid uses
+    dynamic `measureElement` AND its column count settles *after* mount, so a
+    saved `scrollTop` lands on the wrong content / clamps while the list is still
+    short. Verified in a real browser; jsdom can't reproduce it (no layout).
+  - **Two restore-timing gotchas (both load-bearing):** (1) `useColumns` returns a
+    `measured` flag and the grid restore waits for it — otherwise it derives the
+    row from the **default** column count (the rendered `cols` can't update
+    mid-commit). (2) Both restores fire from an effect gated on a post-layout
+    state flip (`measured` / `settled`), which also defers them past React
+    **StrictMode**'s dev double-mount (a restore that fires during the initial
+    mount churn gets reset to scrollTop 0).
 - **Test note:** SeriesGrid's test needs a `ResizeObserver` shim, kept
   **file-local** in `SeriesGrid.test.tsx` — a global shim in `test/setup.ts`
   pushes base-ui's ScrollArea (ScopePicker etc.) into a jsdom-incompatible
   `getAnimations()` path (6 unhandled errors + non-zero exit despite passing tests).
+  The real scroll-restore behavior is only verifiable in a real browser
+  (Playwright), not jsdom.
 
 ## File map
 
