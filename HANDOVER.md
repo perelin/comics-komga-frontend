@@ -24,7 +24,7 @@ cp .env.example .env        # set KOMGA_BASE_URL + KOMGA_API_KEY (same values as
                             # the agents monorepo applications/komga/.env)
 npm install
 npm run dev                 # http://localhost:5173  (also LAN: see below)
-npm test                    # 116 tests (Vitest)
+npm test                    # 146 tests (Vitest)
 npm run build               # tsc -b + vite build
 npm run lint                # ESLint (see "Lint baseline" — 4 known non-issues)
 ```
@@ -117,6 +117,27 @@ client machine. Nothing to install on the client — just a browser.
 - **Still deferred:** facet counts (P2L-167), rating writes (P2L-156), light
   mode (P2L-168).
 
+## Back navigation + scroll restoration (as-built, P2L-169)
+
+- **Back arrow** (Series Detail top bar) = history back via `useSmartBack`
+  (`src/hooks/useSmartBack.ts`): `navigate(-1)` when there is in-app history,
+  else `navigate('/')` (deep-link fallback, detected by
+  `location.key === 'default'`). Restores the exact previous list URL
+  (filters/sort/scope/search) and works for the browser/trackpad back gesture too.
+- **Breadcrumb library name** = a distinct `<Link to={`/?library=${libraryId}`}>`
+  — jumps to that library scoped (fresh list), no longer a duplicate "back".
+- **Scroll position** is restored per `` `${location.key}|${view}` `` via
+  `useScrollRestore` (module `Map`, `src/hooks/useScrollRestore.ts`):
+  `LibraryBrowser` passes `initialOffset` + `save` to `SeriesGrid`/`SeriesList`,
+  which feed `initialOffset` to the TanStack Virtual virtualizer and set
+  `scrollTop` once in a mount `useLayoutEffect`; the scroll container's
+  `onScroll` keeps the cache fresh. In-memory only (resets on full reload); if
+  the query cache is evicted (> `gcTime`) the offset clamps to available content.
+- **Test note:** SeriesGrid's test needs a `ResizeObserver` shim, kept
+  **file-local** in `SeriesGrid.test.tsx` — a global shim in `test/setup.ts`
+  pushes base-ui's ScrollArea (ScopePicker etc.) into a jsdom-incompatible
+  `getAnimations()` path (6 unhandled errors + non-zero exit despite passing tests).
+
 ## File map
 
 ```
@@ -126,7 +147,7 @@ src/
     komga/{client,types,mapping,filters,progress,queries}.ts   # + *.test.ts
     library.ts                          # prettyLibraryName, SMART_PRESETS (kept out of components for fast-refresh)
     utils.ts                            # cn()
-  hooks/{usePersistentState,useFilters}.ts
+  hooks/{usePersistentState,useFilters,useSmartBack,useScrollRestore}.ts
   components/
     ui/*                                # shadcn (base-ui) generated
     AppShell, Sidebar, Toolbar, ActiveFilters, FilterPanel,
