@@ -50,7 +50,6 @@ export const SMART_PRESETS: Record<SmartFolder, { label: string; icon: typeof Cl
 // Apply a smart folder WITHOUT touching the active scope: take the preset's
 // signature (DEFAULT_FILTERS + the folder's defining state) and graft the
 // current library scope back in. Clears every other facet + search.
-// NOTE: Filters.library is added in a later task; until then this round-trips as a dangling key (the unit test asserts the round-trip, not the end-to-end scope query).
 export function applySmartFolder(preset: Filters, current: Filters): Filters {
   return { ...preset, library: current.library }
 }
