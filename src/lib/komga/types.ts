@@ -59,6 +59,6 @@ export interface KomgaPage<T> {
   last: boolean
 }
 
-export interface KomgaLibrary { id: string; name: string }
+export interface KomgaLibrary { id: string; name: string; unavailable?: boolean }
 export interface KomgaCollectionDto { id: string; name: string; seriesIds: string[] }
 export interface KomgaReadListDto { id: string; name: string; bookIds: string[] }
