@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import { ChevronRight } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { usePersistentState } from '@/hooks/usePersistentState'
+import { cn } from '@/lib/utils'
 import { resetFiltersKeepingSort, type Filters } from '@/lib/komga/filters'
 import type { ReadStatus, SeriesStatus } from '@/lib/komga/types'
 import { useGenres, usePublishers, useAgeRatings } from '@/lib/komga/queries'
@@ -12,11 +15,32 @@ function toggle<T>(arr: T[], v: T): T[] {
   return arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v]
 }
 
-function Facet({ title, children }: { title: string; children: React.ReactNode }) {
+function Facet({
+  title,
+  open,
+  onToggle,
+  children,
+}: {
+  title: string
+  open: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}) {
   return (
-    <div className="border-b border-border py-3">
-      <div className="mb-1.5 text-sm font-medium">{title}</div>
-      <div className="flex flex-col gap-0.5">{children}</div>
+    <div className="border-b border-border">
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={onToggle}
+        className="flex w-full items-center gap-1.5 py-3 text-sm font-medium outline-none hover:text-foreground/80 focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <ChevronRight
+          aria-hidden="true"
+          className={cn('size-4 shrink-0 text-muted-foreground transition-transform', open && 'rotate-90')}
+        />
+        <span>{title}</span>
+      </button>
+      {open && <div className="flex flex-col gap-0.5 pb-3">{children}</div>}
     </div>
   )
 }
@@ -42,6 +66,19 @@ export function FilterPanelInner({ filters, onChange }: { filters: Filters; onCh
   const ageRatings = useAgeRatings().data ?? []
   const [genreQ, setGenreQ] = useState('')
   const [pubQ, setPubQ] = useState('')
+  const [openMap, setOpenMap] = usePersistentState<Record<string, boolean>>('komga.facets.open', {})
+
+  const active: Record<string, boolean> = {
+    readStatus: filters.readStatus.length > 0,
+    creators: filters.authors.length > 0,
+    status: filters.status.length > 0,
+    genre: filters.genre.length > 0,
+    publisher: filters.publisher.length > 0,
+    ageRating: filters.ageRating.length > 0,
+    format: filters.oneshot === true,
+  }
+  const isOpen = (key: string): boolean => openMap[key] ?? active[key] ?? false
+  const toggleFacet = (key: string) => setOpenMap({ ...openMap, [key]: !isOpen(key) })
 
   return (
     <>
@@ -50,35 +87,34 @@ export function FilterPanelInner({ filters, onChange }: { filters: Filters; onCh
         <Button variant="ghost" size="sm" className="h-7" onClick={() => onChange(resetFiltersKeepingSort(filters))}>Reset</Button>
       </div>
       <ScrollArea className="min-h-0 flex-1 px-4">
-        <Facet title="Read status">
+        <Facet title="Read status" open={isOpen('readStatus')} onToggle={() => toggleFacet('readStatus')}>
           {READ_STATUS.map(([k, l]) => <Opt key={k} label={l} checked={filters.readStatus.includes(k)} onToggle={() => onChange({ ...filters, readStatus: toggle(filters.readStatus, k) })} />)}
         </Facet>
-        <Facet title="Creators">
+        <Facet title="Creators" open={isOpen('creators')} onToggle={() => toggleFacet('creators')}>
           <AuthorFacet authors={filters.authors} onChange={(authors) => onChange({ ...filters, authors })} />
         </Facet>
-        <Facet title="Status">
+        <Facet title="Status" open={isOpen('status')} onToggle={() => toggleFacet('status')}>
           {STATUS.map(([k, l]) => <Opt key={k} label={l} checked={filters.status.includes(k)} onToggle={() => onChange({ ...filters, status: toggle(filters.status, k) })} />)}
         </Facet>
-        <Facet title="Genre">
+        <Facet title="Genre" open={isOpen('genre')} onToggle={() => toggleFacet('genre')}>
           <Input value={genreQ} onChange={(e) => setGenreQ(e.target.value)} placeholder="Search genres…" className="mb-1 h-7 text-sm" />
           {genres.filter((g) => g.toLowerCase().includes(genreQ.toLowerCase())).slice(0, 100).map((g) => (
             <Opt key={g} label={g} checked={filters.genre.includes(g)} onToggle={() => onChange({ ...filters, genre: toggle(filters.genre, g) })} />
           ))}
         </Facet>
-        <Facet title="Publisher">
+        <Facet title="Publisher" open={isOpen('publisher')} onToggle={() => toggleFacet('publisher')}>
           <Input value={pubQ} onChange={(e) => setPubQ(e.target.value)} placeholder="Search publishers…" className="mb-1 h-7 text-sm" />
           {publishers.filter((p) => p.toLowerCase().includes(pubQ.toLowerCase())).slice(0, 100).map((p) => (
             <Opt key={p} label={p} checked={filters.publisher.includes(p)} onToggle={() => onChange({ ...filters, publisher: toggle(filters.publisher, p) })} />
           ))}
         </Facet>
-        <Facet title="Age rating">
+        <Facet title="Age rating" open={isOpen('ageRating')} onToggle={() => toggleFacet('ageRating')}>
           {ageRatings.map((a) => <Opt key={a} label={`${a}+`} checked={filters.ageRating.includes(String(a))} onToggle={() => onChange({ ...filters, ageRating: toggle(filters.ageRating, String(a)) })} />)}
         </Facet>
-        <Facet title="Format">
+        <Facet title="Format" open={isOpen('format')} onToggle={() => toggleFacet('format')}>
           <Opt label="One-shots only" checked={filters.oneshot === true} onToggle={() => onChange({ ...filters, oneshot: filters.oneshot === true ? undefined : true })} />
         </Facet>
       </ScrollArea>
     </>
   )
 }
-
