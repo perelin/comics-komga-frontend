@@ -6,7 +6,7 @@ import { komga } from './client'
 import {
   setBookRead, setAllBooksRead, recountSeries, setSeriesCounts, setSeriesInPage,
 } from './read-progress'
-import type { KomgaBookDto, KomgaSeriesDto, KomgaPage } from './types'
+import type { KomgaBookDto, KomgaSeriesDto, KomgaPage, KomgaReadListDto, ReadListUpdate } from './types'
 
 type BooksPage = KomgaPage<KomgaBookDto>
 type SeriesList = InfiniteData<KomgaPage<KomgaSeriesDto>>
@@ -87,5 +87,39 @@ export function useMarkSeries() {
     },
     onSuccess: (_d, { read }) => toast.success(read ? 'Series marked as read' : 'Series marked as unread'),
     onSettled: () => qc.invalidateQueries({ queryKey: ['series'] }),
+  })
+}
+
+const readListKey = (id: string): QueryKey => ['readlists', id]
+
+/** Update a read list (membership/order/rename), optimistic on the cached detail. */
+export function useUpdateReadList(id: string) {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: ReadListUpdate) => komga.updateReadList(id, body),
+    onMutate: async (body) => {
+      await qc.cancelQueries({ queryKey: readListKey(id) })
+      const prev = qc.getQueryData<KomgaReadListDto>(readListKey(id))
+      if (prev) qc.setQueryData<KomgaReadListDto>(readListKey(id), { ...prev, ...body })
+      return { prev }
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.prev) qc.setQueryData(readListKey(id), ctx.prev)
+      toast.error('Couldn’t update the list')
+    },
+    onSettled: () => {
+      qc.invalidateQueries({ queryKey: ['readlists', id] })
+      qc.invalidateQueries({ queryKey: ['readlists'], exact: true })
+    },
+  })
+}
+
+export function useDeleteReadList() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (id: string) => komga.deleteReadList(id),
+    onError: () => toast.error('Couldn’t delete the list'),
+    onSuccess: () => toast.success('List deleted'),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['readlists'] }),
   })
 }
