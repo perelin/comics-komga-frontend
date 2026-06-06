@@ -187,3 +187,51 @@ describe('useDeleteReadList', () => {
     expect(spy).toHaveBeenCalledWith({ queryKey: ['readlists'] })
   })
 })
+
+describe('useAddToReadList', () => {
+  beforeEach(() => {
+    vi.mocked(komga.createReadList).mockResolvedValue(readList({ id: 'rNew' }))
+    vi.mocked(komga.updateReadList).mockResolvedValue(undefined)
+    vi.mocked(komga.readLists).mockResolvedValue({
+      content: [readList({ id: 'r1', name: 'To Read', bookIds: ['b1'] })],
+      totalElements: 1, totalPages: 1, number: 0, size: 1, first: true, last: true,
+    })
+    vi.mocked(komga.seriesBooks).mockResolvedValue({
+      content: [book('b1'), book('b2'), book('b3')],
+      totalElements: 3, totalPages: 1, number: 0, size: 3, first: true, last: true,
+    })
+    try { localStorage.clear() } catch { /* jsdom */ }
+  })
+
+  it('adds a whole series to the default queue (missing books only)', async () => {
+    const { wrapper } = setup()
+    const { result } = renderHook(() => useAddToReadList(), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ target: { type: 'series', seriesId: 's1' }, listId: 'default' }) })
+
+    expect(komga.seriesBooks).toHaveBeenCalledWith('s1')
+    expect(komga.updateReadList).toHaveBeenCalledWith('r1', { bookIds: ['b1', 'b2', 'b3'] })
+    expect(toast.success).toHaveBeenCalled()
+  })
+
+  it('adds a single book to a named list', async () => {
+    const { wrapper } = setup()
+    const { result } = renderHook(() => useAddToReadList(), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ target: { type: 'book', bookId: 'bX' }, listId: 'r1' }) })
+    expect(komga.updateReadList).toHaveBeenCalledWith('r1', { bookIds: ['b1', 'bX'] })
+  })
+
+  it('creates a new seeded list when newListName is given', async () => {
+    const { wrapper } = setup()
+    const { result } = renderHook(() => useAddToReadList(), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ target: { type: 'book', bookId: 'bX' }, newListName: 'Sci-Fi' }) })
+    expect(komga.createReadList).toHaveBeenCalledWith({ name: 'Sci-Fi', summary: '', ordered: true, bookIds: ['bX'] })
+  })
+
+  it('creates the default queue when it does not exist yet', async () => {
+    vi.mocked(komga.readLists).mockResolvedValue({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 0, first: true, last: true })
+    const { wrapper } = setup()
+    const { result } = renderHook(() => useAddToReadList(), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ target: { type: 'book', bookId: 'bX' }, listId: 'default' }) })
+    expect(komga.createReadList).toHaveBeenCalledWith({ name: 'To Read', summary: '', ordered: true, bookIds: ['bX'] })
+  })
+})

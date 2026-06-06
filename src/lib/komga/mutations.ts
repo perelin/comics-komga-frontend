@@ -6,6 +6,9 @@ import { komga } from './client'
 import {
   setBookRead, setAllBooksRead, recountSeries, setSeriesCounts, setSeriesInPage,
 } from './read-progress'
+import {
+  addIds, bookIdsInOrder, resolveDefaultListId, getCachedDefaultId, setCachedDefaultId, DEFAULT_READLIST_NAME,
+} from './readlists'
 import type { KomgaBookDto, KomgaSeriesDto, KomgaPage, KomgaReadListDto, ReadListUpdate } from './types'
 
 type BooksPage = KomgaPage<KomgaBookDto>
@@ -120,6 +123,67 @@ export function useDeleteReadList() {
     mutationFn: (id: string) => komga.deleteReadList(id),
     onError: () => toast.error('Couldn’t delete the list'),
     onSuccess: () => toast.success('List deleted'),
+    onSettled: () => qc.invalidateQueries({ queryKey: ['readlists'] }),
+  })
+}
+
+export type AddTarget =
+  | { type: 'series'; seriesId: string }
+  | { type: 'book'; bookId: string }
+
+interface AddVars { target: AddTarget; listId?: 'default' | string; newListName?: string }
+interface AddResult { listName: string; added: number; listId?: string; prevIds?: string[] }
+
+/** Resolve the ids to enqueue for a target (a single book, or a series' books in order). */
+async function seedIds(target: AddTarget): Promise<string[]> {
+  if (target.type === 'book') return [target.bookId]
+  const page = await komga.seriesBooks(target.seriesId)
+  return bookIdsInOrder(page.content)
+}
+
+/** Add a series or book to the default queue, a named list, or a brand-new seeded list. */
+export function useAddToReadList() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: async ({ target, listId, newListName }: AddVars): Promise<AddResult> => {
+      const seeds = await seedIds(target)
+      if (seeds.length === 0) throw new Error('Nothing to add')
+
+      // New list → seeded create.
+      if (newListName) {
+        const created = await komga.createReadList({ name: newListName, summary: '', ordered: true, bookIds: seeds })
+        if (newListName === DEFAULT_READLIST_NAME) setCachedDefaultId(created.id)
+        return { listName: newListName, added: seeds.length }
+      }
+
+      const lists = (await komga.readLists()).content
+      let targetId = listId && listId !== 'default' ? listId : null
+      if (!targetId) {
+        targetId = resolveDefaultListId(lists, getCachedDefaultId())
+        if (!targetId) {
+          const created = await komga.createReadList({ name: DEFAULT_READLIST_NAME, summary: '', ordered: true, bookIds: seeds })
+          setCachedDefaultId(created.id)
+          return { listName: DEFAULT_READLIST_NAME, added: seeds.length }
+        }
+        setCachedDefaultId(targetId)
+      }
+      const list = lists.find((l) => l.id === targetId) ?? (await komga.readList(targetId))
+      const nextIds = addIds(list.bookIds, seeds)
+      const added = nextIds.length - list.bookIds.length
+      await komga.updateReadList(targetId, { bookIds: nextIds })
+      return { listName: list.name, added, listId: targetId, prevIds: list.bookIds }
+    },
+    onSuccess: (res) => {
+      const undo = res.listId
+        ? { label: 'Undo', onClick: () => komga.updateReadList(res.listId!, { bookIds: res.prevIds! }).then(() => qc.invalidateQueries({ queryKey: ['readlists'] })) }
+        : undefined
+      const n = res.added
+      toast.success(
+        `${n === 0 ? 'Already in' : `Added ${n} ${n === 1 ? 'issue' : 'issues'} to`} “${res.listName}”`,
+        undo ? { action: undo } : undefined,
+      )
+    },
+    onError: () => toast.error('Couldn’t add to the list'),
     onSettled: () => qc.invalidateQueries({ queryKey: ['readlists'] }),
   })
 }
