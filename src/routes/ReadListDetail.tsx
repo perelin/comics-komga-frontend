@@ -1,14 +1,37 @@
+import type { ReactNode } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Star, X, Trash2 } from 'lucide-react'
+import { ChevronLeft, Star, X, Trash2, GripVertical } from 'lucide-react'
+import {
+  DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent,
+} from '@dnd-kit/core'
+import {
+  SortableContext, useSortable, verticalListSortingStrategy, sortableKeyboardCoordinates,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import { AppShell } from '@/components/AppShell'
 import { ReadListNav } from '@/components/ReadListNav'
 import { useReadList, useReadListBooks } from '@/lib/komga/queries'
 import { useUpdateReadList, useDeleteReadList } from '@/lib/komga/mutations'
-import { removeReadIds, DEFAULT_READLIST_NAME } from '@/lib/komga/readlists'
+import { removeReadIds, moveId, DEFAULT_READLIST_NAME } from '@/lib/komga/readlists'
 import { bookCoverUrl } from '@/lib/komga/books'
 import { komgaReaderUrl } from '@/lib/komga/reader'
 import { CoverImage } from '@/components/CoverImage'
 import { OpenInPanels } from '@/components/OpenInPanels'
+
+/** A drag-sortable row; the grip is the drag handle. */
+function SortableRow({ id, children }: { id: string; children: ReactNode }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      style={{ transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 }}
+      className="grid grid-cols-[1.5rem_2.75rem_minmax(0,1fr)_2.25rem] items-center gap-3 border-b border-border px-3 py-2 last:border-0 hover:bg-accent"
+    >
+      <button {...attributes} {...listeners} aria-label="Verschieben" className="cursor-grab text-muted-foreground"><GripVertical className="size-4" /></button>
+      {children}
+    </div>
+  )
+}
 
 export function ReadListDetail() {
   const { id = '' } = useParams()
@@ -27,6 +50,16 @@ export function ReadListDetail() {
   const remove = (bookId: string) => update.mutate({ bookIds: rl.bookIds.filter((x) => x !== bookId) })
   const removeRead = () => update.mutate({ bookIds: removeReadIds(rl.bookIds, books) })
   const onDelete = () => del.mutate(rl.id, { onSuccess: () => nav('/readlists') })
+
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
+  const onDragEnd = (e: DragEndEvent) => {
+    const { active, over } = e
+    if (!over || active.id === over.id) return
+    const from = rl.bookIds.indexOf(String(active.id))
+    const to = rl.bookIds.indexOf(String(over.id))
+    if (from < 0 || to < 0) return
+    update.mutate({ bookIds: moveId(rl.bookIds, from, to) })
+  }
 
   return (
     <AppShell sidebar={<ReadListNav />}>
@@ -52,19 +85,22 @@ export function ReadListDetail() {
           <div className="text-sm text-muted-foreground">Leere Liste.</div>
         ) : (
           <div className="rounded-md border border-border">
-            {books.map((b, i) => (
-              <div key={b.id} className="grid grid-cols-[2rem_2.75rem_minmax(0,1fr)_2.25rem] items-center gap-3 border-b border-border px-3 py-2 last:border-0 hover:bg-accent">
-                <span className="text-center text-xs tabular-nums text-muted-foreground">{i + 1}</span>
-                <a href={komgaReaderUrl(b.id)} target="_blank" rel="noreferrer" className="h-9 w-6 overflow-hidden rounded-[2px] border border-border">
-                  <CoverImage src={bookCoverUrl(b.id)} alt="" />
-                </a>
-                <a href={komgaReaderUrl(b.id)} target="_blank" rel="noreferrer" className="truncate text-sm hover:underline">
-                  {b.metadata.title || b.name}
-                  {b.readProgress?.completed && <span className="ml-1 text-xs text-green-500">· gelesen</span>}
-                </a>
-                <button onClick={() => remove(b.id)} aria-label="Entfernen" className="flex justify-center text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
-              </div>
-            ))}
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+              <SortableContext items={rl.bookIds} strategy={verticalListSortingStrategy}>
+                {books.map((b) => (
+                  <SortableRow key={b.id} id={b.id}>
+                    <a href={komgaReaderUrl(b.id)} target="_blank" rel="noreferrer" className="h-9 w-6 overflow-hidden rounded-[2px] border border-border">
+                      <CoverImage src={bookCoverUrl(b.id)} alt="" />
+                    </a>
+                    <a href={komgaReaderUrl(b.id)} target="_blank" rel="noreferrer" className="truncate text-sm hover:underline">
+                      {b.metadata.title || b.name}
+                      {b.readProgress?.completed && <span className="ml-1 text-xs text-green-500">· gelesen</span>}
+                    </a>
+                    <button onClick={() => remove(b.id)} aria-label="Entfernen" className="flex justify-center text-muted-foreground hover:text-destructive"><X className="size-4" /></button>
+                  </SortableRow>
+                ))}
+              </SortableContext>
+            </DndContext>
           </div>
         )}
       </div>
