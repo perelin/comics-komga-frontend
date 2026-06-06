@@ -16,6 +16,9 @@ export interface Filters {
   ageRating: string[]
   authors: string[]
   oneshot?: boolean
+  /** Inclusive rating bounds (1–5 stars). Both undefined = no rating filter. */
+  ratingMin?: number
+  ratingMax?: number
   search?: string
   sortKey: SortKey
   sortDir: SortDir
@@ -23,7 +26,8 @@ export interface Filters {
 
 export const DEFAULT_FILTERS: Filters = {
   readStatus: [], library: undefined, genre: [], publisher: [], status: [],
-  ageRating: [], authors: [], oneshot: undefined, search: undefined,
+  ageRating: [], authors: [], oneshot: undefined,
+  ratingMin: undefined, ratingMax: undefined, search: undefined,
   sortKey: 'titleSort', sortDir: 'asc',
 }
 
@@ -40,6 +44,8 @@ export function filtersToSearchParams(f: Filters): URLSearchParams {
   }
   if (f.library) sp.set('library', f.library)
   if (f.oneshot !== undefined) sp.set('oneshot', String(f.oneshot))
+  if (f.ratingMin !== undefined) sp.set('ratingMin', String(f.ratingMin))
+  if (f.ratingMax !== undefined) sp.set('ratingMax', String(f.ratingMax))
   if (f.search) sp.set('q', f.search)
   if (f.sortKey !== DEFAULT_FILTERS.sortKey) sp.set('sortKey', f.sortKey)
   if (f.sortDir !== DEFAULT_FILTERS.sortDir) sp.set('sortDir', f.sortDir)
@@ -54,6 +60,13 @@ const VALID_SORT_KEYS: SortKey[] = [
 ]
 const VALID_SORT_DIRS: SortDir[] = ['asc', 'desc']
 
+/** Parse a rating bound: a finite number within [1, 5], else undefined. */
+function parseRatingBound(v: string | null): number | undefined {
+  if (v === null) return undefined
+  const n = parseFloat(v)
+  return Number.isFinite(n) && n >= 1 && n <= 5 ? n : undefined
+}
+
 export function searchParamsToFilters(sp: URLSearchParams): Filters {
   const split = (v: string | null) => (v ? v.split(',').filter(Boolean) : [])
   const rawSortKey = sp.get('sortKey')
@@ -67,6 +80,8 @@ export function searchParamsToFilters(sp: URLSearchParams): Filters {
     ageRating: split(sp.get('ageRating')),
     authors: split(sp.get('authors')),
     oneshot: sp.has('oneshot') ? sp.get('oneshot') === 'true' : undefined,
+    ratingMin: parseRatingBound(sp.get('ratingMin')),
+    ratingMax: parseRatingBound(sp.get('ratingMax')),
     search: sp.get('q') ?? undefined,
     sortKey: rawSortKey !== null && VALID_SORT_KEYS.includes(rawSortKey as SortKey) ? (rawSortKey as SortKey) : DEFAULT_FILTERS.sortKey,
     sortDir: rawSortDir !== null && VALID_SORT_DIRS.includes(rawSortDir as SortDir) ? (rawSortDir as SortDir) : DEFAULT_FILTERS.sortDir,
@@ -100,6 +115,23 @@ function orFacet(field: string, values: unknown[]): Condition | null {
   return { anyOf: values.map((v) => isEq(field, v)) }
 }
 
+/** Rating filter → anyOf over the discrete `rating:X.XX` tags in [min, max].
+ *  Komga can't range-compare tag *values* (they're strings), so we enumerate the
+ *  0.05 grid (the real tag granularity) and OR exact `tag is rating:X.XX` nodes —
+ *  the only live-verified shape (POST /series/list, v1.23.6). Bounds default to the
+ *  full 1–5 range; both undefined → no condition. The enumerated grid covers every
+ *  real value in range (a 3.15-rated series falls in [3.0, 4.0]).
+ *  Known minor gap: a stray 1-decimal tag `rating:3.8` (alongside `rating:3.80`)
+ *  exists in the data; the 2-decimal grid only matches `rating:3.80`. ≤1 series. */
+function ratingFacet(min?: number, max?: number): Condition | null {
+  if (min === undefined && max === undefined) return null
+  const lo = Math.round((min ?? 1) * 100)
+  const hi = Math.round((max ?? 5) * 100)
+  const tags: string[] = []
+  for (let c = lo; c <= hi; c += 5) tags.push(`rating:${(c / 100).toFixed(2)}`)
+  return orFacet('tag', tags)
+}
+
 /** Build the SeriesSearch body: allOf across facets, anyOf within a multi-value
  *  facet, allOf (AND) within the author facet, search → fullTextSearch. */
 export function filtersToCondition(f: Filters): SeriesListBody {
@@ -113,6 +145,7 @@ export function filtersToCondition(f: Filters): SeriesListBody {
   add(orFacet('seriesStatus', f.status))
   add(orFacet('ageRating', f.ageRating.map(Number)))
   if (f.oneshot !== undefined) add({ oneShot: { operator: f.oneshot ? 'isTrue' : 'isFalse' } })
+  add(ratingFacet(f.ratingMin, f.ratingMax))
   // Authors: AND each (the concrete collaboration) — see spec decision 2.
   for (const name of f.authors) add({ author: { operator: 'is', value: { name } } })
 

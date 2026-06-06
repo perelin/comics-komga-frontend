@@ -79,4 +79,26 @@ describe('FilterPanelInner', () => {
     const stored = JSON.parse(localStorage.getItem('komga.facets.open') ?? '{}')
     expect(stored.readStatus).toBe(true)
   })
+
+  it('auto-expands the Rating facet when a bound is active and shows the range label', () => {
+    renderPanel({ ...DEFAULT_FILTERS, ratingMin: 4 })
+    expect(screen.getByRole('button', { name: 'Rating' })).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByText('4.0 – 5.0 ★')).toBeInTheDocument()
+  })
+
+  it('shows "Any rating" when the Rating facet is opened without a bound', () => {
+    renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Rating' }))
+    expect(screen.getByText('Any rating')).toBeInTheDocument()
+  })
+
+  it('emits a rating bound when the min thumb is stepped up via keyboard', () => {
+    const onChange = vi.fn()
+    renderPanel(DEFAULT_FILTERS, onChange)
+    fireEvent.click(screen.getByRole('button', { name: 'Rating' }))
+    fireEvent.keyDown(screen.getByLabelText('Minimum rating'), { key: 'ArrowRight' })
+    // From the full range [1, 5], stepping the min up by 0.5 → ratingMin 1.5,
+    // ratingMax cleared (5 maps back to undefined = inactive upper bound).
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ratingMin: 1.5, ratingMax: undefined }))
+  })
 })

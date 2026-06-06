@@ -15,6 +15,9 @@ function chipsFor(f: Filters): Chip[] {
   push('ageRating', 'Age', f.ageRating)
   push('authors', 'Creator', f.authors)
   if (f.oneshot !== undefined) chips.push({ field: 'oneshot', label: 'One-shot', value: String(f.oneshot) })
+  if (f.ratingMin !== undefined || f.ratingMax !== undefined) {
+    chips.push({ field: 'ratingMin', label: 'Rating', value: `${(f.ratingMin ?? 1).toFixed(1)}–${(f.ratingMax ?? 5).toFixed(1)} ★` })
+  }
   return chips
 }
 
@@ -23,6 +26,7 @@ export function ActiveFilters({ filters, onChange }: { filters: Filters; onChang
   if (!chips.length) return null
   const remove = (c: Chip) => {
     if (c.field === 'oneshot') return onChange({ ...filters, oneshot: undefined })
+    if (c.field === 'ratingMin') return onChange({ ...filters, ratingMin: undefined, ratingMax: undefined })
     const arr = (filters[c.field] as string[]).filter((v) => v !== c.value)
     onChange({ ...filters, [c.field]: arr })
   }

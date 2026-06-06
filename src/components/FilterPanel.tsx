@@ -3,6 +3,7 @@ import { ChevronRight } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { usePersistentState } from '@/hooks/usePersistentState'
 import { cn } from '@/lib/utils'
@@ -57,6 +58,32 @@ function Opt({ label, checked, onToggle }: { label: string; checked: boolean; on
   )
 }
 
+/** Rating range slider (1–5 stars, half-star steps). Full range = filter inactive
+ *  (both bounds undefined), so pulling the handles back to the edges clears it. */
+function RatingFacet({ min, max, onChange }: { min?: number; max?: number; onChange: (min?: number, max?: number) => void }) {
+  const lo = min ?? 1
+  const hi = max ?? 5
+  const active = min !== undefined || max !== undefined
+  return (
+    <div className="px-1 pt-1">
+      <Slider
+        min={1}
+        max={5}
+        step={0.5}
+        value={[lo, hi]}
+        thumbLabels={['Minimum rating', 'Maximum rating']}
+        onValueChange={(v) => {
+          const [a, b] = v as number[]
+          onChange(a <= 1 ? undefined : a, b >= 5 ? undefined : b)
+        }}
+      />
+      <div className="mt-1 text-xs text-muted-foreground">
+        {active ? `${lo.toFixed(1)} – ${hi.toFixed(1)} ★` : 'Any rating'}
+      </div>
+    </div>
+  )
+}
+
 const READ_STATUS: [ReadStatus, string][] = [['UNREAD', 'Unread'], ['IN_PROGRESS', 'In progress'], ['READ', 'Read']]
 const STATUS: [SeriesStatus, string][] = [['ONGOING', 'Ongoing'], ['ENDED', 'Ended'], ['HIATUS', 'Hiatus'], ['ABANDONED', 'Abandoned']]
 
@@ -75,6 +102,7 @@ export function FilterPanelInner({ filters, onChange }: { filters: Filters; onCh
     genre: filters.genre.length > 0,
     publisher: filters.publisher.length > 0,
     ageRating: filters.ageRating.length > 0,
+    rating: filters.ratingMin !== undefined || filters.ratingMax !== undefined,
     format: filters.oneshot === true,
   }
   const isOpen = (key: string): boolean => openMap[key] ?? active[key] ?? false
@@ -110,6 +138,13 @@ export function FilterPanelInner({ filters, onChange }: { filters: Filters; onCh
         </Facet>
         <Facet title="Age rating" open={isOpen('ageRating')} onToggle={() => toggleFacet('ageRating')}>
           {ageRatings.map((a) => <Opt key={a} label={`${a}+`} checked={filters.ageRating.includes(String(a))} onToggle={() => onChange({ ...filters, ageRating: toggle(filters.ageRating, String(a)) })} />)}
+        </Facet>
+        <Facet title="Rating" open={isOpen('rating')} onToggle={() => toggleFacet('rating')}>
+          <RatingFacet
+            min={filters.ratingMin}
+            max={filters.ratingMax}
+            onChange={(ratingMin, ratingMax) => onChange({ ...filters, ratingMin, ratingMax })}
+          />
         </Facet>
         <Facet title="Format" open={isOpen('format')} onToggle={() => toggleFacet('format')}>
           <Opt label="One-shots only" checked={filters.oneshot === true} onToggle={() => onChange({ ...filters, oneshot: filters.oneshot === true ? undefined : true })} />

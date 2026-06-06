@@ -93,6 +93,54 @@ describe('filtersToCondition', () => {
   })
 })
 
+describe('rating filter', () => {
+  it('round-trips ratingMin/ratingMax through the URL', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, ratingMin: 3.5, ratingMax: 4.5 }
+    const sp = filtersToSearchParams(f)
+    expect(sp.get('ratingMin')).toBe('3.5')
+    expect(sp.get('ratingMax')).toBe('4.5')
+    expect(searchParamsToFilters(sp)).toEqual(f)
+  })
+  it('round-trips a min-only bound', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, ratingMin: 4 }
+    expect(searchParamsToFilters(filtersToSearchParams(f))).toEqual(f)
+  })
+  it('drops out-of-range / NaN rating bounds', () => {
+    const f = searchParamsToFilters(new URLSearchParams('ratingMin=0.5&ratingMax=abc'))
+    expect(f.ratingMin).toBeUndefined()
+    expect(f.ratingMax).toBeUndefined()
+  })
+  it('no bounds → no condition', () => {
+    expect(filtersToCondition(DEFAULT_FILTERS)).toEqual({})
+  })
+  it('enumerates the 0.05 grid in [min, max] as anyOf of exact tag nodes', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, ratingMin: 3.0, ratingMax: 3.1 }))
+      .toEqual({ condition: { anyOf: [
+        { tag: { operator: 'is', value: 'rating:3.00' } },
+        { tag: { operator: 'is', value: 'rating:3.05' } },
+        { tag: { operator: 'is', value: 'rating:3.10' } },
+      ] } })
+  })
+  it('a single grid step → bare tag node (no anyOf wrapper)', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, ratingMin: 4.0, ratingMax: 4.0 }))
+      .toEqual({ condition: { tag: { operator: 'is', value: 'rating:4.00' } } })
+  })
+  it('min-only bound runs the grid up to 5.00 (≥ threshold)', () => {
+    const body = filtersToCondition({ ...DEFAULT_FILTERS, ratingMin: 4.5 })
+    const nodes = (body.condition as { anyOf: unknown[] }).anyOf
+    expect(nodes).toContainEqual({ tag: { operator: 'is', value: 'rating:4.50' } })
+    expect(nodes).toContainEqual({ tag: { operator: 'is', value: 'rating:5.00' } })
+    expect(nodes).toHaveLength(11) // 4.50..5.00 in 0.05 steps
+  })
+  it('combines the rating facet with other facets via allOf', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, readStatus: ['UNREAD'], ratingMin: 4.0, ratingMax: 4.0 }))
+      .toEqual({ condition: { allOf: [
+        { readStatus: { operator: 'is', value: 'UNREAD' } },
+        { tag: { operator: 'is', value: 'rating:4.00' } },
+      ] } })
+  })
+})
+
 describe('listQueryParams', () => {
   it('emits sort/page/size, mapping the sort key', () => {
     const p = listQueryParams({ ...DEFAULT_FILTERS, sortKey: 'createdDate', sortDir: 'desc' }, 2, 50)
