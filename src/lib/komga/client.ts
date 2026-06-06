@@ -1,5 +1,5 @@
 import type {
-  KomgaSeriesDto, KomgaBookDto, KomgaPage, KomgaLibrary,
+  KomgaSeriesDto, KomgaBookDto, KomgaPage, KomgaLibrary, KomgaReadListDto, ReadListCreate, ReadListUpdate,
 } from './types'
 import { filtersToCondition, listQueryParams, type Filters } from './filters'
 
@@ -59,4 +59,15 @@ export const komga = {
   markBookUnread: (id: string) => send('DELETE', `/books/${id}/read-progress`),
   markSeriesRead: (id: string) => send('POST', `/series/${id}/read-progress`),
   markSeriesUnread: (id: string) => send('DELETE', `/series/${id}/read-progress`),
+
+  // Read lists (read-list management). Mutations are admin-only; the proxy injects
+  // the admin X-API-Key. PATCH sets the FULL bookIds array (no granular add/remove).
+  readLists: () =>
+    get<KomgaPage<KomgaReadListDto>>('/readlists', new URLSearchParams({ size: '500', sort: 'name,asc' })),
+  readList: (id: string) => get<KomgaReadListDto>(`/readlists/${id}`),
+  readListBooks: (id: string) =>
+    get<KomgaPage<KomgaBookDto>>(`/readlists/${id}/books`, new URLSearchParams({ size: '500' })),
+  createReadList: (body: ReadListCreate) => postList<KomgaReadListDto>('/readlists', body),
+  updateReadList: (id: string, body: ReadListUpdate) => send('PATCH', `/readlists/${id}`, body),
+  deleteReadList: (id: string) => send('DELETE', `/readlists/${id}`),
 }

@@ -60,3 +60,16 @@ export interface KomgaPage<T> {
 }
 
 export interface KomgaLibrary { id: string; name: string; unavailable?: boolean }
+
+export interface KomgaReadListDto {
+  id: string
+  name: string
+  summary: string
+  ordered: boolean
+  bookIds: string[]
+  filtered: boolean
+  createdDate: string
+  lastModifiedDate: string
+}
+export interface ReadListCreate { name: string; summary: string; ordered: boolean; bookIds: string[] }
+export interface ReadListUpdate { name?: string; summary?: string; ordered?: boolean; bookIds?: string[] }

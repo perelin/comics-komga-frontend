@@ -81,3 +81,50 @@ describe('komga.series POST /series/list', () => {
     expect(res).toEqual(['Neil Gaiman'])
   })
 })
+
+describe('komga read-list endpoints', () => {
+  let fetchMock: ReturnType<typeof vi.fn>
+  const rl = {
+    id: 'r1', name: 'To Read', summary: '', ordered: true,
+    bookIds: ['b1', 'b2'], filtered: false, createdDate: '', lastModifiedDate: '',
+  }
+  beforeEach(() => {
+    fetchMock = vi.fn().mockResolvedValue({ ok: true, status: 200, statusText: 'OK', json: async () => rl })
+    vi.stubGlobal('fetch', fetchMock)
+  })
+  afterEach(() => vi.unstubAllGlobals())
+
+  it('readLists GETs /readlists with size+sort', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 200, statusText: 'OK', json: async () => page })
+    await komga.readLists()
+    const [url, init] = fetchMock.mock.calls[0] as [string, { method?: string }]
+    expect(url).toBe('/komga/api/v1/readlists?size=500&sort=name%2Casc')
+    expect(init?.method).toBeUndefined()
+  })
+
+  it('createReadList POSTs the creation body and returns the DTO', async () => {
+    const res = await komga.createReadList({ name: 'To Read', summary: '', ordered: true, bookIds: ['b1'] })
+    const [url, init] = fetchMock.mock.calls[0] as [string, { method?: string; body?: string }]
+    expect(url).toBe('/komga/api/v1/readlists')
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body!)).toEqual({ name: 'To Read', summary: '', ordered: true, bookIds: ['b1'] })
+    expect(res).toEqual(rl)
+  })
+
+  it('updateReadList PATCHes the full bookIds array', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 204, statusText: 'No Content' })
+    await komga.updateReadList('r1', { bookIds: ['b1', 'b2', 'b3'] })
+    const [url, init] = fetchMock.mock.calls[0] as [string, { method?: string; body?: string }]
+    expect(url).toBe('/komga/api/v1/readlists/r1')
+    expect(init.method).toBe('PATCH')
+    expect(JSON.parse(init.body!)).toEqual({ bookIds: ['b1', 'b2', 'b3'] })
+  })
+
+  it('deleteReadList DELETEs the list', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, status: 204, statusText: 'No Content' })
+    await komga.deleteReadList('r1')
+    const [url, init] = fetchMock.mock.calls[0] as [string, { method?: string }]
+    expect(url).toBe('/komga/api/v1/readlists/r1')
+    expect(init.method).toBe('DELETE')
+  })
+})
