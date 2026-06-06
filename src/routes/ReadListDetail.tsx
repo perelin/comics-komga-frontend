@@ -40,6 +40,7 @@ export function ReadListDetail() {
   const booksQ = useReadListBooks(id)
   const update = useUpdateReadList(id)
   const del = useDeleteReadList()
+  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
 
   if (list.isLoading) return <AppShell sidebar={<ReadListNav />}><div className="p-6 text-sm text-muted-foreground">Lädt…</div></AppShell>
   if (list.isError || !list.data) return <AppShell sidebar={<ReadListNav />}><div className="p-6 text-sm text-muted-foreground">Liste nicht gefunden.</div></AppShell>
@@ -51,7 +52,6 @@ export function ReadListDetail() {
   const removeRead = () => update.mutate({ bookIds: removeReadIds(rl.bookIds, books) })
   const onDelete = () => del.mutate(rl.id, { onSuccess: () => nav('/readlists') })
 
-  const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
   const onDragEnd = (e: DragEndEvent) => {
     const { active, over } = e
     if (!over || active.id === over.id) return
