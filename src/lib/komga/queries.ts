@@ -53,3 +53,9 @@ export const useSearchSeries = (q: string) =>
   useQuery({ queryKey: ['search', q], queryFn: () => komga.searchSeries(q), enabled: q.trim().length > 0 })
 export const useAuthorSearch = (q: string) =>
   useQuery({ queryKey: ['authors', q], queryFn: () => komga.authorNames(q), enabled: q.trim().length >= 2 })
+
+export const useReadLists = () => useQuery({ queryKey: ['readlists'], queryFn: komga.readLists })
+export const useReadList = (id: string) =>
+  useQuery({ queryKey: ['readlists', id], queryFn: () => komga.readList(id), enabled: !!id })
+export const useReadListBooks = (id: string) =>
+  useQuery({ queryKey: ['readlists', id, 'books'], queryFn: () => komga.readListBooks(id), enabled: !!id })
