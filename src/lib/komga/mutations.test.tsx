@@ -4,8 +4,8 @@ import { renderHook, act } from '@testing-library/react'
 import { QueryClient, QueryClientProvider, type InfiniteData } from '@tanstack/react-query'
 import { komga } from './client'
 import { toast } from 'sonner'
-import { useMarkBook, useMarkSeries } from './mutations'
-import type { KomgaBookDto, KomgaSeriesDto, KomgaPage } from './types'
+import { useMarkBook, useMarkSeries, useUpdateReadList, useDeleteReadList, useAddToReadList } from './mutations'
+import type { KomgaBookDto, KomgaSeriesDto, KomgaPage, KomgaReadListDto } from './types'
 
 vi.mock('./client', () => ({
   komga: {
@@ -13,6 +13,13 @@ vi.mock('./client', () => ({
     markBookUnread: vi.fn(),
     markSeriesRead: vi.fn(),
     markSeriesUnread: vi.fn(),
+    readLists: vi.fn(),
+    readList: vi.fn(),
+    readListBooks: vi.fn(),
+    seriesBooks: vi.fn(),
+    createReadList: vi.fn(),
+    updateReadList: vi.fn(),
+    deleteReadList: vi.fn(),
   },
 }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
@@ -135,5 +142,96 @@ describe('useMarkSeries', () => {
     const list = qc.getQueryData<InfiniteData<KomgaPage<KomgaSeriesDto>>>(['series', { genre: [] }])!
     expect(list.pages[0].content[0].booksReadCount).toBe(0)
     expect(toast.error).toHaveBeenCalled()
+  })
+})
+
+const readList = (over: Partial<KomgaReadListDto> = {}): KomgaReadListDto => ({
+  id: 'r1', name: 'To Read', summary: '', ordered: true,
+  bookIds: ['b1', 'b2'], filtered: false, createdDate: '', lastModifiedDate: '', ...over,
+})
+
+describe('useUpdateReadList', () => {
+  it('optimistically sets bookIds on the cached list and PATCHes', async () => {
+    const { qc, wrapper } = setup()
+    vi.mocked(komga.updateReadList).mockResolvedValue(undefined)
+    qc.setQueryData(['readlists', 'r1'], readList())
+
+    const { result } = renderHook(() => useUpdateReadList('r1'), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ bookIds: ['b2', 'b1'] }) })
+
+    expect(komga.updateReadList).toHaveBeenCalledWith('r1', { bookIds: ['b2', 'b1'] })
+    expect(qc.getQueryData<KomgaReadListDto>(['readlists', 'r1'])!.bookIds).toEqual(['b2', 'b1'])
+  })
+
+  it('rolls back on error', async () => {
+    const { qc, wrapper } = setup()
+    vi.mocked(komga.updateReadList).mockRejectedValueOnce(new Error('boom'))
+    qc.setQueryData(['readlists', 'r1'], readList())
+
+    const { result } = renderHook(() => useUpdateReadList('r1'), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ bookIds: ['x'] }).catch(() => {}) })
+
+    expect(qc.getQueryData<KomgaReadListDto>(['readlists', 'r1'])!.bookIds).toEqual(['b1', 'b2'])
+    expect(toast.error).toHaveBeenCalled()
+  })
+})
+
+describe('useDeleteReadList', () => {
+  it('calls the client and invalidates the readlists key', async () => {
+    const { qc, wrapper } = setup()
+    vi.mocked(komga.deleteReadList).mockResolvedValue(undefined)
+    const spy = vi.spyOn(qc, 'invalidateQueries')
+    const { result } = renderHook(() => useDeleteReadList(), { wrapper })
+    await act(async () => { await result.current.mutateAsync('r1') })
+    expect(komga.deleteReadList).toHaveBeenCalledWith('r1')
+    expect(spy).toHaveBeenCalledWith({ queryKey: ['readlists'] })
+  })
+})
+
+describe('useAddToReadList', () => {
+  beforeEach(() => {
+    vi.mocked(komga.createReadList).mockResolvedValue(readList({ id: 'rNew' }))
+    vi.mocked(komga.updateReadList).mockResolvedValue(undefined)
+    vi.mocked(komga.readLists).mockResolvedValue({
+      content: [readList({ id: 'r1', name: 'To Read', bookIds: ['b1'] })],
+      totalElements: 1, totalPages: 1, number: 0, size: 1, first: true, last: true,
+    })
+    vi.mocked(komga.seriesBooks).mockResolvedValue({
+      content: [book('b1'), book('b2'), book('b3')],
+      totalElements: 3, totalPages: 1, number: 0, size: 3, first: true, last: true,
+    })
+    try { localStorage.clear() } catch { /* jsdom */ }
+  })
+
+  it('adds a whole series to the default queue (missing books only)', async () => {
+    const { wrapper } = setup()
+    const { result } = renderHook(() => useAddToReadList(), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ target: { type: 'series', seriesId: 's1' }, listId: 'default' }) })
+
+    expect(komga.seriesBooks).toHaveBeenCalledWith('s1')
+    expect(komga.updateReadList).toHaveBeenCalledWith('r1', { bookIds: ['b1', 'b2', 'b3'] })
+    expect(toast.success).toHaveBeenCalled()
+  })
+
+  it('adds a single book to a named list', async () => {
+    const { wrapper } = setup()
+    const { result } = renderHook(() => useAddToReadList(), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ target: { type: 'book', bookId: 'bX' }, listId: 'r1' }) })
+    expect(komga.updateReadList).toHaveBeenCalledWith('r1', { bookIds: ['b1', 'bX'] })
+  })
+
+  it('creates a new seeded list when newListName is given', async () => {
+    const { wrapper } = setup()
+    const { result } = renderHook(() => useAddToReadList(), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ target: { type: 'book', bookId: 'bX' }, newListName: 'Sci-Fi' }) })
+    expect(komga.createReadList).toHaveBeenCalledWith({ name: 'Sci-Fi', summary: '', ordered: true, bookIds: ['bX'] })
+  })
+
+  it('creates the default queue when it does not exist yet', async () => {
+    vi.mocked(komga.readLists).mockResolvedValue({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 0, first: true, last: true })
+    const { wrapper } = setup()
+    const { result } = renderHook(() => useAddToReadList(), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ target: { type: 'book', bookId: 'bX' }, listId: 'default' }) })
+    expect(komga.createReadList).toHaveBeenCalledWith({ name: 'To Read', summary: '', ordered: true, bookIds: ['bX'] })
   })
 })

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Play, CheckCheck, RotateCcw, Pencil } from 'lucide-react'
+import { Play, CheckCheck, RotateCcw } from 'lucide-react'
 import type { SeriesVM } from '@/lib/komga/mapping'
 import { useMarkSeries } from '@/lib/komga/mutations'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -7,6 +7,7 @@ import { CoverImage } from './CoverImage'
 import { ReadProgress } from './ReadProgress'
 import { Stars } from './Stars'
 import { StatusDot } from './StatusDot'
+import { AddToReadListButton } from './AddToReadListButton'
 
 export function SeriesCard({ s }: { s: SeriesVM }) {
   const done = s.progress.total > 0 && s.progress.read >= s.progress.total
@@ -34,7 +35,10 @@ export function SeriesCard({ s }: { s: SeriesVM }) {
             >
               {done ? <RotateCcw className="size-3.5" /> : <CheckCheck className="size-3.5" />}
             </button>
-            <span className="rounded bg-black/60 p-1.5 text-white"><Pencil className="size-3.5" /></span>
+            <AddToReadListButton
+              target={{ type: 'series', seriesId: s.id }}
+              className="pointer-events-auto inline-flex rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80"
+            />
           </div>
         )}
       </div>

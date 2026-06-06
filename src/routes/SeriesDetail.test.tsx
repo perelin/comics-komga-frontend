@@ -48,6 +48,7 @@ const { markSeriesMutate, markBookMutate } = vi.hoisted(() => ({
 vi.mock('@/lib/komga/mutations', () => ({
   useMarkSeries: () => ({ mutate: markSeriesMutate, isPending: false }),
   useMarkBook: () => ({ mutate: markBookMutate, isPending: false }),
+  useAddToReadList: () => ({ mutate: vi.fn() }),
 }))
 
 const { backSpy } = vi.hoisted(() => ({ backSpy: vi.fn() }))

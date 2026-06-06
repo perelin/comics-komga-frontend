@@ -24,7 +24,7 @@ cp .env.example .env        # set KOMGA_BASE_URL + KOMGA_API_KEY (same values as
                             # the agents monorepo applications/komga/.env)
 npm install
 npm run dev                 # http://localhost:5173  (also LAN: see below)
-npm test                    # 166 tests (Vitest)
+npm test                    # 195 tests (Vitest)
 npm run build               # tsc -b + vite build
 npm run lint                # ESLint (see "Lint baseline" — 4 known non-issues)
 ```
@@ -60,6 +60,22 @@ client machine. Nothing to install on the client — just a browser.
   `POST /series/list` migration (P2L-163).
 - **Command Palette** (⌘K / Ctrl-K) — server-backed series search + navigation,
   jump-to-library, localStorage recents.
+- **Read List management** (2026-06-06, deployed) — curation tool for reading in
+  **Panels** on iPad over OPDS (Panels has no deep-link, but reads Komga Read Lists
+  as flat ordered feeds). **Add-to-list** affordance: SeriesCard hover (bookmark+),
+  SeriesDetail hero "Zu Liste" (both = whole series → all books), and the volume-row
+  ⋯ menu (single book). A **default "To Read" queue** (name-convention, auto-created
+  on first quick-add, id cached in `localStorage` `komga.readlist.default`) for
+  one-tap add; plus **thematic lists** (created inline, seeded — Komga forbids empty
+  lists, `bookIds` minItems:1). **`/readlists`** overview + **`/readlists/:id`** detail
+  (drag-reorder via `@dnd-kit`, remove item, **"Gelesene entfernen"** cleanup, delete,
+  **"In Panels öffnen"** = informational OPDS-URL helper). Rail nav (Library / Read
+  Lists) in `AppShell`. Optimistic + sonner + Undo, mirroring the P2L-155 pattern;
+  data layer reintroduced (`lib/komga/{readlists.ts (pure),client,queries,mutations}`,
+  the layer removed in the IA redesign). **v1 reductions (deliberate):** list
+  **rename + set-default** are deferred; the volume-row ⋯ is **quick-add-to-default
+  only** (choose a specific list per book via the hero popover or the detail view).
+  Spec/plan in the agents monorepo `docs/superpowers/{specs,plans}/2026-06-06-komga-readlist-management*`.
 
 ## Architecture (as-built)
 
@@ -244,6 +260,26 @@ src/
    in `FilterPanelInner` (`openMap` via `usePersistentState`, key
    `komga.facets.open`); `usePersistentState`'s setter takes a **value, not an
    updater fn**, so `toggleFacet` spreads the current `openMap`.
+
+10. **base-ui `Popover` in jsdom needs a file-local `getAnimations` shim.**
+   `AddToReadListButton` and `OpenInPanels` use the shadcn `Popover` (base-ui),
+   which waits on `element.getAnimations()` before settling — jsdom has no such
+   method. `OpenInPanels.test.tsx` opens the popover, so it adds
+   `Element.prototype.getAnimations ??= () => []` **file-local** (NOT in
+   `test/setup.ts` — keeping jsdom shims local is the same discipline as the
+   `ResizeObserver` lesson). `AddToReadListMenu.test.tsx` sidesteps it entirely by
+   rendering the menu body directly (no popover open). When a route mocks
+   `@/lib/komga/mutations`, include **`useAddToReadList`** in the mock or the
+   component throws at render (it's called unconditionally in `BooksTable`).
+
+11. **Read lists are server-global + admin-only, and born seeded.** Komga read
+   lists have no per-user owner (petra sees them filtered by library access), and
+   create/PATCH/delete need an admin key — fine, the proxy injects the admin
+   `X-API-Key`. `ReadListCreationDto.bookIds` has `minItems:1`, so there is **no
+   empty-list create**: lists are always created with the first item. Membership +
+   order are set by PATCHing the **full** `bookIds` array (read-modify-write; pure
+   helpers in `lib/komga/readlists.ts`). Create→PATCH→delete was live-verified
+   against prod (self-cleaning roundtrip).
 
 ## Lint baseline (NOT regressions — leave them)
 

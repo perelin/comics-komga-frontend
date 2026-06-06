@@ -1,10 +1,11 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, ExternalLink, Play, Check, CheckCheck, RotateCcw, MoreVertical, LayoutGrid, List } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ExternalLink, Play, Check, CheckCheck, RotateCcw, MoreVertical, LayoutGrid, List, BookmarkPlus } from 'lucide-react'
 import {
   useSeries, useSeriesBooks, useRelatedByPublisher, useLibraries,
 } from '@/lib/komga/queries'
-import { useMarkSeries, useMarkBook } from '@/lib/komga/mutations'
+import { useMarkSeries, useMarkBook, useAddToReadList } from '@/lib/komga/mutations'
+import { AddToReadListButton } from '@/components/AddToReadListButton'
 import { mapSeries } from '@/lib/komga/mapping'
 import { pickContinueBook, bookReadState, bookCoverUrl, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
@@ -159,6 +160,11 @@ export function SeriesDetail() {
                 {done ? <RotateCcw className="size-4" /> : <CheckCheck className="size-4" />}
                 {done ? 'Mark all unread' : 'Mark all read'}
               </button>
+              <AddToReadListButton
+                target={{ type: 'series', seriesId: dto.id }}
+                label="Zu Liste"
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
+              />
             </div>
           </div>
         </div>
@@ -230,6 +236,7 @@ function BooksTab({ books, seriesId }: { books: KomgaBookDto[]; seriesId: string
 
 function BooksTable({ books, seriesId }: { books: KomgaBookDto[]; seriesId: string }) {
   const mark = useMarkBook(seriesId)
+  const addToList = useAddToReadList()
   if (books.length === 0) return <div className="text-sm text-muted-foreground">No volumes.</div>
   return (
     <div className="rounded-md border border-border">
@@ -293,6 +300,9 @@ function BooksTable({ books, seriesId }: { books: KomgaBookDto[]; seriesId: stri
                     <RotateCcw className="size-4" /> Mark unread
                   </DropdownMenuItem>
                 )}
+                <DropdownMenuItem onClick={() => addToList.mutate({ target: { type: 'book', bookId: b.id }, listId: 'default' })}>
+                  <BookmarkPlus className="size-4" /> Zu „To Read"
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
