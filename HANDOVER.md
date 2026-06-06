@@ -24,7 +24,7 @@ cp .env.example .env        # set KOMGA_BASE_URL + KOMGA_API_KEY (same values as
                             # the agents monorepo applications/komga/.env)
 npm install
 npm run dev                 # http://localhost:5173  (also LAN: see below)
-npm test                    # 161 tests (Vitest)
+npm test                    # 166 tests (Vitest)
 npm run build               # tsc -b + vite build
 npm run lint                # ESLint (see "Lint baseline" — 4 known non-issues)
 ```
@@ -109,6 +109,18 @@ client machine. Nothing to install on the client — just a browser.
 - **Left rail is now `FacetRail`:** scope-aware SmartFolders + the facet list.
   The old nav `Sidebar`, its Collections and Read-Lists sections, and the
   associated TanStack queries + client methods/DTOs have been deleted.
+- **Facets are collapsible (P2L-170, shipped):** each facet category
+  (Read status / Creators / Status / Genre / Publisher / Age rating / Format) is
+  an independent collapsible disclosure (a native `<button aria-expanded>` header
+  with a chevron — see gotcha #8). **Collapsed by default** (overview-first), but
+  a facet **auto-opens when it has an active selection** so a deep link like
+  `?genre=Fantasy` shows its facet expanded. Rule:
+  `isOpen = openMap[key] ?? hasActiveSelection(key)`. Explicit user toggles win
+  (incl. collapsing an active facet) and **persist** in localStorage under
+  `komga.facets.open` via `usePersistentState`. Desktop rail + mobile sheet share
+  this state (both render `FilterPanelInner`). No badge/count on headers — active
+  filters are already shown by `ActiveFilters` chips + the auto-open rule
+  (facet *result* counts are a separate ticket, P2L-167).
 - **Mobile layout:** one filter sheet, opened from the toolbar's **Filters**
   button (mobile-only). The old hamburger drawer is gone. Desktop keeps the
   two-column grid with the rail always visible.
@@ -220,6 +232,18 @@ src/
    `folderName`, `metadata.status`, `metadata.title`. The sort UI config lives in
    `src/components/sort-options.ts` (`SORT_OPTIONS` + `applySortField`), kept out
    of `Toolbar.tsx` per gotcha #5.
+8. **Collapsible facets use a custom `<button>` disclosure, NOT base-ui
+   `Collapsible`.** `FilterPanel.tsx`'s `Facet` is a native
+   `<button aria-expanded>` + conditional-rendered body (chevron rotates via a
+   pure-CSS `transition-transform` class). This is deliberate: base-ui components
+   with JS height-animation drive jsdom into the `getAnimations()` path that
+   already broke the test run once (the `ResizeObserver`/ScrollArea regression,
+   gotcha in the scroll-restore section). The custom disclosure needs no
+   animation polyfill and is trivially testable. Trade-off: no smooth height
+   transition (instant) — consistent with the rest of the rail. Open-state lives
+   in `FilterPanelInner` (`openMap` via `usePersistentState`, key
+   `komga.facets.open`); `usePersistentState`'s setter takes a **value, not an
+   updater fn**, so `toggleFacet` spreads the current `openMap`.
 
 ## Lint baseline (NOT regressions — leave them)
 
