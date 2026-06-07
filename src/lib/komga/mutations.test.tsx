@@ -174,6 +174,20 @@ describe('useUpdateReadList', () => {
     expect(qc.getQueryData<KomgaReadListDto>(['readlists', 'r1'])!.bookIds).toEqual(['b1', 'b2'])
     expect(toast.error).toHaveBeenCalled()
   })
+
+  it('optimistically merges name + summary and PATCHes them', async () => {
+    const { qc, wrapper } = setup()
+    vi.mocked(komga.updateReadList).mockResolvedValue(undefined)
+    qc.setQueryData(['readlists', 'r1'], readList())
+
+    const { result } = renderHook(() => useUpdateReadList('r1'), { wrapper })
+    await act(async () => { await result.current.mutateAsync({ name: 'Horror', summary: 'spooky' }) })
+
+    expect(komga.updateReadList).toHaveBeenCalledWith('r1', { name: 'Horror', summary: 'spooky' })
+    const cached = qc.getQueryData<KomgaReadListDto>(['readlists', 'r1'])!
+    expect(cached.name).toBe('Horror')
+    expect(cached.summary).toBe('spooky')
+  })
 })
 
 describe('useDeleteReadList', () => {
