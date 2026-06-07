@@ -72,10 +72,19 @@ client machine. Nothing to install on the client — just a browser.
   **"In Panels öffnen"** = informational OPDS-URL helper). Rail nav (Library / Read
   Lists) in `AppShell`. Optimistic + sonner + Undo, mirroring the P2L-155 pattern;
   data layer reintroduced (`lib/komga/{readlists.ts (pure),client,queries,mutations}`,
-  the layer removed in the IA redesign). **v1 reductions (deliberate):** list
-  **rename + set-default** are deferred; the volume-row ⋯ is **quick-add-to-default
+  the layer removed in the IA redesign). The volume-row ⋯ is **quick-add-to-default
   only** (choose a specific list per book via the hero popover or the detail view).
   Spec/plan in the agents monorepo `docs/superpowers/{specs,plans}/2026-06-06-komga-readlist-management*`.
+- **Read List entity CRUD** (2026-06-07, deployed) — **rename + edit summary**
+  (`ReadListEditDialog`) and **delete-with-confirmation** (`ConfirmDialog`, reusable),
+  surfaced via a **⋯ menu** on the detail header and each overview card. No data-layer
+  change — `useUpdateReadList` already accepted `{name,summary}`. Dialogs are
+  **conditionally mounted** (`{editing && …}`) so their hooks run only when open (keeps
+  the provider-less route tests green; avoids the rules-of-hooks trap). Overview cards
+  put the ⋯ as a **sibling** of the `<Link>` (absolute-positioned), not a descendant —
+  valid HTML, no nav conflict. **Set-default stays deferred by choice** — the default
+  remains the name-convention `To Read` list, unchanged. Spec/plan:
+  `docs/superpowers/{specs,plans}/2026-06-07-komga-readlist-crud*`.
 
 ## Architecture (as-built)
 
