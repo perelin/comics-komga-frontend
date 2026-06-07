@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, Star, X, Trash2, GripVertical } from 'lucide-react'
+import { ChevronLeft, Star, X, Trash2, GripVertical, MoreHorizontal, Pencil } from 'lucide-react'
 import {
   DndContext, closestCenter, PointerSensor, KeyboardSensor, useSensor, useSensors, type DragEndEvent,
 } from '@dnd-kit/core'
@@ -17,6 +17,11 @@ import { bookCoverUrl } from '@/lib/komga/books'
 import { komgaReaderUrl } from '@/lib/komga/reader'
 import { CoverImage } from '@/components/CoverImage'
 import { OpenInPanels } from '@/components/OpenInPanels'
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from '@/components/ui/dropdown-menu'
+import { ReadListEditDialog } from '@/components/ReadListEditDialog'
+import { ConfirmDialog } from '@/components/ConfirmDialog'
 
 /** A drag-sortable row; the grip is the drag handle. */
 function SortableRow({ id, children }: { id: string; children: ReactNode }) {
@@ -41,6 +46,8 @@ export function ReadListDetail() {
   const update = useUpdateReadList(id)
   const del = useDeleteReadList()
   const sensors = useSensors(useSensor(PointerSensor), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
+  const [editing, setEditing] = useState(false)
+  const [confirming, setConfirming] = useState(false)
 
   if (list.isLoading) return <AppShell sidebar={<ReadListNav />}><div className="p-6 text-sm text-muted-foreground">Lädt…</div></AppShell>
   if (list.isError || !list.data) return <AppShell sidebar={<ReadListNav />}><div className="p-6 text-sm text-muted-foreground">Liste nicht gefunden.</div></AppShell>
@@ -75,9 +82,21 @@ export function ReadListDetail() {
               Gelesene entfernen
             </button>
             <OpenInPanels name={rl.name} />
-            <button onClick={onDelete} className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border px-3 text-sm text-muted-foreground hover:bg-accent" aria-label="Liste löschen">
-              <Trash2 className="size-4" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger render={
+                <button aria-label="Listenaktionen" className="inline-flex h-8 items-center justify-center rounded-md border border-border px-2 text-muted-foreground hover:bg-accent" />
+              }>
+                <MoreHorizontal className="size-4" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setEditing(true)}>
+                  <Pencil className="size-4" /> Umbenennen / bearbeiten
+                </DropdownMenuItem>
+                <DropdownMenuItem variant="destructive" onClick={() => setConfirming(true)}>
+                  <Trash2 className="size-4" /> Liste löschen
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -103,6 +122,17 @@ export function ReadListDetail() {
             </DndContext>
           </div>
         )}
+
+        {editing && <ReadListEditDialog list={rl} onClose={() => setEditing(false)} />}
+        <ConfirmDialog
+          open={confirming}
+          onOpenChange={setConfirming}
+          title="Liste löschen?"
+          description={<>„{rl.name}“ wird dauerhaft gelöscht.</>}
+          confirmLabel="Löschen"
+          destructive
+          onConfirm={onDelete}
+        />
       </div>
     </AppShell>
   )

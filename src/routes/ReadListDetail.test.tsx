@@ -32,4 +32,8 @@ describe('ReadListDetail', () => {
     fireEvent.click(screen.getByText('Gelesene entfernen'))
     expect(update).toHaveBeenCalledWith({ bookIds: ['b2'] })
   })
+  it('exposes a list-actions menu trigger in the header', () => {
+    renderDetail()
+    expect(screen.getByLabelText('Listenaktionen')).toBeInTheDocument()
+  })
 })
