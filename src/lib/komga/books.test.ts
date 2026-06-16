@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickContinueBook, bookReadState, releaseYear, bookCoverUrl, bookProgressPct } from './books'
+import { pickContinueBook, bookReadState, releaseYear, bookCoverUrl, bookProgressPct, sumPages, formatPages, pagesLabel } from './books'
 import type { KomgaBookDto } from './types'
 
 function book(n: number, progress: KomgaBookDto['readProgress'], pages = 100): KomgaBookDto {
@@ -55,6 +55,36 @@ describe('releaseYear', () => {
     expect(releaseYear('')).toBeNull()
     expect(releaseYear(null)).toBeNull()
     expect(releaseYear(undefined)).toBeNull()
+  })
+})
+
+describe('sumPages', () => {
+  it('sums media.pagesCount across all books', () => {
+    expect(sumPages([book(1, null, 30), book(2, null, 28), book(3, null, 29)])).toBe(87)
+  })
+  it('is 0 for an empty series', () => {
+    expect(sumPages([])).toBe(0)
+  })
+})
+
+describe('formatPages', () => {
+  it('formats with a thousands separator and a pp suffix', () => {
+    expect(formatPages(8340)).toBe('8,340 pp')
+  })
+  it('formats small counts without a separator', () => {
+    expect(formatPages(30)).toBe('30 pp')
+  })
+})
+
+describe('pagesLabel', () => {
+  it('formats a known page total', () => {
+    expect(pagesLabel(8340, 11)).toBe('8,340 pp')
+  })
+  it('shows an ellipsis while pages are still loading', () => {
+    expect(pagesLabel(undefined, 11)).toBe('…')
+  })
+  it('shows a dash for a series with no books', () => {
+    expect(pagesLabel(undefined, 0)).toBe('—')
   })
 })
 

@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery, type InfiniteData } from '@tanstack/react-query'
 import { komga } from './client'
 import { mapSeries, type SeriesVM } from './mapping'
+import { sumPages } from './books'
 import type { Filters } from './filters'
 import type { KomgaPage, KomgaSeriesDto } from './types'
 
@@ -42,6 +43,17 @@ export const useAgeRatings = () => useQuery({ queryKey: ['age-ratings'], queryFn
 
 export const useSeries = (id: string) => useQuery({ queryKey: ['series', id], queryFn: () => komga.seriesById(id) })
 export const useSeriesBooks = (id: string) => useQuery({ queryKey: ['series', id, 'books'], queryFn: () => komga.seriesBooks(id) })
+// Total page count for an overview card/row: lazily fetch the series' books and
+// sum their pages. Shares the cache key with useSeriesBooks (Series Detail), so
+// visiting either warms the other; page counts are static → never goes stale.
+export const useSeriesPages = (id: string, booksCount: number) =>
+  useQuery({
+    queryKey: ['series', id, 'books'],
+    queryFn: () => komga.seriesBooks(id),
+    enabled: booksCount > 0,
+    staleTime: Infinity,
+    select: (page) => sumPages(page.content),
+  })
 export const useRelatedByPublisher = (publisher: string | undefined, excludeId: string) =>
   useQuery({
     queryKey: ['series', 'related', 'publisher', publisher],

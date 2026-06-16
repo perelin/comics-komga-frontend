@@ -7,7 +7,8 @@ import { SeriesRow, SERIES_GRID_COLS } from './SeriesRow'
 const ROW_H = 52
 const HEADERS: { label: string; sort?: SortKey; align?: 'right' }[] = [
   { label: '' }, { label: 'Title', sort: 'titleSort' }, { label: 'Author' }, { label: 'Publisher' },
-  { label: 'Status' }, { label: 'Books', align: 'right' }, { label: 'Progress' }, { label: 'Rating' },
+  { label: 'Status' }, { label: 'Year', sort: 'releaseDate', align: 'right' }, { label: 'Books', align: 'right' },
+  { label: 'Pages', align: 'right' }, { label: 'Progress' }, { label: 'Rating' },
 ]
 
 export function SeriesList({ items, filters, onFiltersChange, hasNext, fetchNext, initialIndex, onTopIndex }: {
