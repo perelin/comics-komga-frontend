@@ -85,6 +85,21 @@ client machine. Nothing to install on the client — just a browser.
   valid HTML, no nav conflict. **Set-default stays deferred by choice** — the default
   remains the name-convention `To Read` list, unchanged. Spec/plan:
   `docs/superpowers/{specs,plans}/2026-06-07-komga-readlist-crud*`.
+- **Overview: release year + total page count** (2026-06-16, deployed) — each
+  series on the Library Browser (grid + list) shows its **release year** (free,
+  from `booksMetadata.releaseDate` = the first issue's date → `SeriesVM.year`)
+  and its **total page count** (sum of `media.pagesCount` over all books). Pages
+  are fetched **lazily per rendered card/row** via `useSeriesPages(id, booksCount)`
+  — it reuses `komga.seriesBooks` and **shares the `['series', id, 'books']`
+  cache key with Series Detail** (visiting either warms the other), `staleTime:
+  Infinity` (page counts are static), `enabled: booksCount > 0`. Trade-off
+  (user-chosen over a backend `pages:N` tag-backfill): one books request per
+  series you actually look at; the total "pops in" with a `…` placeholder, `—`
+  for empty series. Card gets a muted `1999 · 2,272 pp` line under the author
+  (issue count unchanged); the list gets right-aligned **Year** (sortable via the
+  `releaseDate` sort key) and **Pages** (client-derived, not sortable) columns.
+  Pure helpers `sumPages` / `formatPages` / `pagesLabel` in `lib/komga/books.ts`
+  (TDD). Spec: agents monorepo `docs/superpowers/specs/2026-06-16-komga-overview-year-pages-design.md`.
 
 ## Architecture (as-built)
 

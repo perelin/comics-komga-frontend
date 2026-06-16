@@ -1,5 +1,6 @@
 import type { KomgaAuthor, KomgaWebLink, KomgaSeriesDto, SeriesStatus } from './types'
 import type { Progress } from './progress'
+import { releaseYear } from './books'
 
 export interface Rating { value: number; needsCheck: boolean }
 export interface Goodreads { avg: number; votes: string; url: string }
@@ -18,6 +19,8 @@ export interface SeriesVM {
   rating?: Rating
   goodreads?: Goodreads
   coverUrl: string
+  /** Release year of the first book in the stack (booksMetadata.releaseDate). */
+  year: string | null
 }
 
 // One or two decimals: old 0.2-step tags (rating:4.2) and new 0.05-step tags (rating:4.15).
@@ -66,5 +69,6 @@ export function mapSeries(dto: KomgaSeriesDto): SeriesVM {
     rating: parseRating(dto.metadata.tags),
     goodreads: parseGoodreads(dto.metadata.links),
     coverUrl: `/komga/api/v1/series/${dto.id}/thumbnail`,
+    year: releaseYear(dto.booksMetadata.releaseDate),
   }
 }

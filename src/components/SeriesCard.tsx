@@ -2,6 +2,8 @@ import { Link } from 'react-router-dom'
 import { Play, CheckCheck, RotateCcw } from 'lucide-react'
 import type { SeriesVM } from '@/lib/komga/mapping'
 import { useMarkSeries } from '@/lib/komga/mutations'
+import { useSeriesPages } from '@/lib/komga/queries'
+import { pagesLabel } from '@/lib/komga/books'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { CoverImage } from './CoverImage'
 import { ReadProgress } from './ReadProgress'
@@ -13,6 +15,8 @@ export function SeriesCard({ s }: { s: SeriesVM }) {
   const done = s.progress.total > 0 && s.progress.read >= s.progress.total
   const markSeries = useMarkSeries()
   const isMobile = useIsMobile()
+  const { data: pages } = useSeriesPages(s.id, s.progress.total)
+  const meta = [s.year, pagesLabel(pages, s.progress.total)].filter(Boolean).join(' · ')
   const onMark = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -49,6 +53,7 @@ export function SeriesCard({ s }: { s: SeriesVM }) {
           <span className="flex-1 truncate">{s.author}</span>
           <span className="tabular-nums text-muted-foreground/60">{s.progress.total}</span>
         </div>
+        <div className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground/70">{meta}</div>
         {s.rating && <div className="mt-1"><Stars rating={s.rating} size={12} /></div>}
       </div>
     </Link>

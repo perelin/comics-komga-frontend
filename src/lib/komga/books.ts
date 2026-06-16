@@ -41,6 +41,25 @@ export function bookProgressPct(b: KomgaBookDto): number {
   return Math.round((b.readProgress.page / pagesCount) * 100)
 }
 
+/** Total page count across every book in a series (sum of media.pagesCount). */
+export function sumPages(books: KomgaBookDto[]): number {
+  return books.reduce((total, b) => total + b.media.pagesCount, 0)
+}
+
+/** A page total for display: thousands-separated + a "pp" suffix, e.g. "8,340 pp". */
+export function formatPages(n: number): string {
+  return `${n.toLocaleString('en-US')} pp`
+}
+
+/** Display string for an overview card/row page total: the formatted count once
+ *  known, an ellipsis while the lazy fetch is in flight, or a dash when the
+ *  series has no books to count. */
+export function pagesLabel(pages: number | undefined, booksCount: number): string {
+  if (booksCount === 0) return '—'
+  if (pages == null) return '…'
+  return formatPages(pages)
+}
+
 /** Year out of an ISO date (or a bare year); null if absent/unparseable. */
 export function releaseYear(date: string | null | undefined): string | null {
   if (!date) return null

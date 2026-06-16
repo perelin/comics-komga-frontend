@@ -73,4 +73,10 @@ describe('mapSeries', () => {
       coverUrl: '/komga/api/v1/series/s1/thumbnail',
     })
   })
+  it('derives the release year from the first book (booksMetadata.releaseDate)', () => {
+    expect(mapSeries(dto).year).toBe('2012')
+  })
+  it('leaves year null when there is no release date', () => {
+    expect(mapSeries({ ...dto, booksMetadata: { ...dto.booksMetadata, releaseDate: null } }).year).toBeNull()
+  })
 })
