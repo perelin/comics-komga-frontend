@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { mockViewport } from '@/test/viewport'
-import { MemoryRouter, Routes, Route } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { SeriesCard } from './SeriesCard'
 import { SeriesRow } from './SeriesRow'
 import type { SeriesVM } from '@/lib/komga/mapping'
@@ -53,10 +53,34 @@ describe('SeriesCard / SeriesRow', () => {
     expect(screen.getByText('Image')).toBeInTheDocument()
     expect(screen.getByText('4.20')).toBeInTheDocument()
   })
+  it('clicking a publisher in the row filters the list to that publisher', () => {
+    const LocationProbe = () => <div data-testid="loc">{useLocation().pathname + useLocation().search}</div>
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <LocationProbe />
+        <SeriesRow s={vm} />
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Image' }))
+    expect(screen.getByTestId('loc')).toHaveTextContent('/?publisher=Image')
+  })
   it('row shows release year and total pages columns', () => {
     render(<MemoryRouter><SeriesRow s={vm} /></MemoryRouter>)
     expect(screen.getByText('2012')).toBeInTheDocument()
     expect(screen.getByText('8,340 pp')).toBeInTheDocument()
+  })
+
+  it('clicking the author filters the list to that author, without opening the series', () => {
+    const LocationProbe = () => <div data-testid="loc">{useLocation().pathname + useLocation().search}</div>
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <LocationProbe />
+        <SeriesCard s={vm} />
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'BKV' }))
+    expect(screen.getByTestId('loc')).toHaveTextContent('/?authors=BKV')
+    expect(screen.queryByText('SERIES PAGE')).not.toBeInTheDocument()
   })
 
   it('quick-action marks an unfinished series read without navigating', () => {

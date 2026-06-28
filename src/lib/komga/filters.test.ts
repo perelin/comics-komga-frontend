@@ -1,9 +1,23 @@
 import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_FILTERS, filtersToSearchParams, searchParamsToFilters,
-  filtersToCondition, listQueryParams,
+  filtersToCondition, listQueryParams, facetHref,
   type Filters,
 } from './filters'
+
+describe('facetHref', () => {
+  it('builds a freshly-scoped author URL (other facets reset)', () => {
+    expect(facetHref({ authors: ['Brian K. Vaughan'] })).toBe('/?authors=Brian+K.+Vaughan')
+  })
+  it('builds a freshly-scoped publisher URL', () => {
+    expect(facetHref({ publisher: ['Image'] })).toBe('/?publisher=Image')
+  })
+  it('round-trips back into a single-facet filter set', () => {
+    const href = facetHref({ authors: ['Brian K. Vaughan'] })
+    const sp = new URLSearchParams(href.slice(href.indexOf('?') + 1))
+    expect(searchParamsToFilters(sp)).toEqual({ ...DEFAULT_FILTERS, authors: ['Brian K. Vaughan'] })
+  })
+})
 
 describe('URL <-> Filters round-trip', () => {
   it('defaults produce empty search params', () => {

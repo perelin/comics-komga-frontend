@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import {
-  parseLibraryName, groupLibraries, prettyLibraryName,
+  parseLibraryName, groupLibraries, prettyLibraryName, libraryCrumbLabel,
   SMART_PRESETS, applySmartFolder, isSmartFolderActive,
 } from './library'
 import { DEFAULT_FILTERS, type Filters } from './komga/filters'
@@ -23,6 +23,17 @@ describe('prettyLibraryName', () => {
     expect(prettyLibraryName('xCat:Pub Image')).toBe('Image')
     expect(prettyLibraryName('xCat:Uni Marvel')).toBe('Marvel')
     expect(prettyLibraryName('Plain Library')).toBe('Plain Library')
+  })
+})
+
+describe('libraryCrumbLabel', () => {
+  it('prefixes the axis so opaque labels are disambiguated', () => {
+    expect(libraryCrumbLabel('xCat:Pub Other')).toBe('Pub: Other')
+    expect(libraryCrumbLabel('xCat:Fra Star Wars')).toBe('Fra: Star Wars')
+    expect(libraryCrumbLabel('xCat:Uni Marvel')).toBe('Uni: Marvel')
+  })
+  it('omits the prefix for the Other fallback group', () => {
+    expect(libraryCrumbLabel('Plain Library')).toBe('Plain Library')
   })
 })
 

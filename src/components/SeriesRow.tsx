@@ -2,10 +2,14 @@ import { Link } from 'react-router-dom'
 import type { SeriesVM } from '@/lib/komga/mapping'
 import { useSeriesPages } from '@/lib/komga/queries'
 import { pagesLabel } from '@/lib/komga/books'
+import { facetHref } from '@/lib/komga/filters'
 import { CoverImage } from './CoverImage'
+import { FacetFilterButton } from './FacetFilterButton'
 import { StatusDot } from './StatusDot'
 import { ReadProgress } from './ReadProgress'
 import { Stars } from './Stars'
+
+const FACET_CELL = 'block w-full truncate text-left hover:text-foreground hover:underline'
 
 // Shared column template for the list header + rows.
 // cover · Title · Author · Publisher · Status · Year · Books · Pages · Progress · Rating
@@ -19,8 +23,16 @@ export function SeriesRow({ s }: { s: SeriesVM }) {
       style={{ gridTemplateColumns: SERIES_GRID_COLS }}>
       <div className="h-9 w-6 overflow-hidden rounded-sm border border-border"><CoverImage src={s.coverUrl} alt={s.title} /></div>
       <div className="truncate font-medium text-foreground">{s.title}</div>
-      <div className="truncate text-muted-foreground">{s.author}</div>
-      <div className="truncate text-muted-foreground">{s.publisher}</div>
+      <div className="truncate text-muted-foreground">
+        {s.author && s.author !== '—'
+          ? <FacetFilterButton href={facetHref({ authors: [s.author] })} className={FACET_CELL}>{s.author}</FacetFilterButton>
+          : s.author}
+      </div>
+      <div className="truncate text-muted-foreground">
+        {s.publisher && s.publisher !== '—'
+          ? <FacetFilterButton href={facetHref({ publisher: [s.publisher] })} className={FACET_CELL}>{s.publisher}</FacetFilterButton>
+          : s.publisher}
+      </div>
       <div><StatusDot status={s.status} /></div>
       <div className="text-right tabular-nums text-muted-foreground">{s.year ?? '—'}</div>
       <div className="text-right tabular-nums text-muted-foreground">{s.progress.total}</div>

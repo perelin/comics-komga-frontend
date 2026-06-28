@@ -161,8 +161,20 @@ describe('SeriesDetail', () => {
 
   it('the breadcrumb library name links to that library, freshly scoped', () => {
     renderDetail()
-    const link = screen.getByRole('link', { name: 'Comics' }) // prettyLibraryName('xCat:Fra Comics')
+    const link = screen.getByRole('link', { name: 'Fra: Comics' }) // libraryCrumbLabel('xCat:Fra Comics')
     expect(link).toHaveAttribute('href', '/?library=l1')
+  })
+
+  it('the breadcrumb has a Library root crumb linking to the overview', () => {
+    renderDetail()
+    const link = screen.getByRole('link', { name: 'Library' })
+    expect(link).toHaveAttribute('href', '/')
+  })
+
+  it('the hero author and publisher link to freshly-scoped filtered lists', () => {
+    renderDetail()
+    expect(screen.getByRole('link', { name: 'Brian K. Vaughan' })).toHaveAttribute('href', '/?authors=Brian+K.+Vaughan')
+    expect(screen.getByRole('link', { name: 'Image' })).toHaveAttribute('href', '/?publisher=Image')
   })
 
   it('the back button invokes smart back', () => {

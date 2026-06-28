@@ -4,8 +4,10 @@ import type { SeriesVM } from '@/lib/komga/mapping'
 import { useMarkSeries } from '@/lib/komga/mutations'
 import { useSeriesPages } from '@/lib/komga/queries'
 import { pagesLabel } from '@/lib/komga/books'
+import { facetHref } from '@/lib/komga/filters'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { CoverImage } from './CoverImage'
+import { FacetFilterButton } from './FacetFilterButton'
 import { ReadProgress } from './ReadProgress'
 import { Stars } from './Stars'
 import { StatusDot } from './StatusDot'
@@ -50,7 +52,14 @@ export function SeriesCard({ s }: { s: SeriesVM }) {
         <div className="truncate text-sm font-semibold text-foreground">{s.title}</div>
         <div className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
           <StatusDot status={s.status} showLabel={false} />
-          <span className="flex-1 truncate">{s.author}</span>
+          {s.author && s.author !== '—' ? (
+            <FacetFilterButton href={facetHref({ authors: [s.author] })}
+              className="min-w-0 flex-1 truncate text-left hover:text-foreground hover:underline">
+              {s.author}
+            </FacetFilterButton>
+          ) : (
+            <span className="flex-1 truncate">{s.author}</span>
+          )}
           <span className="tabular-nums text-muted-foreground/60">{s.progress.total}</span>
         </div>
         <div className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground/70">{meta}</div>

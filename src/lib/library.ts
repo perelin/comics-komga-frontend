@@ -19,6 +19,16 @@ export function prettyLibraryName(name: string): string {
   return parseLibraryName(name).label
 }
 
+// Short axis prefix for breadcrumb crumbs — disambiguates otherwise opaque
+// labels (e.g. the "Other" publisher bucket → "Pub: Other"). The fallback
+// "Other" group carries no meaningful prefix, so the bare label is used.
+const SHORT_GROUP: Record<LibraryGroup, string> = { Franchise: 'Fra', Publisher: 'Pub', Universe: 'Uni', Other: '' }
+export function libraryCrumbLabel(name: string): string {
+  const { group, label } = parseLibraryName(name)
+  const prefix = SHORT_GROUP[group]
+  return prefix ? `${prefix}: ${label}` : label
+}
+
 export interface LibraryGroupVM { group: LibraryGroup; libraries: { id: string; label: string }[] }
 
 // Drop unavailable libraries (e.g. Hasbro), bucket by axis, sort within a group

@@ -52,6 +52,14 @@ export function filtersToSearchParams(f: Filters): URLSearchParams {
   return sp
 }
 
+/** Href to the library list, freshly scoped to the given facet(s). Used by
+ *  clickable author/publisher names so a click lands on a clean filtered view
+ *  (everything else reset), mirroring the breadcrumb's fresh-scope behaviour. */
+export function facetHref(patch: Partial<Filters>): string {
+  const qs = filtersToSearchParams({ ...DEFAULT_FILTERS, ...patch }).toString()
+  return qs ? `/?${qs}` : '/'
+}
+
 const VALID_READ_STATUS: ReadStatus[] = ['UNREAD', 'READ', 'IN_PROGRESS']
 const VALID_SERIES_STATUS: SeriesStatus[] = ['ONGOING', 'ENDED', 'HIATUS', 'ABANDONED']
 const VALID_SORT_KEYS: SortKey[] = [

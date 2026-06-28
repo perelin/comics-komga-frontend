@@ -9,8 +9,9 @@ import { AddToReadListButton } from '@/components/AddToReadListButton'
 import { mapSeries } from '@/lib/komga/mapping'
 import { pickContinueBook, bookReadState, bookCoverUrl, bookDownloadUrl, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
+import { facetHref } from '@/lib/komga/filters'
 import { triggerDownload } from '@/lib/download'
-import { prettyLibraryName } from '@/lib/library'
+import { prettyLibraryName, libraryCrumbLabel } from '@/lib/library'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { usePersistentState } from '@/hooks/usePersistentState'
 import { useIsMobile } from '@/hooks/useIsMobile'
@@ -56,7 +57,9 @@ export function SeriesDetail() {
   const s = mapSeries(dto)
   const books = bq.data?.content ?? []
   const cont = pickContinueBook(books)
-  const libraryName = prettyLibraryName(libs.data?.find((l) => l.id === dto.libraryId)?.name ?? '')
+  const rawLibraryName = libs.data?.find((l) => l.id === dto.libraryId)?.name ?? ''
+  const libraryName = prettyLibraryName(rawLibraryName)
+  const libraryCrumb = libraryCrumbLabel(rawLibraryName)
   const year = releaseYear(dto.booksMetadata.releaseDate)
   const done = s.progress.total > 0 && s.progress.read >= s.progress.total
 
@@ -68,10 +71,12 @@ export function SeriesDetail() {
           <ArrowLeft className="size-4" />
         </button>
         <div className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground">
+          <Link to="/" className="shrink-0 hover:text-foreground">Library</Link>
+          <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50" />
           {libraryName && (
             <>
-              <Link to={`/?library=${dto.libraryId}`} className="hover:text-foreground">{libraryName}</Link>
-              <ChevronRight className="size-3.5 text-muted-foreground/50" />
+              <Link to={`/?library=${dto.libraryId}`} className="shrink-0 hover:text-foreground">{libraryCrumb}</Link>
+              <ChevronRight className="size-3.5 shrink-0 text-muted-foreground/50" />
             </>
           )}
           <span className="truncate text-foreground">{s.title}</span>
@@ -105,9 +110,17 @@ export function SeriesDetail() {
             </div>
 
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              <span className="text-primary">{s.author}</span>
+              {s.author && s.author !== '—' ? (
+                <Link to={facetHref({ authors: [s.author] })} className="text-primary hover:underline">{s.author}</Link>
+              ) : (
+                <span className="text-primary">{s.author}</span>
+              )}
               <span className="text-muted-foreground/50">·</span>
-              <span>{s.publisher}</span>
+              {s.publisher && s.publisher !== '—' ? (
+                <Link to={facetHref({ publisher: [s.publisher] })} className="hover:text-foreground hover:underline">{s.publisher}</Link>
+              ) : (
+                <span>{s.publisher}</span>
+              )}
               {year && (<><span className="text-muted-foreground/50">·</span><span className="tabular-nums">{year}</span></>)}
               {s.language && (<><span className="text-muted-foreground/50">·</span><span className="uppercase">{s.language}</span></>)}
             </div>
