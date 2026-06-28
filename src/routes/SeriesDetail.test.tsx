@@ -54,6 +54,9 @@ vi.mock('@/lib/komga/mutations', () => ({
 const { backSpy } = vi.hoisted(() => ({ backSpy: vi.fn() }))
 vi.mock('@/hooks/useSmartBack', () => ({ useSmartBack: () => backSpy }))
 
+const { triggerDownloadSpy } = vi.hoisted(() => ({ triggerDownloadSpy: vi.fn() }))
+vi.mock('@/lib/download', () => ({ triggerDownload: triggerDownloadSpy }))
+
 beforeEach(() => {
   vi.clearAllMocks()
   localStorage.clear() // reset the persisted Books view so each test starts at the default
@@ -133,6 +136,15 @@ describe('SeriesDetail', () => {
     await user.click(screen.getByRole('button', { name: 'Volume 1 actions' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Mark unread' }))
     expect(markBookMutate).toHaveBeenCalledWith({ bookId: 'b1', read: false })
+  })
+
+  it('a per-row menu downloads the volume file (list view)', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(screen.getByRole('button', { name: 'List' }))
+    await user.click(screen.getByRole('button', { name: 'Volume 2 actions' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Download' }))
+    expect(triggerDownloadSpy).toHaveBeenCalledWith('/komga/api/v1/books/b2/file')
   })
 
   it('forces the Books card view and hides the view toggle on mobile', () => {

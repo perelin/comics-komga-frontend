@@ -58,5 +58,5 @@ ssh pve-htz-docker 'cd /opt/apps/comics && docker compose up -d --force-recreate
 - Edge IP `138.201.193.245` matches the other `*.p2lab.com` Caddy sites; `komga.p2lab.com` itself is on the Cloudron VM (`.254`) — we proxy to its public URL.
 - **The edge basic-auth `Authorization` header must be stripped** before proxying to Komga (`header_up -Authorization` in the container Caddyfile) — otherwise Komga tries to auth it as a Komga user and 401s, ignoring `X-API-Key`.
 - **Reboot survival:** the container has `restart: unless-stopped`, so Docker restarts it after a CT 101 reboot. It is *not* in CT 101's `docker-compose-up-all.sh` ordered list (add `comics` there if you want explicit boot ordering).
-- **Auth gating:** the whole site (incl. `/komga/*`) is behind one shared HTTP basic-auth user (`perelin`); credentials are in `pass services/comics/basic-auth`.
+- **Auth gating:** the whole site (incl. `/komga/*`) is behind one shared HTTP basic-auth user (`comics`); credentials are in `pass services/comics/basic-auth`.
 - Edge Caddy config lives in `/etc/caddy/Caddyfile` on CT 100 (a `.bak` was written before the comics block was appended). Reload with `systemctl reload caddy` — **never restart** (it fronts all `*.p2lab.com`).

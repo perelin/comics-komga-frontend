@@ -1,14 +1,15 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, ExternalLink, Play, Check, CheckCheck, RotateCcw, MoreVertical, LayoutGrid, List, BookmarkPlus } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ExternalLink, Play, Check, CheckCheck, RotateCcw, MoreVertical, LayoutGrid, List, BookmarkPlus, Download } from 'lucide-react'
 import {
   useSeries, useSeriesBooks, useRelatedByPublisher, useLibraries,
 } from '@/lib/komga/queries'
 import { useMarkSeries, useMarkBook, useAddToReadList } from '@/lib/komga/mutations'
 import { AddToReadListButton } from '@/components/AddToReadListButton'
 import { mapSeries } from '@/lib/komga/mapping'
-import { pickContinueBook, bookReadState, bookCoverUrl, releaseYear } from '@/lib/komga/books'
+import { pickContinueBook, bookReadState, bookCoverUrl, bookDownloadUrl, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
+import { triggerDownload } from '@/lib/download'
 import { prettyLibraryName } from '@/lib/library'
 import { useSmartBack } from '@/hooks/useSmartBack'
 import { usePersistentState } from '@/hooks/usePersistentState'
@@ -302,6 +303,9 @@ function BooksTable({ books, seriesId }: { books: KomgaBookDto[]; seriesId: stri
                 )}
                 <DropdownMenuItem onClick={() => addToList.mutate({ target: { type: 'book', bookId: b.id }, listId: 'default' })}>
                   <BookmarkPlus className="size-4" /> Zu „To Read"
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => triggerDownload(bookDownloadUrl(b.id))}>
+                  <Download className="size-4" /> Download
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

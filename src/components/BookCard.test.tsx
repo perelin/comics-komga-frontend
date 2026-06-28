@@ -9,6 +9,9 @@ vi.mock('@/lib/komga/mutations', () => ({
   useMarkBook: () => ({ mutate: markBookMutate, isPending: false }),
 }))
 
+const { triggerDownloadSpy } = vi.hoisted(() => ({ triggerDownloadSpy: vi.fn() }))
+vi.mock('@/lib/download', () => ({ triggerDownload: triggerDownloadSpy }))
+
 function book(progress: KomgaBookDto['readProgress'], pages = 100): KomgaBookDto {
   return {
     id: 'b1', seriesId: 's1', name: 'Vol 3',
@@ -52,6 +55,12 @@ describe('BookCard', () => {
     expect(screen.getByTestId('book-read')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Mark unread' }))
     expect(markBookMutate).toHaveBeenCalledWith({ bookId: 'b1', read: false })
+  })
+
+  it('downloads the book file without navigating', () => {
+    render(<BookCard book={unread} seriesId="s1" />)
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+    expect(triggerDownloadSpy).toHaveBeenCalledWith('/komga/api/v1/books/b1/file')
   })
 
   it('renders no hover quick-actions on mobile', () => {
