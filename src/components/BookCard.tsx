@@ -1,9 +1,10 @@
-import { Play, Check, RotateCcw } from 'lucide-react'
+import { Play, Check, RotateCcw, Download } from 'lucide-react'
 import type { KomgaBookDto } from '@/lib/komga/types'
 import { useMarkBook } from '@/lib/komga/mutations'
 import { useIsMobile } from '@/hooks/useIsMobile'
-import { bookReadState, bookCoverUrl, bookProgressPct, releaseYear } from '@/lib/komga/books'
+import { bookReadState, bookCoverUrl, bookDownloadUrl, bookProgressPct, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl } from '@/lib/komga/reader'
+import { triggerDownload } from '@/lib/download'
 import { CoverImage } from './CoverImage'
 
 /** Cover-forward card for a single volume — the Books-tab "card" view counterpart
@@ -22,6 +23,12 @@ export function BookCard({ book, seriesId }: { book: KomgaBookDto; seriesId: str
     e.preventDefault()
     e.stopPropagation()
     mark.mutate({ bookId: book.id, read: !read })
+  }
+
+  const onDownload = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    triggerDownload(bookDownloadUrl(book.id))
   }
 
   return (
@@ -51,6 +58,14 @@ export function BookCard({ book, seriesId }: { book: KomgaBookDto; seriesId: str
               className="pointer-events-auto rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80 disabled:opacity-50"
             >
               {read ? <RotateCcw className="size-3.5" /> : <Check className="size-3.5" />}
+            </button>
+            <button
+              type="button"
+              onClick={onDownload}
+              aria-label="Download"
+              className="pointer-events-auto rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80"
+            >
+              <Download className="size-3.5" />
             </button>
           </div>
         )}

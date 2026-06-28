@@ -32,6 +32,14 @@ export function bookCoverUrl(id: string): string {
   return `/komga/api/v1/books/${id}/thumbnail`
 }
 
+/** The original-file download for a book, served through the same `/komga`
+ *  proxy that injects the API key server-side (like {@link bookCoverUrl}) — the
+ *  key never reaches the browser. Komga sets Content-Disposition, so the saved
+ *  filename is decided upstream. */
+export function bookDownloadUrl(id: string): string {
+  return `/komga/api/v1/books/${id}/file`
+}
+
 /** A book's read progress as a 0–100 integer percentage. 100 if completed,
  *  0 if unread or page-less (guards divide-by-zero). */
 export function bookProgressPct(b: KomgaBookDto): number {
