@@ -100,6 +100,16 @@ client machine. Nothing to install on the client — just a browser.
   `releaseDate` sort key) and **Pages** (client-derived, not sortable) columns.
   Pure helpers `sumPages` / `formatPages` / `pagesLabel` in `lib/komga/books.ts`
   (TDD). Spec: agents monorepo `docs/superpowers/specs/2026-06-16-komga-overview-year-pages-design.md`.
+- **Bugfix: create-new-list in the add-to-list popover** (2026-07-01) — the
+  "Neue Liste…" form inside `AddToReadListButton`'s popover never submitted
+  (no request, no toast; + click AND Enter dead) because `PopoverContent`'s
+  `onClick` called `e.preventDefault()`, which cancels a submit-button click's
+  default action (= form submission). Fixed to `stopPropagation()` only (that's
+  what actually shields the SeriesCard `<Link>` from portal-bubbled clicks).
+  Quick-add and add-to-existing-list were never affected (explicit `onClick`
+  handlers). Regression test drives the REAL popover + click chain
+  (`AddToReadListButton.test.tsx`) — the older menu-level test fires `submit`
+  directly and can't catch this class of bug.
 
 ## Architecture (as-built)
 

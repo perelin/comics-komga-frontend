@@ -18,7 +18,11 @@ export function AddToReadListButton({ target, className, label }: { target: AddT
         <BookmarkPlus className="size-4" />
         {label && <span className="ml-2">{label}</span>}
       </PopoverTrigger>
-      <PopoverContent align="end" className="p-0" onClick={(e) => { e.preventDefault(); e.stopPropagation() }}>
+      {/* stopPropagation only: the content is portaled, but React still bubbles
+          through the component tree to the SeriesCard <Link>. preventDefault here
+          would cancel the create-form's submit (form submission is the default
+          action of a submit-button click) — see AddToReadListButton.test.tsx. */}
+      <PopoverContent align="end" className="p-0" onClick={(e) => e.stopPropagation()}>
         <AddToReadListMenu target={target} onDone={() => setOpen(false)} />
       </PopoverContent>
     </Popover>
