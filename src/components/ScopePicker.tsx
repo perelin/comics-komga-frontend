@@ -50,11 +50,13 @@ export function ScopePicker({ value, onChange }: { value: string | undefined; on
           <ChevronsUpDown className="size-3.5 shrink-0 opacity-60" />
         )}
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-72 gap-0 p-0">
-        <div className="p-2">
+      <PopoverContent align="start" className="max-h-[min(40rem,var(--available-height))] w-72 gap-0 p-0">
+        <div className="shrink-0 p-2">
           <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search libraries…" className="h-8 text-sm" autoFocus />
         </div>
-        <ScrollArea className="max-h-72 px-1 pb-2">
+        {/* flex-1 (definite basis) is what lets the viewport's height:100% resolve;
+            with basis:auto the list ignores the popup's max-height and overflows it */}
+        <ScrollArea className="min-h-0 flex-1 px-1 pb-2">
           <button type="button" onClick={() => pick(undefined)}
             className={`flex h-8 w-full items-center gap-2 rounded-md px-2 text-sm ${value === undefined ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'}`}>
             <Library className="size-4 shrink-0 opacity-80" />

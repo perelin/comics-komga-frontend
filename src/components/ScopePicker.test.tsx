@@ -61,4 +61,27 @@ describe('ScopePicker', () => {
     expect(onChange).toHaveBeenCalledWith(undefined)
     expect(screen.queryByRole('checkbox')).not.toBeInTheDocument()
   })
+
+  // Regression: with many libraries the list used to spill past the popup
+  // without a background, because the scroll viewport never got a bounded
+  // height. jsdom can't do layout, so pin the class chain that produces the
+  // bound: height-capped popup → shrinkable ScrollArea → flexed viewport.
+  it('caps the popup height and puts the list in a bounded scroll viewport', async () => {
+    const user = userEvent.setup()
+    render(<ScopePicker value={undefined} onChange={() => {}} />)
+    await user.click(screen.getByRole('button', { name: 'Library scope' }))
+    await screen.findByText('Publisher')
+
+    const popup = document.querySelector('[data-slot="popover-content"]')!
+    expect(popup.className).toContain('max-h-[min(40rem,var(--available-height))]')
+
+    const scrollArea = popup.querySelector('[data-slot="scroll-area"]')!
+    expect(scrollArea.className).toContain('min-h-0')
+    expect(scrollArea.className).toContain('flex-1')
+
+    const viewport = scrollArea.querySelector('[data-slot="scroll-area-viewport"]')!
+    expect(viewport.className).toContain('min-h-0')
+    expect(viewport.className).toContain('flex-1')
+    expect(viewport).toContainElement(screen.getByRole('button', { name: 'Marvel' }))
+  })
 })
