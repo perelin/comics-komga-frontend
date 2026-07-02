@@ -12,12 +12,19 @@ function ScrollArea({
   return (
     <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
-      className={cn("relative", className)}
+      // Root is a flex column and the viewport a shrinkable flex item (instead
+      // of the upstream size-full) because the viewport's height:100% only
+      // resolves against a *definite* root height — with max-h-* sizing or an
+      // auto-height flex ancestor it silently falls back to the content height,
+      // so the list never scrolls and spills past the container. Flex sizing
+      // constrains the viewport in all of these cases; the scrollbar/corner are
+      // position:absolute, so they are unaffected.
+      className={cn("relative flex flex-col", className)}
       {...props}
     >
       <ScrollAreaPrimitive.Viewport
         data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        className="min-h-0 w-full flex-1 rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
       >
         {children}
       </ScrollAreaPrimitive.Viewport>
