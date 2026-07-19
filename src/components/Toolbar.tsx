@@ -1,24 +1,25 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { LayoutGrid, List, SlidersHorizontal, Search, ArrowUp, ArrowDown } from 'lucide-react'
+import { LayoutGrid, List, SlidersHorizontal, Search, ArrowUp, ArrowDown, Library, FileStack } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import type { Filters, View, Density, SortKey } from '@/lib/komga/filters'
+import type { Filters, View, Density, SortKey, BrowseDim } from '@/lib/komga/filters'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { ScopePicker } from '@/components/ScopePicker'
-import { SORT_OPTIONS, applySortField } from '@/components/sort-options'
+import { sortOptionsFor, applySortField } from '@/components/sort-options'
 
 export function Toolbar(props: {
   count: number
   filters: Filters
   onFiltersChange: (f: Filters) => void
+  dim: BrowseDim; onDimChange: (d: BrowseDim) => void
   view: View; onViewChange: (v: View) => void
   density: Density; onDensityChange: (d: Density) => void
   filterOpen: boolean; onToggleFilter: () => void
 }) {
-  const { count, filters, onFiltersChange, view, onViewChange, density, onDensityChange, filterOpen, onToggleFilter } = props
+  const { count, filters, onFiltersChange, dim, onDimChange, view, onViewChange, density, onDensityChange, filterOpen, onToggleFilter } = props
   const isMobile = useIsMobile()
   const filtersRef = useRef(filters)
   const onFiltersChangeRef = useRef(onFiltersChange)
@@ -36,12 +37,23 @@ export function Toolbar(props: {
     return () => clearTimeout(id)
   }, [term])
 
-  const activeSort = SORT_OPTIONS.find((o) => o.key === filters.sortKey) ?? SORT_OPTIONS[0]
+  const sortOptions = sortOptionsFor(dim)
+  const activeSort = sortOptions.find((o) => o.key === filters.sortKey) ?? sortOptions[0]
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2.5 md:flex-nowrap">
       <div className="flex items-center gap-2 whitespace-nowrap">
         <ScopePicker value={filters.library} onChange={(library) => onFiltersChange({ ...filters, library })} />
         <span className="text-sm tabular-nums text-muted-foreground">{count.toLocaleString()}</span>
+      </div>
+      {/* Browse dimension — series-grouped vs. flat issues. Always visible (incl.
+          mobile): more fundamental than the grid/list view toggle. */}
+      <div className="flex rounded-md border border-border p-0.5">
+        <Button variant={dim === 'series' ? 'secondary' : 'ghost'} size="sm" className="h-7 gap-1" onClick={() => onDimChange('series')}>
+          <Library className="size-4" />Series
+        </Button>
+        <Button variant={dim === 'issues' ? 'secondary' : 'ghost'} size="sm" className="h-7 gap-1" onClick={() => onDimChange('issues')}>
+          <FileStack className="size-4" />Issues
+        </Button>
       </div>
       <div className="flex-1" />
       <div className="relative order-last w-full md:order-none md:w-72">
@@ -71,7 +83,7 @@ export function Toolbar(props: {
         <Select value={filters.sortKey} onValueChange={(v) => onFiltersChange(applySortField(filters, v as SortKey))}>
           <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {SORT_OPTIONS.map((o) => <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>)}
+            {sortOptions.map((o) => <SelectItem key={o.key} value={o.key}>{o.label}</SelectItem>)}
           </SelectContent>
         </Select>
         {activeSort.directional && (
