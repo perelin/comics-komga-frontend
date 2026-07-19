@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { mockViewport } from '@/test/viewport'
 import { BookCard } from './BookCard'
 import type { KomgaBookDto } from '@/lib/komga/types'
@@ -14,7 +15,7 @@ vi.mock('@/lib/download', () => ({ triggerDownload: triggerDownloadSpy }))
 
 function book(progress: KomgaBookDto['readProgress'], pages = 100): KomgaBookDto {
   return {
-    id: 'b1', seriesId: 's1', name: 'Vol 3',
+    id: 'b1', seriesId: 's1', seriesTitle: 'The Walking Dead', name: 'Vol 3',
     media: { pagesCount: pages },
     metadata: { title: 'Days Gone Bye', number: '3', numberSort: 3, releaseDate: '2004-05-01', summary: '' },
     readProgress: progress,
@@ -73,5 +74,57 @@ describe('BookCard', () => {
   it('shows the read percentage for an in-progress book', () => {
     render(<BookCard book={inProgress} seriesId="s1" />)
     expect(screen.getByTestId('book-progress')).toHaveTextContent('62')
+  })
+})
+
+describe('BookCard — linkTarget="series" (flat Issues browse)', () => {
+  function CurrentPath() {
+    return <div data-testid="path">{useLocation().pathname}</div>
+  }
+  function renderSeriesCard(b = unread) {
+    return render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<BookCard book={b} seriesId="s1" linkTarget="series" />} />
+          <Route path="/series/:id" element={<CurrentPath />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+  }
+
+  it('links the whole card to the parent series (not the reader)', () => {
+    renderSeriesCard()
+    const link = screen.getByRole('link')
+    expect(link).toHaveAttribute('href', '/series/s1')
+    expect(link).not.toHaveAttribute('target')
+  })
+
+  it('leads with the series title', () => {
+    renderSeriesCard()
+    expect(screen.getByText('The Walking Dead')).toBeInTheDocument()
+    expect(screen.getByText(/Vol\. 3/)).toBeInTheDocument()
+  })
+
+  it('navigates to the series when the card is clicked', () => {
+    renderSeriesCard()
+    fireEvent.click(screen.getByRole('link'))
+    expect(screen.getByTestId('path')).toHaveTextContent('/series/s1')
+  })
+
+  it('opens the reader via the Play button without navigating to the series', () => {
+    const openSpy = vi.fn()
+    vi.stubGlobal('open', openSpy)
+    renderSeriesCard()
+    fireEvent.click(screen.getByRole('button', { name: 'Read' }))
+    expect(openSpy).toHaveBeenCalledWith(expect.stringContaining('/book/b1/read'), '_blank', 'noopener,noreferrer')
+    // still on the browse route — the Play click did not follow the series link
+    expect(screen.queryByTestId('path')).not.toBeInTheDocument()
+  })
+
+  it('marks read without navigating in series mode', () => {
+    renderSeriesCard()
+    fireEvent.click(screen.getByRole('button', { name: 'Mark read' }))
+    expect(markBookMutate).toHaveBeenCalledWith({ bookId: 'b1', read: true })
+    expect(screen.queryByTestId('path')).not.toBeInTheDocument()
   })
 })

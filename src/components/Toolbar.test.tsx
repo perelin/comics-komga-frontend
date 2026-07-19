@@ -3,8 +3,8 @@ import { render, screen, fireEvent } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toolbar } from './Toolbar'
-import { SORT_OPTIONS, applySortField } from './sort-options'
-import { DEFAULT_FILTERS, type Filters } from '@/lib/komga/filters'
+import { SORT_OPTIONS, ISSUE_SORT_OPTIONS, applySortField, coerceSortForDim, sortOptionsFor } from './sort-options'
+import { DEFAULT_FILTERS, type Filters, type BrowseDim } from '@/lib/komga/filters'
 import { mockViewport } from '@/test/viewport'
 
 vi.mock('@/lib/komga/queries', () => ({ useLibraries: () => ({ data: [] }) }))
@@ -16,7 +16,7 @@ function renderToolbar() {
   return render(
     <QueryClientProvider client={qc}>
       <Toolbar count={1947} filters={DEFAULT_FILTERS} onFiltersChange={vi.fn()}
-        view="grid" onViewChange={() => {}} density="m" onDensityChange={() => {}}
+        dim="series" onDimChange={() => {}} view="grid" onViewChange={() => {}} density="m" onDensityChange={() => {}}
         filterOpen={false} onToggleFilter={() => {}} />
     </QueryClientProvider>,
   )
@@ -45,12 +45,68 @@ function renderSort(overrides: Partial<Filters> = {}) {
   render(
     <QueryClientProvider client={qc}>
       <Toolbar count={42} filters={{ ...DEFAULT_FILTERS, ...overrides }} onFiltersChange={onFiltersChange}
-        view="grid" onViewChange={() => {}} density="m" onDensityChange={() => {}}
+        dim="series" onDimChange={() => {}} view="grid" onViewChange={() => {}} density="m" onDensityChange={() => {}}
         filterOpen={false} onToggleFilter={() => {}} />
     </QueryClientProvider>,
   )
   return { onFiltersChange }
 }
+
+function renderDim(dim: BrowseDim) {
+  const onDimChange = vi.fn()
+  const qc = new QueryClient()
+  render(
+    <QueryClientProvider client={qc}>
+      <Toolbar count={42} filters={DEFAULT_FILTERS} onFiltersChange={() => {}}
+        dim={dim} onDimChange={onDimChange} view="grid" onViewChange={() => {}} density="m" onDensityChange={() => {}}
+        filterOpen={false} onToggleFilter={() => {}} />
+    </QueryClientProvider>,
+  )
+  return { onDimChange }
+}
+
+describe('Toolbar — browse dimension toggle', () => {
+  it('renders both dimension buttons and is available on mobile', () => {
+    mockViewport(true)
+    renderDim('series')
+    expect(screen.getByRole('button', { name: /Series/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Issues/ })).toBeInTheDocument()
+  })
+  it('switches to the Issues dimension on click', () => {
+    const { onDimChange } = renderDim('series')
+    fireEvent.click(screen.getByRole('button', { name: /Issues/ }))
+    expect(onDimChange).toHaveBeenCalledWith('issues')
+  })
+  it('offers Issue # (not Books) as a sort option in the Issues dimension', () => {
+    renderDim('issues')
+    expect(sortOptionsFor('issues').map((o) => o.key)).toContain('number')
+    expect(sortOptionsFor('issues').map((o) => o.key)).not.toContain('booksCount')
+    expect(sortOptionsFor('series').map((o) => o.key)).toContain('booksCount')
+    expect(sortOptionsFor('series').map((o) => o.key)).not.toContain('number')
+  })
+})
+
+describe('coerceSortForDim', () => {
+  it('keeps a sort valid in the target dimension unchanged', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, sortKey: 'titleSort', sortDir: 'desc' }
+    expect(coerceSortForDim(f, 'issues')).toBe(f)
+    expect(coerceSortForDim(f, 'series')).toBe(f)
+  })
+  it('coerces a series-only sort (booksCount) to Issue # when switching to Issues', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, sortKey: 'booksCount', sortDir: 'desc' }
+    expect(coerceSortForDim(f, 'issues')).toMatchObject({ sortKey: 'number', sortDir: 'asc' })
+  })
+  it('coerces an issues-only sort (number) to Title when switching to Series', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, sortKey: 'number', sortDir: 'desc' }
+    expect(coerceSortForDim(f, 'series')).toMatchObject({ sortKey: 'titleSort', sortDir: 'asc' })
+  })
+  it('every issues sort option is valid for the issues dimension', () => {
+    for (const o of ISSUE_SORT_OPTIONS) {
+      const f: Filters = { ...DEFAULT_FILTERS, sortKey: o.key }
+      expect(coerceSortForDim(f, 'issues')).toBe(f)
+    }
+  })
+})
 
 describe('applySortField', () => {
   it('resets direction to the field default (Title asc → Release date desc)', () => {

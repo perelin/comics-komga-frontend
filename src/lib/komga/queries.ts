@@ -3,11 +3,12 @@ import { komga } from './client'
 import { mapSeries, type SeriesVM } from './mapping'
 import { sumPages } from './books'
 import type { Filters } from './filters'
-import type { KomgaPage, KomgaSeriesDto } from './types'
+import type { KomgaPage, KomgaSeriesDto, KomgaBookDto } from './types'
 
 export const PAGE_SIZE = 50
 
-export function nextPageParam(last: KomgaPage<KomgaSeriesDto>): number | undefined {
+// Works for any KomgaPage — only reads `.last`/`.number`.
+export function nextPageParam(last: KomgaPage<unknown>): number | undefined {
   return last.last ? undefined : last.number + 1
 }
 
@@ -20,6 +21,17 @@ export function totalSeries(data: SeriesData): number {
   return data?.pages[0]?.totalElements ?? 0
 }
 
+type BooksData = InfiniteData<KomgaPage<KomgaBookDto>> | undefined
+
+// The flat Issues browse. Books need no view-model mapping — BookCard/BookRow
+// consume the raw DTO directly.
+export function flattenBooks(data: BooksData): KomgaBookDto[] {
+  return data?.pages.flatMap((p) => p.content) ?? []
+}
+export function totalBooks(data: BooksData): number {
+  return data?.pages[0]?.totalElements ?? 0
+}
+
 const RELATED_LIMIT = 12
 /** View models for the "Related" rail: map a series page, drop the series
  *  we're already viewing, and cap the list. */
@@ -27,12 +39,23 @@ export function relatedFromPage(page: KomgaPage<KomgaSeriesDto>, excludeId: stri
   return page.content.map(mapSeries).filter((s) => s.id !== excludeId).slice(0, RELATED_LIMIT)
 }
 
-export function useSeriesInfinite(filters: Filters) {
+export function useSeriesInfinite(filters: Filters, enabled = true) {
   return useInfiniteQuery({
     queryKey: ['series', filters],
     queryFn: ({ pageParam }) => komga.series(filters, pageParam, PAGE_SIZE),
     initialPageParam: 0,
     getNextPageParam: nextPageParam,
+    enabled,
+  })
+}
+
+export function useBooksInfinite(filters: Filters, enabled = true) {
+  return useInfiniteQuery({
+    queryKey: ['books', filters],
+    queryFn: ({ pageParam }) => komga.books(filters, pageParam, PAGE_SIZE),
+    initialPageParam: 0,
+    getNextPageParam: nextPageParam,
+    enabled,
   })
 }
 

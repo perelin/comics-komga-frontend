@@ -1,11 +1,11 @@
 import { X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { resetFiltersKeepingSort, type Filters } from '@/lib/komga/filters'
+import { resetFiltersKeepingSort, isSeriesOnlyFacet, type Filters, type BrowseDim } from '@/lib/komga/filters'
 
 type Chip = { field: keyof Filters; label: string; value: string }
 
-function chipsFor(f: Filters): Chip[] {
+function chipsFor(f: Filters, dim: BrowseDim): Chip[] {
   const chips: Chip[] = []
   const push = (field: keyof Filters, label: string, arr: string[]) => arr.forEach((v) => chips.push({ field, label, value: v }))
   push('readStatus', 'Read', f.readStatus)
@@ -18,11 +18,13 @@ function chipsFor(f: Filters): Chip[] {
   if (f.ratingMin !== undefined || f.ratingMax !== undefined) {
     chips.push({ field: 'ratingMin', label: 'Rating', value: `${(f.ratingMin ?? 1).toFixed(1)}–${(f.ratingMax ?? 5).toFixed(1)} ★` })
   }
-  return chips
+  // In Issues mode the series-only facets don't reach /books/list, so don't show
+  // chips that imply an active filter that isn't being applied.
+  return dim === 'issues' ? chips.filter((c) => !isSeriesOnlyFacet(c.field)) : chips
 }
 
-export function ActiveFilters({ filters, onChange }: { filters: Filters; onChange: (f: Filters) => void }) {
-  const chips = chipsFor(filters)
+export function ActiveFilters({ filters, onChange, dim = 'series' }: { filters: Filters; onChange: (f: Filters) => void; dim?: BrowseDim }) {
+  const chips = chipsFor(filters, dim)
   if (!chips.length) return null
   const remove = (c: Chip) => {
     if (c.field === 'oneshot') return onChange({ ...filters, oneshot: undefined })

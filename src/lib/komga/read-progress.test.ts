@@ -8,7 +8,7 @@ type RP = KomgaBookDto['readProgress']
 
 function book(id: string, rp: RP = null, pages = 20): KomgaBookDto {
   return {
-    id, seriesId: 's1', name: id,
+    id, seriesId: 's1', seriesTitle: 'Series', name: id,
     media: { pagesCount: pages },
     metadata: { title: id, number: id, numberSort: 1, releaseDate: null, summary: '' },
     readProgress: rp,

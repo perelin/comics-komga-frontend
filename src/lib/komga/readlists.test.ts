@@ -5,7 +5,7 @@ import {
 import type { KomgaBookDto, KomgaReadListDto } from './types'
 
 const book = (id: string, completed?: boolean): KomgaBookDto => ({
-  id, seriesId: 's1', name: id, media: { pagesCount: 10 },
+  id, seriesId: 's1', seriesTitle: 'Series', name: id, media: { pagesCount: 10 },
   metadata: { title: id, number: id, numberSort: Number(id.replace(/\D/g, '')) || 0, releaseDate: null, summary: '' },
   readProgress: completed === undefined ? null : { page: 10, completed, readDate: '' },
 })

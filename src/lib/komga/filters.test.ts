@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import {
   DEFAULT_FILTERS, filtersToSearchParams, searchParamsToFilters,
-  filtersToCondition, listQueryParams, facetHref,
+  filtersToCondition, listQueryParams, facetHref, isSeriesOnlyFacet,
   type Filters,
 } from './filters'
 
@@ -181,6 +181,75 @@ describe('searchParamsToFilters validation', () => {
 describe('searchParamsToFilters drops empty author entries', () => {
   it('ignores blank names from a trailing comma', () => {
     expect(searchParamsToFilters(new URLSearchParams('authors=Neil Gaiman,')).authors).toEqual(['Neil Gaiman'])
+  })
+})
+
+describe('filtersToCondition — Issues dimension', () => {
+  it('omits series-only facets (publisher/genre/status/ageRating) from the books body', () => {
+    const f: Filters = {
+      ...DEFAULT_FILTERS,
+      publisher: ['Image'], genre: ['action'], status: ['ONGOING'], ageRating: ['16'],
+    }
+    // In series mode all four appear; in issues mode none may (books/list 400s on them).
+    expect(filtersToCondition(f, 'issues')).toEqual({})
+  })
+  it('keeps the shared facets (readStatus/library/oneshot/rating/author) in issues mode', () => {
+    const f: Filters = {
+      ...DEFAULT_FILTERS,
+      library: 'lib1', readStatus: ['UNREAD'], oneshot: true, authors: ['Neil Gaiman'],
+      // series-only facets present but must be dropped
+      publisher: ['Image'], genre: ['noir'],
+    }
+    const body = filtersToCondition(f, 'issues')
+    expect(body).toEqual({
+      condition: {
+        allOf: [
+          { readStatus: { operator: 'is', value: 'UNREAD' } },
+          { libraryId: { operator: 'is', value: 'lib1' } },
+          { oneShot: { operator: 'isTrue' } },
+          { author: { operator: 'is', value: { name: 'Neil Gaiman' } } },
+        ],
+      },
+    })
+  })
+  it('still carries fullTextSearch in issues mode', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, search: 'akira' }, 'issues'))
+      .toEqual({ fullTextSearch: 'akira' })
+  })
+  it('defaults to the series dimension when omitted', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, publisher: ['Image'] }
+    expect(filtersToCondition(f)).toEqual(filtersToCondition(f, 'series'))
+    expect(filtersToCondition(f, 'series')).not.toEqual(filtersToCondition(f, 'issues'))
+  })
+})
+
+describe('listQueryParams — Issues dimension sort', () => {
+  it('maps issues-supported sort keys to book fields', () => {
+    const cases = [
+      { key: 'number', field: 'metadata.numberSort' },
+      { key: 'releaseDate', field: 'metadata.releaseDate' },
+      { key: 'readDate', field: 'readProgress.readDate' },
+      { key: 'titleSort', field: 'metadata.titleSort' },
+    ] as const
+    for (const { key, field } of cases) {
+      const f: Filters = { ...DEFAULT_FILTERS, sortKey: key, sortDir: 'desc' }
+      expect(listQueryParams(f, 0, 20, 'issues').get('sort')).toBe(`${field},desc`)
+    }
+  })
+  it('falls back to numberSort when a series-only sortKey (booksCount) leaks into issues mode', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, sortKey: 'booksCount', sortDir: 'desc' }
+    expect(listQueryParams(f, 0, 20, 'issues').get('sort')).toBe('metadata.numberSort,desc')
+  })
+  it('falls back to titleSort when an issues-only sortKey (number) leaks into series mode', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, sortKey: 'number', sortDir: 'asc' }
+    expect(listQueryParams(f, 0, 20, 'series').get('sort')).toBe('metadata.titleSort,asc')
+  })
+})
+
+describe('isSeriesOnlyFacet', () => {
+  it('flags the four facets books/list rejects', () => {
+    for (const k of ['genre', 'publisher', 'status', 'ageRating']) expect(isSeriesOnlyFacet(k)).toBe(true)
+    for (const k of ['readStatus', 'creators', 'rating', 'format', 'library']) expect(isSeriesOnlyFacet(k)).toBe(false)
   })
 })
 

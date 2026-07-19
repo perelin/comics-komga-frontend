@@ -110,6 +110,28 @@ client machine. Nothing to install on the client — just a browser.
   handlers). Regression test drives the REAL popover + click chain
   (`AddToReadListButton.test.tsx`) — the older menu-level test fires `submit`
   directly and can't catch this class of bug.
+- **Library Browser: Series ⇄ Issues dimension** (2026-07-19) — a second,
+  always-visible toolbar toggle (incl. mobile) flips the browser between
+  series-grouped and **flat individual-issue** browse, mirroring Komga's
+  Series/Books tabs. Motivation: a library shows more items under Komga's
+  `/books` than `/series` (multi-volume series collapse to one card) and users
+  read the difference as "books missing" — every book was always reachable via
+  its series, but there was no flat lens. Issues mode queries **`POST
+  /books/list`** (`komga.books` / `useBooksInfinite`), reusing the same filter
+  bar, virtualization, and scroll-restore. Two data-level guards, both
+  live-verified against v1.23.6 (books/list 400s otherwise): **(a)**
+  `filtersToCondition(f, 'issues')` omits the four series-only facets
+  (genre/publisher/seriesStatus/ageRating) — the FilterPanel greys them with an
+  "Only in Series view" hint; **(b)** `sortParam`/`BOOK_SORT_FIELD` map book
+  sort fields with a safe fallback, and `coerceSortForDim` reconciles a persisted
+  `booksCount`/`number` sortKey on switch (sort dropdown swaps Books ⇄ Issue #).
+  Cards reuse `BookCard` with `linkTarget='series'` (whole card → parent series,
+  Play → reader via `window.open`, **no nested anchor**); list uses
+  `BookRow`/`BookList`. `SeriesGrid`'s virtualization was extracted into a
+  generic **`CardGrid<T>`** (shared by both dimensions). Dimension is persisted
+  (`komga:browseDim`) and folded into the scroll-restore key. Only the active
+  dimension fetches (`enabled`). Spec:
+  `docs/superpowers/specs/2026-07-19-library-issues-view-design.md`.
 
 ## Architecture (as-built)
 
