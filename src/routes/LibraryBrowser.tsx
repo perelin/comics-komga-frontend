@@ -79,7 +79,7 @@ export function LibraryBrowser() {
         filterOpen={sheetOpen}
         onToggleFilter={() => setSheetOpen((o) => !o)}
       />
-      <ActiveFilters filters={filters} onChange={setFilters} />
+      <ActiveFilters filters={filters} onChange={setFilters} dim={dim} />
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         {query.isLoading ? (
           <div className="grid flex-1 grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-4 overflow-hidden p-4">
