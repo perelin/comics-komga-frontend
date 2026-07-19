@@ -6,6 +6,7 @@ function book(n: number, progress: KomgaBookDto['readProgress'], pages = 100): K
   return {
     id: `b${n}`,
     seriesId: 's1',
+    seriesTitle: 'Series',
     name: `Vol ${n}`,
     media: { pagesCount: pages },
     metadata: { title: `Volume ${n}`, number: String(n), numberSort: n, releaseDate: '2008-04-30', summary: '' },

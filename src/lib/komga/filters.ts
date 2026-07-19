@@ -1,10 +1,14 @@
 import type { ReadStatus, SeriesStatus } from './types'
 
 export type View = 'grid' | 'list'
+/** The browse dimension: series-grouped (default) vs. flat individual issues. */
+export type BrowseDim = 'series' | 'issues'
 export type Density = 's' | 'm' | 'l'
 export type SortKey =
   | 'titleSort' | 'createdDate' | 'lastModified'
   | 'releaseDate' | 'booksCount' | 'readDate' | 'random'
+  // Issues-only: natural issue ordering (metadata.numberSort). Never a series sort.
+  | 'number'
 export type SortDir = 'asc' | 'desc'
 
 export interface Filters {
@@ -64,7 +68,7 @@ const VALID_READ_STATUS: ReadStatus[] = ['UNREAD', 'READ', 'IN_PROGRESS']
 const VALID_SERIES_STATUS: SeriesStatus[] = ['ONGOING', 'ENDED', 'HIATUS', 'ABANDONED']
 const VALID_SORT_KEYS: SortKey[] = [
   'titleSort', 'createdDate', 'lastModified',
-  'releaseDate', 'booksCount', 'readDate', 'random',
+  'releaseDate', 'booksCount', 'readDate', 'random', 'number',
 ]
 const VALID_SORT_DIRS: SortDir[] = ['asc', 'desc']
 
@@ -96,7 +100,11 @@ export function searchParamsToFilters(sp: URLSearchParams): Filters {
   }
 }
 
-const SORT_FIELD: Record<SortKey, string> = {
+// Sort field per dimension. Some keys are dimension-specific: `booksCount` only
+// sorts series; `number` only sorts issues. The maps are Partial so a persisted
+// sortKey that's invalid for the current dimension falls through to a default
+// (see sortParam) — Komga 400s on an unknown sort field, so this must never leak.
+const SORT_FIELD: Partial<Record<SortKey, string>> = {
   titleSort: 'metadata.titleSort',
   createdDate: 'createdDate',
   lastModified: 'lastModified',
@@ -104,6 +112,30 @@ const SORT_FIELD: Record<SortKey, string> = {
   booksCount: 'booksCount',
   readDate: 'readDate',
   random: 'random',
+}
+// Book-level sort fields — all live-verified against POST /books/list (v1.23.6).
+const BOOK_SORT_FIELD: Partial<Record<SortKey, string>> = {
+  titleSort: 'metadata.titleSort',
+  number: 'metadata.numberSort',
+  createdDate: 'createdDate',
+  lastModified: 'lastModified',
+  releaseDate: 'metadata.releaseDate',
+  readDate: 'readProgress.readDate',
+  random: 'random',
+}
+
+/** Facets that `/books/list` rejects (400) — they're series-level metadata. In
+ *  the Issues dimension we omit them from the condition entirely, so a stale
+ *  persisted publisher/genre/status/ageRating never reaches the book endpoint. */
+const SERIES_ONLY_FACETS = ['genre', 'publisher', 'status', 'ageRating'] as const
+
+/** The sort clause (`field,dir`) for a dimension. Falls back to each dimension's
+ *  natural default when the persisted sortKey has no field in that dimension —
+ *  guards against a malformed sort param after a dimension switch. */
+function sortParam(f: Filters, dim: BrowseDim): string {
+  const map = dim === 'issues' ? BOOK_SORT_FIELD : SORT_FIELD
+  const fallback = dim === 'issues' ? 'metadata.numberSort' : 'metadata.titleSort'
+  return `${map[f.sortKey] ?? fallback},${f.sortDir}`
 }
 
 // --- POST /series/list search DSL (Komga v1.23.6, operator shapes live-verified) ---
@@ -140,18 +172,23 @@ function ratingFacet(min?: number, max?: number): Condition | null {
   return orFacet('tag', tags)
 }
 
-/** Build the SeriesSearch body: allOf across facets, anyOf within a multi-value
- *  facet, allOf (AND) within the author facet, search → fullTextSearch. */
-export function filtersToCondition(f: Filters): SeriesListBody {
+/** Build the search body for either dimension: allOf across facets, anyOf within
+ *  a multi-value facet, allOf (AND) within the author facet, search →
+ *  fullTextSearch. In the Issues dimension the series-only facets (genre,
+ *  publisher, seriesStatus, ageRating) are omitted — `/books/list` 400s on them.
+ *  The shared facets (readStatus, library, oneShot, rating tag, author) use
+ *  identical operator shapes on both `/series/list` and `/books/list`. */
+export function filtersToCondition(f: Filters, dim: BrowseDim = 'series'): SeriesListBody {
   const parts: Condition[] = []
   const add = (c: Condition | null) => { if (c) parts.push(c) }
+  const seriesOnly = dim === 'series'
 
   add(orFacet('readStatus', f.readStatus))
   if (f.library) add(isEq('libraryId', f.library))
-  add(orFacet('genre', f.genre))
-  add(orFacet('publisher', f.publisher))
-  add(orFacet('seriesStatus', f.status))
-  add(orFacet('ageRating', f.ageRating.map(Number)))
+  if (seriesOnly) add(orFacet('genre', f.genre))
+  if (seriesOnly) add(orFacet('publisher', f.publisher))
+  if (seriesOnly) add(orFacet('seriesStatus', f.status))
+  if (seriesOnly) add(orFacet('ageRating', f.ageRating.map(Number)))
   if (f.oneshot !== undefined) add({ oneShot: { operator: f.oneshot ? 'isTrue' : 'isFalse' } })
   add(ratingFacet(f.ratingMin, f.ratingMax))
   // Authors: AND each (the concrete collaboration) — see spec decision 2.
@@ -164,10 +201,15 @@ export function filtersToCondition(f: Filters): SeriesListBody {
   return body
 }
 
-export function listQueryParams(f: Filters, page: number, size: number): URLSearchParams {
+export function listQueryParams(f: Filters, page: number, size: number, dim: BrowseDim = 'series'): URLSearchParams {
   const p = new URLSearchParams()
-  p.set('sort', `${SORT_FIELD[f.sortKey]},${f.sortDir}`)
+  p.set('sort', sortParam(f, dim))
   p.set('page', String(page))
   p.set('size', String(size))
   return p
+}
+
+/** True for facets `/books/list` rejects — used to grey them out in Issues mode. */
+export function isSeriesOnlyFacet(key: string): boolean {
+  return (SERIES_ONLY_FACETS as readonly string[]).includes(key)
 }

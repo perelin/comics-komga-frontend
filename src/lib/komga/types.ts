@@ -43,6 +43,8 @@ export interface KomgaSeriesDto {
 export interface KomgaBookDto {
   id: string
   seriesId: string
+  /** Parent series title — carried on every book DTO; shown in the flat Issues view. */
+  seriesTitle: string
   name: string
   media: { pagesCount: number }
   metadata: { title: string; number: string; numberSort: number; releaseDate: string | null; summary: string }

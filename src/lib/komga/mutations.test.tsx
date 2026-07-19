@@ -26,7 +26,7 @@ vi.mock('sonner', () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 
 type RP = KomgaBookDto['readProgress']
 const book = (id: string, rp: RP = null): KomgaBookDto => ({
-  id, seriesId: 's1', name: id,
+  id, seriesId: 's1', seriesTitle: 'Series', name: id,
   media: { pagesCount: 20 },
   metadata: { title: id, number: id, numberSort: 1, releaseDate: null, summary: '' },
   readProgress: rp,

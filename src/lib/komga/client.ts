@@ -39,6 +39,10 @@ async function postList<T>(path: string, body: unknown, params?: URLSearchParams
 export const komga = {
   series: (f: Filters, page: number, size: number) =>
     postList<KomgaPage<KomgaSeriesDto>>('/series/list', filtersToCondition(f), listQueryParams(f, page, size)),
+  // Flat individual-issue browse (the "Issues" dimension). Same search DSL as
+  // /series/list, but the condition/sort are built for the book endpoint.
+  books: (f: Filters, page: number, size: number) =>
+    postList<KomgaPage<KomgaBookDto>>('/books/list', filtersToCondition(f, 'issues'), listQueryParams(f, page, size, 'issues')),
   searchSeries: (q: string) =>
     get<KomgaPage<KomgaSeriesDto>>('/series', new URLSearchParams({ search: q, size: '20' })),
   seriesById: (id: string) => get<KomgaSeriesDto>(`/series/${id}`),

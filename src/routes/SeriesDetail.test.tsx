@@ -21,7 +21,7 @@ const seriesDto: KomgaSeriesDto = {
 }
 function book(n: number, rp: KomgaBookDto['readProgress']): KomgaBookDto {
   return {
-    id: `b${n}`, seriesId: 's1', name: `Vol ${n}`, media: { pagesCount: 168 },
+    id: `b${n}`, seriesId: 's1', seriesTitle: 'Series', name: `Vol ${n}`, media: { pagesCount: 168 },
     metadata: { title: `Volume ${n}`, number: String(n), numberSort: n, releaseDate: '2012-03-14', summary: '' },
     readProgress: rp,
   }
