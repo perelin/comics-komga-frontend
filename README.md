@@ -40,8 +40,10 @@ done. See [`deploy/DEPLOY.md`](deploy/DEPLOY.md).
   Virtual; only the visible window renders), real covers / read-progress /
   ratings, live result count, search-within, sort (Title / Recently added /
   Recently updated), and multi-facet filters (read status, library, status,
-  genre, publisher, age rating, one-shot). **All filter/sort/view state lives in
-  the URL** — deep-linkable and refresh-safe.
+  genre, publisher, age rating, one-shot). A **Series ⇄ Issues toggle** switches
+  between series-grouped browse and a flat individual-issue view (Komga's
+  Series/Books split; series-only facets grey out in Issues mode). **All
+  filter/sort/view state lives in the URL** — deep-linkable and refresh-safe.
 - **Sidebar** — smart folders (Continue reading / Recently added / Unread),
   libraries (the `xCat:` prefix is stripped for display), and read-list search.
 - **Series Detail** (`/series/:id`) — read-only hero (cover, author, publisher,
