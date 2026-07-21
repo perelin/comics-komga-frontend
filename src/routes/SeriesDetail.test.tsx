@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Routes, Route } from 'react-router-dom'
@@ -78,12 +78,19 @@ function renderDetail() {
 // imported after vi.mock so the mock is in place
 import { SeriesDetail as SeriesDetailUnderTest } from './SeriesDetail'
 
+/** Author/publisher now also surface as stat blocks in SeriesMetaBand, so
+ *  scope hero-specific assertions to the hero region to avoid ambiguous
+ *  duplicate-text matches. */
+function heroRegion() {
+  return screen.getByRole('heading', { name: 'Saga' }).closest('.relative') as HTMLElement
+}
+
 describe('SeriesDetail', () => {
   it('renders the hero with title, author and publisher', () => {
     renderDetail()
     expect(screen.getByRole('heading', { name: 'Saga' })).toBeInTheDocument()
-    expect(screen.getByText('Brian K. Vaughan')).toBeInTheDocument()
-    expect(screen.getByText('Image')).toBeInTheDocument()
+    expect(within(heroRegion()).getByText('Brian K. Vaughan')).toBeInTheDocument()
+    expect(within(heroRegion()).getByText('Image')).toBeInTheDocument()
   })
 
   it('offers Books / Related / Metadata tabs', () => {
@@ -173,8 +180,8 @@ describe('SeriesDetail', () => {
 
   it('the hero author and publisher link to freshly-scoped filtered lists', () => {
     renderDetail()
-    expect(screen.getByRole('link', { name: 'Brian K. Vaughan' })).toHaveAttribute('href', '/?authors=Brian+K.+Vaughan')
-    expect(screen.getByRole('link', { name: 'Image' })).toHaveAttribute('href', '/?publisher=Image')
+    expect(within(heroRegion()).getByRole('link', { name: 'Brian K. Vaughan' })).toHaveAttribute('href', '/?authors=Brian+K.+Vaughan')
+    expect(within(heroRegion()).getByRole('link', { name: 'Image' })).toHaveAttribute('href', '/?publisher=Image')
   })
 
   it('the back button invokes smart back', () => {

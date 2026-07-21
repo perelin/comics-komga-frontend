@@ -1,15 +1,13 @@
 import type { ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, ExternalLink, Play, Check, CheckCheck, RotateCcw, MoreVertical, LayoutGrid, List, BookmarkPlus, Download } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ExternalLink, Check, RotateCcw, MoreVertical, LayoutGrid, List, BookmarkPlus, Download } from 'lucide-react'
 import {
   useSeries, useSeriesBooks, useRelatedByPublisher, useLibraries,
 } from '@/lib/komga/queries'
-import { useMarkSeries, useMarkBook, useAddToReadList } from '@/lib/komga/mutations'
-import { AddToReadListButton } from '@/components/AddToReadListButton'
+import { useMarkBook, useAddToReadList } from '@/lib/komga/mutations'
 import { mapSeries } from '@/lib/komga/mapping'
-import { pickContinueBook, bookReadState, bookCoverUrl, bookDownloadUrl, releaseYear } from '@/lib/komga/books'
+import { bookReadState, bookCoverUrl, bookDownloadUrl, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
-import { facetHref } from '@/lib/komga/filters'
 import { triggerDownload } from '@/lib/download'
 import { prettyLibraryName, libraryCrumbLabel } from '@/lib/library'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -17,16 +15,16 @@ import { usePersistentState } from '@/hooks/usePersistentState'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { CoverImage } from '@/components/CoverImage'
 import { BookCard } from '@/components/BookCard'
-import { Stars } from '@/components/Stars'
 import { StatusDot } from '@/components/StatusDot'
 import { SeriesCard } from '@/components/SeriesCard'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
+import { SeriesHero } from '@/components/SeriesHero'
+import { SeriesMetaBand } from '@/components/SeriesMetaBand'
 import type { KomgaBookDto, KomgaSeriesDto } from '@/lib/komga/types'
 
 const READING_DIR: Record<string, string> = {
@@ -43,7 +41,6 @@ export function SeriesDetail() {
   const sq = useSeries(id)
   const bq = useSeriesBooks(id)
   const libs = useLibraries()
-  const markSeries = useMarkSeries()
   const back = useSmartBack()
 
   if (sq.isLoading) return <div className="p-8"><Skeleton className="h-64 w-full" /></div>
@@ -56,12 +53,10 @@ export function SeriesDetail() {
   const dto = sq.data
   const s = mapSeries(dto)
   const books = bq.data?.content ?? []
-  const cont = pickContinueBook(books)
   const rawLibraryName = libs.data?.find((l) => l.id === dto.libraryId)?.name ?? ''
   const libraryName = prettyLibraryName(rawLibraryName)
   const libraryCrumb = libraryCrumbLabel(rawLibraryName)
   const year = releaseYear(dto.booksMetadata.releaseDate)
-  const done = s.progress.total > 0 && s.progress.read >= s.progress.total
 
   return (
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
@@ -92,96 +87,8 @@ export function SeriesDetail() {
       </div>
 
       <div className="min-h-0 flex-1 overflow-auto">
-        {/* hero */}
-        <div className="flex gap-4 p-4 md:gap-7 md:p-6">
-          <div className="w-28 shrink-0 md:w-48">
-            <div className="aspect-[2/3] overflow-hidden rounded-lg border border-border shadow-xl">
-              <CoverImage src={s.coverUrl} alt={s.title} />
-            </div>
-            <div className="mt-2.5 text-center text-xs tabular-nums text-muted-foreground">
-              {s.progress.total} volume{s.progress.total === 1 ? '' : 's'} · {s.progress.read} read
-            </div>
-          </div>
-
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold tracking-tight md:text-3xl">{s.title}</h1>
-              <StatusDot status={s.status} />
-            </div>
-
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-              {s.author && s.author !== '—' ? (
-                <Link to={facetHref({ authors: [s.author] })} className="text-primary hover:underline">{s.author}</Link>
-              ) : (
-                <span className="text-primary">{s.author}</span>
-              )}
-              <span className="text-muted-foreground/50">·</span>
-              {s.publisher && s.publisher !== '—' ? (
-                <Link to={facetHref({ publisher: [s.publisher] })} className="hover:text-foreground hover:underline">{s.publisher}</Link>
-              ) : (
-                <span>{s.publisher}</span>
-              )}
-              {year && (<><span className="text-muted-foreground/50">·</span><span className="tabular-nums">{year}</span></>)}
-              {s.language && (<><span className="text-muted-foreground/50">·</span><span className="uppercase">{s.language}</span></>)}
-            </div>
-
-            {s.rating && (
-              <div className="mt-3.5 flex items-center gap-3">
-                <Stars rating={s.rating} size={18} />
-                {s.goodreads && (
-                  <a href={s.goodreads.url} target="_blank" rel="noreferrer"
-                     className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
-                    ★ {s.goodreads.avg} · Goodreads ({s.goodreads.votes}) <ExternalLink className="size-3" />
-                  </a>
-                )}
-              </div>
-            )}
-
-            {s.genres.length > 0 && (
-              <div className="mt-3.5 flex flex-wrap gap-1.5">
-                {s.genres.map((g) => <Badge key={g} variant="secondary">{g}</Badge>)}
-              </div>
-            )}
-
-            {dto.metadata.summary && (
-              <p className="mt-3.5 max-w-2xl text-sm leading-relaxed text-foreground/90">{dto.metadata.summary}</p>
-            )}
-
-            <div className="mt-4 flex flex-wrap items-center gap-2.5 md:mt-5">
-              {cont ? (
-                <a href={komgaReaderUrl(cont.book.id)} target="_blank" rel="noreferrer"
-                   className="inline-flex h-9 items-center gap-2 rounded-md bg-primary px-4 text-primary-foreground hover:bg-primary/90">
-                  <Play className="size-4" />
-                  <span className="flex flex-col items-start leading-tight">
-                    <span className="text-sm font-medium">{cont.started ? 'Continue reading' : 'Start reading'}</span>
-                    <span className="text-[11px] tabular-nums opacity-85">
-                      Vol. {cont.book.metadata.number}{cont.started ? ` · p.${cont.page + 1}/${cont.pages}` : ''}
-                    </span>
-                  </span>
-                </a>
-              ) : books.length > 0 ? (
-                <a href={komgaReaderUrl(books[0].id)} target="_blank" rel="noreferrer"
-                   className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 text-sm hover:bg-accent">
-                  <Check className="size-4 text-green-500" /> All read · re-read from Vol. {books[0].metadata.number}
-                </a>
-              ) : null}
-              <button
-                type="button"
-                onClick={() => markSeries.mutate({ seriesId: dto.id, read: !done })}
-                disabled={markSeries.isPending}
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 text-sm text-muted-foreground hover:bg-accent hover:text-foreground disabled:opacity-50"
-              >
-                {done ? <RotateCcw className="size-4" /> : <CheckCheck className="size-4" />}
-                {done ? 'Mark all unread' : 'Mark all read'}
-              </button>
-              <AddToReadListButton
-                target={{ type: 'series', seriesId: dto.id }}
-                label="Zu Liste"
-                className="inline-flex h-9 items-center gap-2 rounded-md border border-border px-4 text-sm text-muted-foreground hover:bg-accent hover:text-foreground"
-              />
-            </div>
-          </div>
-        </div>
+        <SeriesHero dto={dto} books={books} />
+        <SeriesMetaBand dto={dto} books={books} />
 
         {/* tabs */}
         <Tabs defaultValue="books" className="px-6 pb-12">
