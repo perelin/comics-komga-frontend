@@ -5,13 +5,14 @@ import { useEffect, useState } from 'react'
 export function useImageLoaded(url: string | null): boolean {
   const [loaded, setLoaded] = useState(false)
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset on url change; the cascading re-render is intentional and cheap
     setLoaded(false)
     if (!url) return
     const img = new Image()
     img.onload = () => setLoaded(true)
+    img.onerror = () => setLoaded(false)
     img.src = url
-    return () => { img.onload = null }
+    return () => { img.onload = null; img.onerror = null }
   }, [url])
   return loaded
 }
