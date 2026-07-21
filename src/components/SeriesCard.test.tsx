@@ -18,7 +18,7 @@ const vm: SeriesVM = {
   id: 's1', title: 'Saga', author: 'BKV', publisher: 'Image', status: 'ONGOING',
   genres: ['Science Fiction'], language: 'en', ageRating: 16, oneshot: false,
   progress: { read: 7, inProgress: 1, unread: 3, total: 11 },
-  rating: { value: 4.2, needsCheck: false }, goodreads: undefined,
+  rating: { value: 4.2, needsCheck: false },
   coverUrl: '/komga/api/v1/series/s1/thumbnail', year: '2012',
 }
 const doneVm: SeriesVM = { ...vm, progress: { read: 11, inProgress: 0, unread: 0, total: 11 } }

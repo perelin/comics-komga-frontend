@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRating, parseGoodreads, pickAuthor, mapSeries, pickSummary, creditNames, formatCredit } from './mapping'
+import { parseRating, pickAuthor, mapSeries, pickSummary, creditNames, formatCredit } from './mapping'
 import type { KomgaSeriesDto } from './types'
 
 describe('parseRating', () => {
@@ -17,23 +17,6 @@ describe('parseRating', () => {
   })
   it('ignores rating:check alone (no numeric rating)', () => {
     expect(parseRating(['rating:check'])).toBeUndefined()
-  })
-})
-
-describe('parseGoodreads', () => {
-  it('parses avg + votes + url from the label', () => {
-    expect(parseGoodreads([{ label: '★ 4.13 · Goodreads (106)', url: 'https://www.goodreads.com/book/show/1' }]))
-      .toEqual({ avg: 4.13, votes: '106', url: 'https://www.goodreads.com/book/show/1' })
-  })
-  it('handles abbreviated vote counts', () => {
-    expect(parseGoodreads([{ label: '★ 4.20 · Goodreads (367k)', url: 'u' }]))
-      .toEqual({ avg: 4.2, votes: '367k', url: 'u' })
-  })
-  it('returns undefined when no goodreads link', () => {
-    expect(parseGoodreads([{ label: 'Wikipedia', url: 'w' }])).toBeUndefined()
-  })
-  it('returns undefined when a Goodreads label has no parseable score', () => {
-    expect(parseGoodreads([{ label: 'See on Goodreads', url: 'u' }])).toBeUndefined()
   })
 })
 
@@ -70,7 +53,6 @@ describe('mapSeries', () => {
       genres: ['Science Fiction'], oneshot: false,
       progress: { read: 7, inProgress: 1, unread: 3, total: 11 },
       rating: { value: 4.2, needsCheck: false },
-      goodreads: { avg: 4.13, votes: '106', url: 'g' },
       coverUrl: '/komga/api/v1/series/s1/thumbnail',
     })
   })
