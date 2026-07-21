@@ -89,4 +89,9 @@ describe('SeriesHero', () => {
     fireEvent.click(screen.getByRole('button', { name: /mark all read/i }))
     expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: true })
   })
+
+  it('renders no backdrop when the series has no books', () => {
+    const { container } = renderHero(dto(), [])
+    expect(container.querySelector('[aria-hidden].absolute.inset-0.overflow-hidden')).not.toBeInTheDocument()
+  })
 })
