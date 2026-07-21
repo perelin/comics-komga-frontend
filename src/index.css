@@ -128,3 +128,7 @@
     @apply font-sans;
     }
 }
+
+/* Readability on top of the hero artwork backdrop (HeroBackdrop). */
+.hero-text-shadow { text-shadow: 0 1px 10px rgba(0, 0, 0, .85); }
+.hero-text-shadow-strong { text-shadow: 0 2px 14px rgba(0, 0, 0, .85), 0 0 4px rgba(0, 0, 0, .6); }
