@@ -82,7 +82,7 @@ import { SeriesDetail as SeriesDetailUnderTest } from './SeriesDetail'
  *  scope hero-specific assertions to the hero region to avoid ambiguous
  *  duplicate-text matches. */
 function heroRegion() {
-  return screen.getByRole('heading', { name: 'Saga' }).closest('.relative') as HTMLElement
+  return screen.getByTestId('series-hero')
 }
 
 describe('SeriesDetail', () => {

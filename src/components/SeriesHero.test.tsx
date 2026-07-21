@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { SeriesHero } from './SeriesHero'
@@ -13,7 +13,23 @@ vi.mock('@/lib/komga/queries', () => ({
   useReadLists: () => ({ data: [] }),
 }))
 
+/** jsdom has no layout, so scrollHeight/clientHeight are always 0. Stub the
+ *  prototype getters so the overflow-measurement effect in SeriesHero sees
+ *  a deterministic clamped/overflowing (or non-overflowing) paragraph. */
+function stubOverflow(overflowing: boolean) {
+  Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
+    configurable: true, get: () => (overflowing ? 200 : 80),
+  })
+  Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+    configurable: true, get: () => 80,
+  })
+}
+
 beforeEach(() => vi.clearAllMocks())
+afterEach(() => {
+  Reflect.deleteProperty(HTMLElement.prototype, 'scrollHeight')
+  Reflect.deleteProperty(HTMLElement.prototype, 'clientHeight')
+})
 
 const LONG = 'x'.repeat(400)
 
@@ -57,13 +73,23 @@ describe('SeriesHero', () => {
     expect(screen.getByText('Summary · from Vol. 1')).toBeInTheDocument()
   })
 
-  it('labels a series-own summary plainly and expands on Read more', () => {
+  it('labels a series-own summary plainly and expands on Read more when it overflows', () => {
+    stubOverflow(true)
     renderHero(dto({ summary: LONG }))
     expect(screen.getByText('Summary')).toBeInTheDocument()
     const p = screen.getByText(LONG)
     expect(p.className).toContain('line-clamp-4')
     fireEvent.click(screen.getByRole('button', { name: /read more/i }))
     expect(p.className).not.toContain('line-clamp-4')
+    fireEvent.click(screen.getByRole('button', { name: /show less/i }))
+    expect(p.className).toContain('line-clamp-4')
+  })
+
+  it('shows no toggle when the summary does not overflow 4 clamped lines', () => {
+    stubOverflow(false)
+    renderHero(dto({ summary: 'A short summary that fits within four lines.' }))
+    expect(screen.getByText('A short summary that fits within four lines.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /read more/i })).not.toBeInTheDocument()
   })
 
   it('renders no summary block when there is nothing to show', () => {

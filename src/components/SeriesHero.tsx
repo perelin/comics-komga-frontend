@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useLayoutEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ExternalLink, Play, Check, CheckCheck, RotateCcw } from 'lucide-react'
 import { useMarkSeries } from '@/lib/komga/mutations'
@@ -14,13 +14,12 @@ import { StatusDot } from '@/components/StatusDot'
 import { Badge } from '@/components/ui/badge'
 import type { KomgaBookDto, KomgaSeriesDto } from '@/lib/komga/types'
 
-/** Show the Read-more toggle only when the text plausibly overflows 4 clamped lines. */
-const CLAMP_THRESHOLD = 280
-
 export function SeriesHero({ dto, books }: { dto: KomgaSeriesDto; books: KomgaBookDto[] }) {
   const s = mapSeries(dto)
   const markSeries = useMarkSeries()
   const [expanded, setExpanded] = useState(false)
+  const [overflows, setOverflows] = useState(false)
+  const summaryRef = useRef<HTMLParagraphElement>(null)
   const cont = pickContinueBook(books)
   const done = s.progress.total > 0 && s.progress.read >= s.progress.total
   const years = yearRange(books)
@@ -28,8 +27,21 @@ export function SeriesHero({ dto, books }: { dto: KomgaSeriesDto; books: KomgaBo
   const summary = pickSummary(dto)
   const hdUrl = books.length > 0 ? bookPageUrl(books[0].id, 1) : null
 
+  // Show the Read-more toggle only when the (clamped) summary actually overflows
+  // 4 lines — measured via scrollHeight vs clientHeight, not a char-count guess.
+  useLayoutEffect(() => {
+    const el = summaryRef.current
+    if (!el) return
+    const measure = () => {
+      setOverflows(el.scrollHeight > el.clientHeight)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [summary?.text])
+
   return (
-    <div className="relative">
+    <div className="relative" data-testid="series-hero">
       {/* Spec: no books → no backdrop at all (page looks like today). */}
       {books.length > 0 && <HeroBackdrop thumbUrl={s.coverUrl} hdUrl={hdUrl} />}
       <div className="relative flex gap-4 p-4 md:gap-7 md:p-6">
@@ -95,10 +107,13 @@ export function SeriesHero({ dto, books }: { dto: KomgaSeriesDto; books: KomgaBo
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground hero-text-shadow">
                 Summary{summary.fromBook ? ` · from Vol. ${summary.fromBook}` : ''}
               </div>
-              <p className={`mt-1 text-sm leading-relaxed text-foreground/95 hero-text-shadow ${expanded ? '' : 'line-clamp-4'}`}>
+              <p
+                ref={summaryRef}
+                className={`mt-1 text-sm leading-relaxed text-foreground/95 hero-text-shadow ${expanded ? '' : 'line-clamp-4'}`}
+              >
                 {summary.text}
               </p>
-              {summary.text.length > CLAMP_THRESHOLD && (
+              {(overflows || expanded) && (
                 <button
                   type="button" onClick={() => setExpanded((e) => !e)}
                   className="mt-0.5 text-xs text-muted-foreground hover:text-foreground"
