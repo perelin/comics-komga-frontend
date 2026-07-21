@@ -25,6 +25,20 @@ function stubOverflow(overflowing: boolean) {
   })
 }
 
+/** Dynamic stub: scrollHeight varies based on whether line-clamp-4 is present.
+ *  This simulates real behavior where un-clamping removes overflow. */
+function stubDynamicOverflow() {
+  Object.defineProperty(HTMLElement.prototype, 'scrollHeight', {
+    configurable: true,
+    get: function() {
+      return this.className?.includes('line-clamp-4') ? 200 : 80
+    },
+  })
+  Object.defineProperty(HTMLElement.prototype, 'clientHeight', {
+    configurable: true, get: () => 80,
+  })
+}
+
 beforeEach(() => vi.clearAllMocks())
 afterEach(() => {
   Reflect.deleteProperty(HTMLElement.prototype, 'scrollHeight')
@@ -119,5 +133,27 @@ describe('SeriesHero', () => {
   it('renders no backdrop when the series has no books', () => {
     const { container } = renderHero(dto(), [])
     expect(container.querySelector('[aria-hidden].absolute.inset-0.overflow-hidden')).not.toBeInTheDocument()
+  })
+
+  it('keeps the Read more toggle after resize-while-expanded then collapse', () => {
+    stubDynamicOverflow()
+    renderHero(dto({ summary: LONG }))
+
+    // Initially, text overflows and toggle is visible
+    const readMoreBtn = screen.getByRole('button', { name: /read more/i })
+    expect(readMoreBtn).toBeInTheDocument()
+
+    // Expand the summary
+    fireEvent.click(readMoreBtn)
+    expect(screen.getByRole('button', { name: /show less/i })).toBeInTheDocument()
+
+    // Simulate a resize event while expanded (with un-clamped paragraph)
+    window.dispatchEvent(new Event('resize'))
+
+    // Collapse the summary
+    fireEvent.click(screen.getByRole('button', { name: /show less/i }))
+
+    // The Read more toggle should still be visible (would fail in buggy code)
+    expect(screen.getByRole('button', { name: /read more/i })).toBeInTheDocument()
   })
 })

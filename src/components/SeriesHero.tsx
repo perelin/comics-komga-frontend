@@ -29,16 +29,17 @@ export function SeriesHero({ dto, books }: { dto: KomgaSeriesDto; books: KomgaBo
 
   // Show the Read-more toggle only when the (clamped) summary actually overflows
   // 4 lines — measured via scrollHeight vs clientHeight, not a char-count guess.
+  // Skip measurement while expanded to avoid measuring the un-clamped paragraph.
   useLayoutEffect(() => {
     const el = summaryRef.current
-    if (!el) return
+    if (!el || expanded) return
     const measure = () => {
       setOverflows(el.scrollHeight > el.clientHeight)
     }
     measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
-  }, [summary?.text])
+  }, [summary?.text, expanded])
 
   return (
     <div className="relative" data-testid="series-hero">
