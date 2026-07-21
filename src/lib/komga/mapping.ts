@@ -83,3 +83,16 @@ export function pickSummary(dto: KomgaSeriesDto): SummaryPick | null {
   if (bm.summary) return { text: bm.summary, fromBook: bm.summaryNumber || null }
   return null
 }
+
+/** All author names credited with a given role, in DTO order. */
+export function creditNames(authors: KomgaAuthor[], role: string): string[] {
+  return authors.filter((a) => a.role === role).map((a) => a.name)
+}
+
+/** "A", "A, B" or "A, B +1" — at most `max` names, the rest collapsed. */
+export function formatCredit(names: string[], max = 2): string | null {
+  if (names.length === 0) return null
+  const shown = names.slice(0, max).join(', ')
+  const extra = names.length - max
+  return extra > 0 ? `${shown} +${extra}` : shown
+}

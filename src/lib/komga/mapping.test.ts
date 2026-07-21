@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRating, parseGoodreads, pickAuthor, mapSeries, pickSummary } from './mapping'
+import { parseRating, parseGoodreads, pickAuthor, mapSeries, pickSummary, creditNames, formatCredit } from './mapping'
 import type { KomgaSeriesDto } from './types'
 
 describe('parseRating', () => {
@@ -104,5 +104,27 @@ describe('pickSummary', () => {
       booksMetadata: { ...dto.booksMetadata, summary: '', summaryNumber: '' },
     }
     expect(pickSummary(d)).toBeNull()
+  })
+})
+
+describe('creditNames / formatCredit', () => {
+  const authors = [
+    { name: 'Alan Moore', role: 'writer' },
+    { name: 'Jacen Burrows', role: 'penciller' },
+    { name: 'Mark Seifert', role: 'editor' },
+    { name: 'William Christensen', role: 'editor' },
+  ]
+  it('collects the names of one role in order', () => {
+    expect(creditNames(authors, 'editor')).toEqual(['Mark Seifert', 'William Christensen'])
+    expect(creditNames(authors, 'inker')).toEqual([])
+  })
+  it('formats up to max names, then +N', () => {
+    expect(formatCredit(['A'])).toBe('A')
+    expect(formatCredit(['A', 'B'])).toBe('A, B')
+    expect(formatCredit(['A', 'B', 'C'])).toBe('A, B +1')
+    expect(formatCredit(['A', 'B', 'C'], 1)).toBe('A +2')
+  })
+  it('returns null for no names', () => {
+    expect(formatCredit([])).toBeNull()
   })
 })
