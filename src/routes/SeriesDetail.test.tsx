@@ -16,7 +16,7 @@ const seriesDto: KomgaSeriesDto = {
     tags: ['rating:4.2', 'space-opera'], links: [], ageRating: 16,
     language: 'en', readingDirection: '', totalBookCount: 12,
   },
-  booksMetadata: { authors: [{ name: 'Brian K. Vaughan', role: 'writer' }], releaseDate: '2012-03-14', tags: [] },
+  booksMetadata: { authors: [{ name: 'Brian K. Vaughan', role: 'writer' }], releaseDate: '2012-03-14', tags: [], summary: '', summaryNumber: '' },
   created: '', lastModified: '',
 }
 function book(n: number, rp: KomgaBookDto['readProgress']): KomgaBookDto {

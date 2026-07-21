@@ -72,3 +72,14 @@ export function mapSeries(dto: KomgaSeriesDto): SeriesVM {
     year: releaseYear(dto.booksMetadata.releaseDate),
   }
 }
+
+export interface SummaryPick { text: string; fromBook: string | null }
+
+/** The summary to show on Series Detail: the series' own, else Komga's
+ *  first-book fallback (with the source book's number for the label). */
+export function pickSummary(dto: KomgaSeriesDto): SummaryPick | null {
+  if (dto.metadata.summary) return { text: dto.metadata.summary, fromBook: null }
+  const bm = dto.booksMetadata
+  if (bm.summary) return { text: bm.summary, fromBook: bm.summaryNumber || null }
+  return null
+}

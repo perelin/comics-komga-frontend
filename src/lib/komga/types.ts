@@ -23,6 +23,10 @@ export interface KomgaBooksMetadata {
   authors: KomgaAuthor[]
   releaseDate: string | null
   tags: string[]
+  /** Komga's fallback summary: the summary of the first book that has one… */
+  summary: string
+  /** …and that book's number (e.g. "1"). Empty strings when no book has a summary. */
+  summaryNumber: string
 }
 
 export interface KomgaSeriesDto {

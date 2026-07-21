@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRating, parseGoodreads, pickAuthor, mapSeries } from './mapping'
+import { parseRating, parseGoodreads, pickAuthor, mapSeries, pickSummary } from './mapping'
 import type { KomgaSeriesDto } from './types'
 
 describe('parseRating', () => {
@@ -49,19 +49,20 @@ describe('pickAuthor', () => {
   })
 })
 
+const dto: KomgaSeriesDto = {
+  id: 's1', libraryId: 'l1', name: 'Saga (raw)', oneshot: false,
+  booksCount: 11, booksReadCount: 7, booksUnreadCount: 3, booksInProgressCount: 1,
+  metadata: {
+    status: 'ONGOING', title: 'Saga', titleSort: 'Saga', summary: 's',
+    publisher: 'Image', genres: ['Science Fiction'], tags: ['rating:4.2'],
+    links: [{ label: '★ 4.13 · Goodreads (106)', url: 'g' }],
+    ageRating: 16, language: 'en', readingDirection: 'LTR', totalBookCount: 11,
+  },
+  booksMetadata: { authors: [{ name: 'BKV', role: 'writer' }], releaseDate: '2012-03-14', tags: [], summary: '', summaryNumber: '' },
+  created: '', lastModified: '',
+}
+
 describe('mapSeries', () => {
-  const dto: KomgaSeriesDto = {
-    id: 's1', libraryId: 'l1', name: 'Saga (raw)', oneshot: false,
-    booksCount: 11, booksReadCount: 7, booksUnreadCount: 3, booksInProgressCount: 1,
-    metadata: {
-      status: 'ONGOING', title: 'Saga', titleSort: 'Saga', summary: 's',
-      publisher: 'Image', genres: ['Science Fiction'], tags: ['rating:4.2'],
-      links: [{ label: '★ 4.13 · Goodreads (106)', url: 'g' }],
-      ageRating: 16, language: 'en', readingDirection: 'LTR', totalBookCount: 11,
-    },
-    booksMetadata: { authors: [{ name: 'BKV', role: 'writer' }], releaseDate: '2012-03-14', tags: [] },
-    created: '', lastModified: '',
-  }
   it('maps the full view model', () => {
     const vm = mapSeries(dto)
     expect(vm).toMatchObject({
@@ -78,5 +79,30 @@ describe('mapSeries', () => {
   })
   it('leaves year null when there is no release date', () => {
     expect(mapSeries({ ...dto, booksMetadata: { ...dto.booksMetadata, releaseDate: null } }).year).toBeNull()
+  })
+})
+
+describe('pickSummary', () => {
+  it('prefers the series summary and reports no source book', () => {
+    const d = { ...dto, metadata: { ...dto.metadata, summary: 'Series own.' } }
+    expect(pickSummary(d)).toEqual({ text: 'Series own.', fromBook: null })
+  })
+
+  it('falls back to the book summary with its number', () => {
+    const d = {
+      ...dto,
+      metadata: { ...dto.metadata, summary: '' },
+      booksMetadata: { ...dto.booksMetadata, summary: 'From book one.', summaryNumber: '1' },
+    }
+    expect(pickSummary(d)).toEqual({ text: 'From book one.', fromBook: '1' })
+  })
+
+  it('returns null when neither series nor books have a summary', () => {
+    const d = {
+      ...dto,
+      metadata: { ...dto.metadata, summary: '' },
+      booksMetadata: { ...dto.booksMetadata, summary: '', summaryNumber: '' },
+    }
+    expect(pickSummary(d)).toBeNull()
   })
 })
