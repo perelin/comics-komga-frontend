@@ -103,7 +103,9 @@ way. A first-party Docker image is on the roadmap.
 ## How ratings work
 
 Komga has no native rating field, so this app reads ratings from a **tag
-convention** (written by a separate backfill tool, not by this app):
+convention** (written by a separate backfill tool —
+[`comics-komga-ratings`](https://github.com/perelin/comics-komga-ratings) —
+not by this app):
 
 - `rating:X.XX` — e.g. `rating:4.15` (a 1.0–5.0 average, two decimals). One or
   two decimals are both accepted, so legacy `rating:4.2` still works.
