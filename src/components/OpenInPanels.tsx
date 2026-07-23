@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { Share, Copy, Check } from 'lucide-react'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-
-const OPDS_URL = 'https://komga.p2lab.com/opds/v1.2/catalog'
+import { komgaOpdsUrl } from '@/lib/komga/reader'
 
 /** Informational helper: shows the Komga OPDS catalog URL to paste into Panels.
  *  Panels has no deep link, so this just makes the one-time OPDS setup easy. */
 export function OpenInPanels({ name }: { name: string }) {
+  const OPDS_URL = komgaOpdsUrl()
   const [copied, setCopied] = useState(false)
   const copy = () => {
     navigator.clipboard?.writeText(OPDS_URL).then(() => {

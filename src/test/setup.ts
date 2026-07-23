@@ -1,4 +1,10 @@
+import { vi } from 'vitest'
 import '@testing-library/jest-dom/vitest'
+
+// The public Komga origin (for reader/OPDS deep-links) is build-time-injected
+// from KOMGA_BASE_URL in the real app (see vite.config.ts). Under test that
+// define is skipped, so pin a stable value here for deterministic URL specs.
+vi.stubEnv('VITE_KOMGA_PUBLIC_URL', 'https://komga.test')
 
 // Node 26 exposes its own experimental `localStorage` on global (as undefined),
 // which causes vitest/jsdom's populateGlobal to skip copying jsdom's localStorage.

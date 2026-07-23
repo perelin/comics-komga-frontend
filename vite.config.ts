@@ -9,6 +9,20 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '') // '' prefix => load ALL vars (incl. non-VITE_)
   return {
     plugins: [react(), tailwindcss()],
+    // Expose the public Komga origin to the client for user-facing deep-links
+    // (native reader + OPDS). Derived from KOMGA_BASE_URL so there is a single
+    // source of truth; an explicit VITE_KOMGA_PUBLIC_URL wins if the browser-
+    // facing URL differs from the proxy target. The URL is public, not a secret
+    // (only KOMGA_API_KEY stays server-side). Skipped under test so specs can
+    // stub the value at runtime via vi.stubEnv.
+    define:
+      mode === 'test'
+        ? {}
+        : {
+            'import.meta.env.VITE_KOMGA_PUBLIC_URL': JSON.stringify(
+              env.VITE_KOMGA_PUBLIC_URL || env.KOMGA_BASE_URL || '',
+            ),
+          },
     resolve: {
       alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
     },

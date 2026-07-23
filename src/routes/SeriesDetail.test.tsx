@@ -118,7 +118,7 @@ describe('SeriesDetail', () => {
   it('Continue reading deep-links into the Komga reader at the in-progress book', () => {
     renderDetail()
     const cta = screen.getByRole('link', { name: /Continue reading/ })
-    expect(cta).toHaveAttribute('href', 'https://komga.p2lab.com/book/b2/read')
+    expect(cta).toHaveAttribute('href', 'https://komga.test/book/b2/read')
   })
 
   it('hero action marks the whole (unfinished) series read', () => {
