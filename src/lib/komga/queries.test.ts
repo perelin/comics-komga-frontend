@@ -20,7 +20,7 @@ describe('flatten/total helpers', () => {
     id, libraryId: 'l', name: id, oneshot: false,
     booksCount: 1, booksReadCount: 0, booksUnreadCount: 1, booksInProgressCount: 0,
     metadata: { status: 'ONGOING', title: id, titleSort: id, summary: '', publisher: '', genres: [], tags: [], links: [], ageRating: null, language: '', readingDirection: '', totalBookCount: 1 },
-    booksMetadata: { authors: [], releaseDate: null, tags: [] }, created: '', lastModified: '',
+    booksMetadata: { authors: [], releaseDate: null, tags: [], summary: '', summaryNumber: '' }, created: '', lastModified: '',
   })
   const data = { pages: [{ ...page(0, true), content: [dto('a'), dto('b')], totalElements: 2 }], pageParams: [0] }
   it('flattens all pages into view models', () => {

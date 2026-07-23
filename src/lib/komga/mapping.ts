@@ -1,9 +1,8 @@
-import type { KomgaAuthor, KomgaWebLink, KomgaSeriesDto, SeriesStatus } from './types'
+import type { KomgaAuthor, KomgaSeriesDto, SeriesStatus } from './types'
 import type { Progress } from './progress'
 import { releaseYear } from './books'
 
 export interface Rating { value: number; needsCheck: boolean }
-export interface Goodreads { avg: number; votes: string; url: string }
 
 export interface SeriesVM {
   id: string
@@ -17,7 +16,6 @@ export interface SeriesVM {
   oneshot: boolean
   progress: Progress
   rating?: Rating
-  goodreads?: Goodreads
   coverUrl: string
   /** Release year of the first book in the stack (booksMetadata.releaseDate). */
   year: string | null
@@ -32,16 +30,6 @@ export function parseRating(tags: string[]): Rating | undefined {
     if (m) return { value: parseFloat(m[1]), needsCheck }
   }
   return undefined
-}
-
-const GR_RE = /([\d.]+)\s*·\s*Goodreads\s*\(([^)]+)\)/
-export function parseGoodreads(links: KomgaWebLink[]): Goodreads | undefined {
-  const link = links.find((l) => l.label.includes('Goodreads'))
-  if (!link) return undefined
-  const m = GR_RE.exec(link.label)
-  if (!m) return undefined
-  const avg = parseFloat(m[1])
-  return Number.isNaN(avg) ? undefined : { avg, votes: m[2], url: link.url }
 }
 
 export function pickAuthor(authors: KomgaAuthor[]): string {
@@ -67,8 +55,31 @@ export function mapSeries(dto: KomgaSeriesDto): SeriesVM {
       total: dto.booksCount,
     },
     rating: parseRating(dto.metadata.tags),
-    goodreads: parseGoodreads(dto.metadata.links),
     coverUrl: `/komga/api/v1/series/${dto.id}/thumbnail`,
     year: releaseYear(dto.booksMetadata.releaseDate),
   }
+}
+
+export interface SummaryPick { text: string; fromBook: string | null }
+
+/** The summary to show on Series Detail: the series' own, else Komga's
+ *  first-book fallback (with the source book's number for the label). */
+export function pickSummary(dto: KomgaSeriesDto): SummaryPick | null {
+  if (dto.metadata.summary) return { text: dto.metadata.summary, fromBook: null }
+  const bm = dto.booksMetadata
+  if (bm.summary) return { text: bm.summary, fromBook: bm.summaryNumber || null }
+  return null
+}
+
+/** All author names credited with a given role, in DTO order. */
+export function creditNames(authors: KomgaAuthor[], role: string): string[] {
+  return authors.filter((a) => a.role === role).map((a) => a.name)
+}
+
+/** "A", "A, B" or "A, B +1" — at most `max` names, the rest collapsed. */
+export function formatCredit(names: string[], max = 2): string | null {
+  if (names.length === 0) return null
+  const shown = names.slice(0, max).join(', ')
+  const extra = names.length - max
+  return extra > 0 ? `${shown} +${extra}` : shown
 }

@@ -170,6 +170,11 @@ client machine. Nothing to install on the client — just a browser.
   the invisible mark-read button was tappable; both fixed). Tests use the
   `matchMedia` mock in `src/test/setup.ts` + `mockViewport()` in
   `src/test/viewport.ts`. **Light mode** is split out to **P2L-168** (deferred).
+- **Series Detail metadata enrichment:** the hero lives in `SeriesHero.tsx` +
+  `HeroBackdrop.tsx` (progressive blur: thumbnail base + lazy full page-1 HD
+  layer via `bookPageUrl`), the curated stat/tag band in `SeriesMetaBand.tsx`.
+  Pure helpers: `pickSummary`/`creditNames`/`formatCredit` (`mapping.ts`) and
+  `yearRange`/`formatIndicator`/`bookPageUrl` (`books.ts`).
 
 ## Filter & Navigation IA redesign (as-built, P2L-164 + P2L-162/163 scope)
 

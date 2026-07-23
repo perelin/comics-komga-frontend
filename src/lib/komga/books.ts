@@ -74,3 +74,30 @@ export function releaseYear(date: string | null | undefined): string | null {
   const m = /^(\d{4})/.exec(date)
   return m ? m[1] : null
 }
+
+/** A single full-resolution page image, served through the /komga proxy
+ *  (like {@link bookCoverUrl}). Page numbers are 1-based. */
+export function bookPageUrl(id: string, page: number): string {
+  return `/komga/api/v1/books/${id}/pages/${page}`
+}
+
+/** Release-year span across a series' books: "2010–2011", "2010", or null. */
+export function yearRange(books: KomgaBookDto[]): string | null {
+  const years = books
+    .map((b) => releaseYear(b.metadata.releaseDate))
+    .filter((y): y is string => y !== null)
+  if (years.length === 0) return null
+  const min = years.reduce((a, b) => (b < a ? b : a))
+  const max = years.reduce((a, b) => (b > a ? b : a))
+  return min === max ? min : `${min}–${max}`
+}
+
+/** Physical-format guess from average pages/book: "4 issues · ⌀ 28 p. · Floppies". */
+export function formatIndicator(totalPages: number, booksCount: number): string | null {
+  if (booksCount === 0 || totalPages === 0) return null
+  const avg = Math.round(totalPages / booksCount)
+  const kind = avg < 48 ? 'Floppies' : avg < 250 ? 'TPB' : 'Omnibus'
+  const noun = (kind === 'Floppies' ? 'issue' : 'volume') + (booksCount === 1 ? '' : 's')
+  const pages = booksCount > 1 ? `⌀ ${avg} p.` : `${totalPages} p.`
+  return `${booksCount} ${noun} · ${pages} · ${kind}`
+}

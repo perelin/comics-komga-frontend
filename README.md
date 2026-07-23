@@ -48,6 +48,12 @@ done. See [`deploy/DEPLOY.md`](deploy/DEPLOY.md).
   libraries (the `xCat:` prefix is stripped for display), and read-list search.
 - **Series Detail** (`/series/:id`) — read-only hero (cover, author, publisher,
   status, rating + Goodreads link) and the volume list with per-book read state.
+  The hero adds a summary with a **book-1 fallback** (`Summary · from Vol. N`
+  when the series itself has none), **full credits + format stat band**
+  underneath (writer/art/colors/editor, publisher, issue count · avg pages ·
+  format), **link pills** (Goodreads and any other series links), and an
+  **ambient progressive-blur cover backdrop** (blurred thumbnail immediately,
+  a sharp lazy-loaded page-1 HD layer fading in behind the text).
 - **Command Palette** (⌘K / Ctrl-K) — server-backed series search + navigation,
   jump-to-library, and recently-visited series (localStorage).
 

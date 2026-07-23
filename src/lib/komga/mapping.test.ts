@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRating, parseGoodreads, pickAuthor, mapSeries } from './mapping'
+import { parseRating, pickAuthor, mapSeries, pickSummary, creditNames, formatCredit } from './mapping'
 import type { KomgaSeriesDto } from './types'
 
 describe('parseRating', () => {
@@ -20,23 +20,6 @@ describe('parseRating', () => {
   })
 })
 
-describe('parseGoodreads', () => {
-  it('parses avg + votes + url from the label', () => {
-    expect(parseGoodreads([{ label: '★ 4.13 · Goodreads (106)', url: 'https://www.goodreads.com/book/show/1' }]))
-      .toEqual({ avg: 4.13, votes: '106', url: 'https://www.goodreads.com/book/show/1' })
-  })
-  it('handles abbreviated vote counts', () => {
-    expect(parseGoodreads([{ label: '★ 4.20 · Goodreads (367k)', url: 'u' }]))
-      .toEqual({ avg: 4.2, votes: '367k', url: 'u' })
-  })
-  it('returns undefined when no goodreads link', () => {
-    expect(parseGoodreads([{ label: 'Wikipedia', url: 'w' }])).toBeUndefined()
-  })
-  it('returns undefined when a Goodreads label has no parseable score', () => {
-    expect(parseGoodreads([{ label: 'See on Goodreads', url: 'u' }])).toBeUndefined()
-  })
-})
-
 describe('pickAuthor', () => {
   it('prefers the writer role', () => {
     expect(pickAuthor([{ name: 'Ed', role: 'editor' }, { name: 'Bri', role: 'writer' }])).toBe('Bri')
@@ -49,19 +32,20 @@ describe('pickAuthor', () => {
   })
 })
 
+const dto: KomgaSeriesDto = {
+  id: 's1', libraryId: 'l1', name: 'Saga (raw)', oneshot: false,
+  booksCount: 11, booksReadCount: 7, booksUnreadCount: 3, booksInProgressCount: 1,
+  metadata: {
+    status: 'ONGOING', title: 'Saga', titleSort: 'Saga', summary: 's',
+    publisher: 'Image', genres: ['Science Fiction'], tags: ['rating:4.2'],
+    links: [{ label: '★ 4.13 · Goodreads (106)', url: 'g' }],
+    ageRating: 16, language: 'en', readingDirection: 'LTR', totalBookCount: 11,
+  },
+  booksMetadata: { authors: [{ name: 'BKV', role: 'writer' }], releaseDate: '2012-03-14', tags: [], summary: '', summaryNumber: '' },
+  created: '', lastModified: '',
+}
+
 describe('mapSeries', () => {
-  const dto: KomgaSeriesDto = {
-    id: 's1', libraryId: 'l1', name: 'Saga (raw)', oneshot: false,
-    booksCount: 11, booksReadCount: 7, booksUnreadCount: 3, booksInProgressCount: 1,
-    metadata: {
-      status: 'ONGOING', title: 'Saga', titleSort: 'Saga', summary: 's',
-      publisher: 'Image', genres: ['Science Fiction'], tags: ['rating:4.2'],
-      links: [{ label: '★ 4.13 · Goodreads (106)', url: 'g' }],
-      ageRating: 16, language: 'en', readingDirection: 'LTR', totalBookCount: 11,
-    },
-    booksMetadata: { authors: [{ name: 'BKV', role: 'writer' }], releaseDate: '2012-03-14', tags: [] },
-    created: '', lastModified: '',
-  }
   it('maps the full view model', () => {
     const vm = mapSeries(dto)
     expect(vm).toMatchObject({
@@ -69,7 +53,6 @@ describe('mapSeries', () => {
       genres: ['Science Fiction'], oneshot: false,
       progress: { read: 7, inProgress: 1, unread: 3, total: 11 },
       rating: { value: 4.2, needsCheck: false },
-      goodreads: { avg: 4.13, votes: '106', url: 'g' },
       coverUrl: '/komga/api/v1/series/s1/thumbnail',
     })
   })
@@ -78,5 +61,52 @@ describe('mapSeries', () => {
   })
   it('leaves year null when there is no release date', () => {
     expect(mapSeries({ ...dto, booksMetadata: { ...dto.booksMetadata, releaseDate: null } }).year).toBeNull()
+  })
+})
+
+describe('pickSummary', () => {
+  it('prefers the series summary and reports no source book', () => {
+    const d = { ...dto, metadata: { ...dto.metadata, summary: 'Series own.' } }
+    expect(pickSummary(d)).toEqual({ text: 'Series own.', fromBook: null })
+  })
+
+  it('falls back to the book summary with its number', () => {
+    const d = {
+      ...dto,
+      metadata: { ...dto.metadata, summary: '' },
+      booksMetadata: { ...dto.booksMetadata, summary: 'From book one.', summaryNumber: '1' },
+    }
+    expect(pickSummary(d)).toEqual({ text: 'From book one.', fromBook: '1' })
+  })
+
+  it('returns null when neither series nor books have a summary', () => {
+    const d = {
+      ...dto,
+      metadata: { ...dto.metadata, summary: '' },
+      booksMetadata: { ...dto.booksMetadata, summary: '', summaryNumber: '' },
+    }
+    expect(pickSummary(d)).toBeNull()
+  })
+})
+
+describe('creditNames / formatCredit', () => {
+  const authors = [
+    { name: 'Alan Moore', role: 'writer' },
+    { name: 'Jacen Burrows', role: 'penciller' },
+    { name: 'Mark Seifert', role: 'editor' },
+    { name: 'William Christensen', role: 'editor' },
+  ]
+  it('collects the names of one role in order', () => {
+    expect(creditNames(authors, 'editor')).toEqual(['Mark Seifert', 'William Christensen'])
+    expect(creditNames(authors, 'inker')).toEqual([])
+  })
+  it('formats up to max names, then +N', () => {
+    expect(formatCredit(['A'])).toBe('A')
+    expect(formatCredit(['A', 'B'])).toBe('A, B')
+    expect(formatCredit(['A', 'B', 'C'])).toBe('A, B +1')
+    expect(formatCredit(['A', 'B', 'C'], 1)).toBe('A +2')
+  })
+  it('returns null for no names', () => {
+    expect(formatCredit([])).toBeNull()
   })
 })

@@ -27,7 +27,7 @@ function series(over: Partial<KomgaSeriesDto> = {}): KomgaSeriesDto {
       status: 'ONGOING', title: 'S', titleSort: 'S', summary: '', publisher: '',
       genres: [], tags: [], links: [], ageRating: null, language: '', readingDirection: '', totalBookCount: 3,
     },
-    booksMetadata: { authors: [], releaseDate: null, tags: [] }, created: '', lastModified: '',
+    booksMetadata: { authors: [], releaseDate: null, tags: [], summary: '', summaryNumber: '' }, created: '', lastModified: '',
     ...over,
   }
 }

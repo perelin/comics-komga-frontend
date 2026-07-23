@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickContinueBook, bookReadState, releaseYear, bookCoverUrl, bookProgressPct, sumPages, formatPages, pagesLabel } from './books'
+import { pickContinueBook, bookReadState, releaseYear, bookCoverUrl, bookProgressPct, sumPages, formatPages, pagesLabel, bookPageUrl, yearRange, formatIndicator } from './books'
 import type { KomgaBookDto } from './types'
 
 function book(n: number, progress: KomgaBookDto['readProgress'], pages = 100): KomgaBookDto {
@@ -106,5 +106,45 @@ describe('bookProgressPct', () => {
   })
   it('is 0 when the book has no pages (no divide-by-zero)', () => {
     expect(bookProgressPct(book(1, { page: 0, completed: false, readDate: '' }, 0))).toBe(0)
+  })
+})
+
+describe('bookPageUrl', () => {
+  it('builds the proxied full-page URL', () => {
+    expect(bookPageUrl('b1', 1)).toBe('/komga/api/v1/books/b1/pages/1')
+  })
+})
+
+describe('yearRange', () => {
+  const at = (n: number, date: string | null) => {
+    const b = book(n, null)
+    return { ...b, metadata: { ...b.metadata, releaseDate: date } }
+  }
+  it('spans min–max with an en dash', () => {
+    expect(yearRange([at(1, '2010-08-01'), at(2, '2011-02-01'), at(3, '2010-11-01')])).toBe('2010–2011')
+  })
+  it('collapses a single year', () => {
+    expect(yearRange([at(1, '2010-08-01'), at(2, '2010-11-01')])).toBe('2010')
+  })
+  it('ignores dateless books; null when none have dates', () => {
+    expect(yearRange([at(1, null), at(2, '2010-11-01')])).toBe('2010')
+    expect(yearRange([at(1, null)])).toBeNull()
+    expect(yearRange([])).toBeNull()
+  })
+})
+
+describe('formatIndicator', () => {
+  it('classifies floppies by average pages', () => {
+    expect(formatIndicator(111, 4)).toBe('4 issues · ⌀ 28 p. · Floppies')
+  })
+  it('classifies a single TPB with its absolute page count', () => {
+    expect(formatIndicator(180, 1)).toBe('1 volume · 180 p. · TPB')
+  })
+  it('classifies omnibi', () => {
+    expect(formatIndicator(1200, 2)).toBe('2 volumes · ⌀ 600 p. · Omnibus')
+  })
+  it('is null without books or pages', () => {
+    expect(formatIndicator(0, 0)).toBeNull()
+    expect(formatIndicator(0, 3)).toBeNull()
   })
 })
