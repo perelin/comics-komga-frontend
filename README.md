@@ -1,82 +1,140 @@
-# comics-komga-frontend
+# Komga Power Frontend
 
-A dense, keyboard-friendly power-user frontend for a [Komga](https://komga.org)
-comic-library server. This is the first vertical slice: the **Library Browser**
-is wired end-to-end against the live Komga REST API; Series Detail and the ⌘K
-Command Palette are functional-but-shallow.
+A dense, keyboard-friendly, power-user web frontend for a
+[Komga](https://komga.org) comic-library server. It talks to your existing
+Komga instance over its REST API and gives you a faster, more information-rich
+way to browse and explore your library — a virtualized grid, deep multi-facet
+filtering, a ⌘K command palette, and an ambient Series Detail page.
 
-## Setup
+> **Status: alpha.** Vertical slice 1 (the Library Browser) is complete and
+> wired end-to-end against the live Komga API. Series Detail and the command
+> palette are functional but read-only. Everything here is **read-only today** —
+> the app never writes to your library. Expect rough edges, dark-mode only, and
+> a desktop-first layout. Feedback and issues are very welcome.
+
+## What it does
+
+- **Library Browser** — a virtualized grid + list over your entire library
+  (only the visible window renders, so 10k+ series stay smooth). Real covers,
+  read-progress, and ratings; a live result count; search-within; sort (Title /
+  Recently added / Recently updated); and multi-facet filters (read status,
+  library, publication status, genre, publisher, age rating, one-shot). A
+  **Series ⇄ Issues toggle** switches between series-grouped browsing and a flat
+  individual-issue view. **All filter/sort/view state lives in the URL**, so any
+  view is deep-linkable and survives a refresh.
+- **Sidebar** — smart folders (Continue reading / Recently added / Unread),
+  your libraries, and read-list search.
+- **Series Detail** — a read-only hero (cover, author, publisher, status,
+  rating) with a summary (falling back to volume 1 when the series has none),
+  full credits + format stat band (writer / art / colors / editor, publisher,
+  issue count · avg pages · format), link pills, and an ambient
+  progressive-blur cover backdrop.
+- **Command Palette** (⌘K / Ctrl-K) — server-backed series search, jump-to
+  navigation, and recently-visited series.
+
+## Requirements
+
+- A running **[Komga](https://komga.org) server** you can reach over HTTP(S).
+- A Komga **API key** (Komga → *Account Settings* → *API Keys*).
+- **Node.js 20+** and npm.
+
+## Quick start (development)
 
 ```bash
+git clone https://github.com/perelin/comics-komga-frontend.git
+cd comics-komga-frontend
 cp .env.example .env        # fill in KOMGA_BASE_URL + KOMGA_API_KEY
 npm install
 npm run dev                 # http://localhost:5173
 ```
 
-The Vite dev server proxies `/komga/*` to `KOMGA_BASE_URL` and injects the
+The Vite dev server proxies `/komga/*` to your `KOMGA_BASE_URL` and injects the
 `X-API-Key` header **server-side**. This is load-bearing: it resolves Komga's
 CORS restriction, lets `<img>` tags load thumbnails (which require auth), and
-keeps the API key out of the browser bundle. The app only ever calls the
-relative path `/komga/api/v1/…`, so a production reverse proxy (future Docker
-Compose stack) can serve the same path with no client changes.
+keeps your API key out of the browser bundle. The app only ever calls the
+relative path `/komga/api/v1/…`.
 
 ## Scripts
 
 - `npm run dev` — dev server (with the Komga proxy)
+- `npm run build` — typecheck (`tsc -b`) + production build into `dist/`
 - `npm test` — unit tests (Vitest)
-- `npm run build` — typecheck (`tsc -b`) + production build
 - `npm run lint` — ESLint
 
-## Deploy
+## Self-hosting (production)
 
-Live at **https://comics.p2lab.com** (HTTP basic-auth) — a `caddy:2-alpine`
-container on the Docker host serving the prebuilt `dist/` and proxying `/komga`
-with the key injected server-side. Lightweight: build locally, ship `dist/`,
-done. See [`deploy/DEPLOY.md`](deploy/DEPLOY.md).
+The production build is a static SPA (`dist/`). Because the app only ever calls
+the relative path `/komga/*`, **any reverse proxy works** — the one requirement
+is that the proxy injects your `X-API-Key` header server-side (never ship the
+key to the browser). Point `/komga/*` at your Komga server and serve `dist/`
+with a client-side-routing fallback to `index.html`.
 
-## What works
+A minimal [Caddy](https://caddyserver.com) example:
 
-- **Library Browser** — virtualized grid + list over all series (TanStack
-  Virtual; only the visible window renders), real covers / read-progress /
-  ratings, live result count, search-within, sort (Title / Recently added /
-  Recently updated), and multi-facet filters (read status, library, status,
-  genre, publisher, age rating, one-shot). A **Series ⇄ Issues toggle** switches
-  between series-grouped browse and a flat individual-issue view (Komga's
-  Series/Books split; series-only facets grey out in Issues mode). **All
-  filter/sort/view state lives in the URL** — deep-linkable and refresh-safe.
-- **Sidebar** — smart folders (Continue reading / Recently added / Unread),
-  libraries (the `xCat:` prefix is stripped for display), and read-list search.
-- **Series Detail** (`/series/:id`) — read-only hero (cover, author, publisher,
-  status, rating + Goodreads link) and the volume list with per-book read state.
-  The hero adds a summary with a **book-1 fallback** (`Summary · from Vol. N`
-  when the series itself has none), **full credits + format stat band**
-  underneath (writer/art/colors/editor, publisher, issue count · avg pages ·
-  format), **link pills** (Goodreads and any other series links), and an
-  **ambient progressive-blur cover backdrop** (blurred thumbnail immediately,
-  a sharp lazy-loaded page-1 HD layer fading in behind the text).
-- **Command Palette** (⌘K / Ctrl-K) — server-backed series search + navigation,
-  jump-to-library, and recently-visited series (localStorage).
+```caddy
+:80 {
+	encode gzip zstd
 
-## Ratings
+	# Strip the /komga prefix and inject the API key server-side.
+	handle_path /komga/* {
+		reverse_proxy https://komga.example.com {
+			header_up Host komga.example.com
+			header_up X-API-Key {$KOMGA_API_KEY}
+		}
+	}
 
-Komga has no native rating field. Ratings are read from a tag convention written
-by a separate backfill tool: `rating:X.XX` (Goodreads average, 1.0–5.0 in 0.05
-steps, two decimals — e.g. `rating:4.15`), an optional `rating:check`
-(low-confidence match → warning icon), and a `links[]` entry
-`★ <avg> · Goodreads (<votes>)`. The parser accepts one or two decimals, so
-legacy `rating:4.2` tags still work. The app parses these into a star display
-(two-decimal value) + Goodreads click-through. Komga cannot sort by a tag value,
-so rating is **filterable but not sortable** (no rating sort option is offered).
+	# Static SPA with client-side-routing fallback.
+	handle {
+		root * /srv/dist
+		try_files {path} /index.html
+		file_server
+	}
+}
+```
 
-## Stack
+```bash
+npm run build
+# serve ./dist behind the proxy above, with KOMGA_API_KEY set in its environment
+```
 
-Vite · React · TypeScript · Tailwind + shadcn/ui (default theme, dark mode) ·
-TanStack Query (server state) · TanStack Virtual · React Router (URL state) ·
-lucide-react · Vitest + Testing Library.
+nginx, Traefik, or any other proxy that can add a request header works the same
+way. A first-party Docker image is on the roadmap.
 
-## Out of scope (this slice)
+## How ratings work
 
-Write actions (mark-read, rating/tag/summary editing, add-to-readlist), the
-On-Deck smart folder, full Series Detail editing, Command Palette action
-execution, light mode, mobile layout, and the production Docker Compose
-deployment (reverse proxy + static SPA).
+Komga has no native rating field, so this app reads ratings from a **tag
+convention** (written by a separate backfill tool, not by this app):
+
+- `rating:X.XX` — e.g. `rating:4.15` (a 1.0–5.0 average, two decimals). One or
+  two decimals are both accepted, so legacy `rating:4.2` still works.
+- `rating:check` — optional low-confidence marker (shows a warning icon).
+- a `links[]` entry like `★ <avg> · Goodreads (<votes>)` for click-through.
+
+The app parses these into a star display plus a source link. Because Komga
+can't sort by a tag value, rating is **filterable but not sortable**. If your
+library doesn't use this convention, ratings simply won't appear — everything
+else works unchanged.
+
+## Tech stack
+
+Vite · React · TypeScript · Tailwind + shadcn/ui (dark mode) · TanStack Query
+(server state) · TanStack Virtual · React Router (URL state) · lucide-react ·
+Vitest + Testing Library.
+
+## Roadmap
+
+Not in this alpha, planned next:
+
+- **Write actions** — mark-read, inline rating / tag / summary editing,
+  add-to-readlist.
+- The **On-Deck** smart folder and richer Series Detail editing.
+- **Command Palette action execution** (beyond navigation).
+- **Light mode** and a **mobile/responsive** layout.
+- A first-party **Docker image** for one-command self-hosting.
+
+## License
+
+[MIT](LICENSE) © Sebastian Patino-Lang
+
+This is an independent project and is not affiliated with or endorsed by the
+Komga project.

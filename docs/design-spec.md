@@ -13,8 +13,8 @@
 
 ## Goal
 
-Build a **power-user frontend** for the existing Komga comic server
-(`https://komga.p2lab.com`, ~1947 series) — keyboard-friendly, dense, fast to
+Build a **power-user frontend** for an existing Komga comic server
+(~1947 series in the reference library) — keyboard-friendly, dense, fast to
 browse and filter a large library. This spec covers a **first vertical slice**:
 one screen (the **Library Browser**) wired end-to-end against the live Komga
 REST API, with the other two screens (Series Detail, Command Palette) routed and
@@ -117,7 +117,7 @@ search + navigate + localStorage recents).
 ## Success criteria
 
 - `npm run dev` serves the app; the Library Browser shows real series, covers,
-  read-progress, and ratings from `komga.p2lab.com`.
+  read-progress, and ratings from the configured Komga server.
 - All 1947 series scroll smoothly in grid and list (virtualized).
 - Filter / sort / search update results **and the URL**; reload restores the
   view; the count is live.

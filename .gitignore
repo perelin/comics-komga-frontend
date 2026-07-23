@@ -28,3 +28,8 @@ dist-ssr
 
 # brainstorming visual companion
 .superpowers/
+
+# Internal / operational docs — kept local, not part of the public repo
+HANDOVER.md
+deploy/
+docs/superpowers/
