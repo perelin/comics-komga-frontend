@@ -100,6 +100,22 @@ npm run build
 nginx, Traefik, or any other proxy that can add a request header works the same
 way. A first-party Docker image is on the roadmap.
 
+### Scripted deploy (`npm run deploy`)
+
+If your host serves `dist/` from a directory you can reach over SSH (e.g. one
+bind-mounted into the proxy container), `npm run deploy` does the whole cycle:
+test gate → build → ship over SSH (via `tar`, no `rsync` needed on the remote)
+→ optional health check. Configure the target once:
+
+```bash
+cp deploy.env.example deploy.env   # git-ignored; set REMOTE, REMOTE_DIR, …
+npm run deploy
+```
+
+`REMOTE` is any host/alias from your `~/.ssh/config` (a bastion/ProxyJump is
+handled there). Set `HEALTHCHECK_PORT` to verify the deployed bundle and the
+`/komga` proxy after shipping, or leave it empty to skip that check.
+
 ## How ratings work
 
 Komga has no native rating field, so this app reads ratings from a **tag
