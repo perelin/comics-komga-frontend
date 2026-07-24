@@ -185,8 +185,8 @@ describe('searchParamsToFilters validation', () => {
     const f = searchParamsToFilters(sp)
     expect(f.status).toEqual(['ONGOING'])
     expect(f.readStatus).toEqual(['UNREAD'])
-    expect(f.sortKey).toBe('titleSort')
-    expect(f.sortDir).toBe('asc')
+    expect(f.sortKey).toBe('releaseDate')
+    expect(f.sortDir).toBe('desc')
   })
 })
 

@@ -36,7 +36,7 @@ export const DEFAULT_FILTERS: Filters = {
   readStatus: [], library: undefined, genre: [], publisher: [], status: [],
   ageRating: [], authors: [], format: [], formatMixed: undefined,
   ratingMin: undefined, ratingMax: undefined, search: undefined,
-  sortKey: 'titleSort', sortDir: 'asc',
+  sortKey: 'releaseDate', sortDir: 'desc',
 }
 
 export function resetFiltersKeepingSort(f: Filters): Filters {

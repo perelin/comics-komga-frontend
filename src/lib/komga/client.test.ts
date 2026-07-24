@@ -66,7 +66,7 @@ describe('komga.series POST /series/list', () => {
   it('POSTs the condition body with sort/page/size query params', async () => {
     await komga.series({ ...DEFAULT_FILTERS, authors: ['Neil Gaiman'] }, 0, 50)
     const [url, init] = fetchMock.mock.calls[0] as [string, { method?: string; body?: string; headers?: Record<string, string> }]
-    expect(url).toBe('/komga/api/v1/series/list?sort=metadata.titleSort%2Casc&page=0&size=50')
+    expect(url).toBe('/komga/api/v1/series/list?sort=booksMetadata.releaseDate%2Cdesc&page=0&size=50')
     expect(init.method).toBe('POST')
     expect(init.headers).toMatchObject({ 'Content-Type': 'application/json' })
     expect(JSON.parse(init.body!)).toEqual({ condition: { author: { operator: 'is', value: { name: 'Neil Gaiman' } } } })
