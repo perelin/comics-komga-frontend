@@ -24,8 +24,8 @@ export function SeriesRow({ s }: { s: SeriesVM }) {
       <div className="h-9 w-6 overflow-hidden rounded-sm border border-border"><CoverImage src={s.coverUrl} alt={s.title} /></div>
       <div className="truncate font-medium text-foreground">{s.title}</div>
       <div className="truncate text-muted-foreground">
-        {s.author && s.author !== '—'
-          ? <FacetFilterButton href={facetHref({ authors: [s.author] })} className={FACET_CELL}>{s.author}</FacetFilterButton>
+        {s.authorNames.length > 0
+          ? <FacetFilterButton href={facetHref({ authors: [s.authorNames[0]] })} className={FACET_CELL}>{s.author}</FacetFilterButton>
           : s.author}
       </div>
       <div className="truncate text-muted-foreground">

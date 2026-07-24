@@ -7,7 +7,10 @@ export interface Rating { value: number; needsCheck: boolean }
 export interface SeriesVM {
   id: string
   title: string
+  /** Display string for the writer credit: "A", "A, B", "A, B +1", or "—". */
   author: string
+  /** Underlying writer names (fallback: first credited author), for facet links. */
+  authorNames: string[]
   publisher: string
   status: SeriesStatus
   genres: string[]
@@ -32,9 +35,17 @@ export function parseRating(tags: string[]): Rating | undefined {
   return undefined
 }
 
+/** Writer names in DTO order; falls back to the first credited author of any
+ *  role so a series that only tags e.g. a penciller still shows a name. */
+export function writerNames(authors: KomgaAuthor[]): string[] {
+  const writers = creditNames(authors, 'writer')
+  if (writers.length > 0) return writers
+  return authors[0] ? [authors[0].name] : []
+}
+
+/** Display credit for the writer(s): all writers, at most two, rest as +N. */
 export function pickAuthor(authors: KomgaAuthor[]): string {
-  const writer = authors.find((a) => a.role === 'writer')
-  return writer?.name ?? authors[0]?.name ?? '—'
+  return formatCredit(writerNames(authors), 2) ?? '—'
 }
 
 export function mapSeries(dto: KomgaSeriesDto): SeriesVM {
@@ -42,6 +53,7 @@ export function mapSeries(dto: KomgaSeriesDto): SeriesVM {
     id: dto.id,
     title: dto.metadata.title || dto.name,
     author: pickAuthor(dto.booksMetadata.authors),
+    authorNames: writerNames(dto.booksMetadata.authors),
     publisher: dto.metadata.publisher || '—',
     status: dto.metadata.status,
     genres: dto.metadata.genres,

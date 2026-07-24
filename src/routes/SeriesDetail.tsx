@@ -5,7 +5,7 @@ import {
   useSeries, useSeriesBooks, useRelatedByPublisher, useLibraries,
 } from '@/lib/komga/queries'
 import { useMarkBook, useAddToReadList } from '@/lib/komga/mutations'
-import { mapSeries } from '@/lib/komga/mapping'
+import { mapSeries, pickAuthor } from '@/lib/komga/mapping'
 import { bookReadState, bookCoverUrl, bookDownloadUrl, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
 import { triggerDownload } from '@/lib/download'
@@ -260,7 +260,7 @@ function MetadataTab({ dto, year, libraryName }: { dto: KomgaSeriesDto; year: st
     ['Status', <StatusDot status={m.status} />],
     ['Release', year ?? '—'],
     ['Publisher', m.publisher || '—'],
-    ['Author', s_author(dto)],
+    ['Author', pickAuthor(dto.booksMetadata.authors)],
     ['Language', m.language ? m.language.toUpperCase() : '—'],
     ['Age rating', m.ageRating != null ? `${m.ageRating}+` : '—'],
     ['Reading dir.', m.readingDirection ? (READING_DIR[m.readingDirection] ?? m.readingDirection) : '—'],
@@ -280,9 +280,4 @@ function MetadataTab({ dto, year, libraryName }: { dto: KomgaSeriesDto; year: st
       </dl>
     </div>
   )
-}
-
-function s_author(dto: KomgaSeriesDto): string {
-  const writer = dto.booksMetadata.authors.find((a) => a.role === 'writer')
-  return writer?.name ?? dto.booksMetadata.authors[0]?.name ?? '—'
 }

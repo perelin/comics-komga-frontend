@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRating, pickAuthor, mapSeries, pickSummary, creditNames, formatCredit } from './mapping'
+import { parseRating, pickAuthor, writerNames, mapSeries, pickSummary, creditNames, formatCredit } from './mapping'
 import type { KomgaSeriesDto } from './types'
 
 describe('parseRating', () => {
@@ -24,11 +24,32 @@ describe('pickAuthor', () => {
   it('prefers the writer role', () => {
     expect(pickAuthor([{ name: 'Ed', role: 'editor' }, { name: 'Bri', role: 'writer' }])).toBe('Bri')
   })
+  it('shows all writers, capped at two', () => {
+    expect(pickAuthor([{ name: 'A', role: 'writer' }, { name: 'B', role: 'writer' }])).toBe('A, B')
+  })
+  it('collapses the rest into +N', () => {
+    expect(pickAuthor([
+      { name: 'A', role: 'writer' }, { name: 'B', role: 'writer' }, { name: 'C', role: 'writer' },
+    ])).toBe('A, B +1')
+  })
   it('falls back to the first author', () => {
     expect(pickAuthor([{ name: 'Ed', role: 'editor' }])).toBe('Ed')
   })
   it('returns a dash when empty', () => {
     expect(pickAuthor([])).toBe('—')
+  })
+})
+
+describe('writerNames', () => {
+  it('returns all writers in order', () => {
+    expect(writerNames([{ name: 'A', role: 'writer' }, { name: 'X', role: 'editor' }, { name: 'B', role: 'writer' }]))
+      .toEqual(['A', 'B'])
+  })
+  it('falls back to the first credited author when no writer', () => {
+    expect(writerNames([{ name: 'Ed', role: 'editor' }])).toEqual(['Ed'])
+  })
+  it('is empty when there are no authors', () => {
+    expect(writerNames([])).toEqual([])
   })
 })
 
@@ -49,7 +70,7 @@ describe('mapSeries', () => {
   it('maps the full view model', () => {
     const vm = mapSeries(dto)
     expect(vm).toMatchObject({
-      id: 's1', title: 'Saga', author: 'BKV', publisher: 'Image', status: 'ONGOING',
+      id: 's1', title: 'Saga', author: 'BKV', authorNames: ['BKV'], publisher: 'Image', status: 'ONGOING',
       genres: ['Science Fiction'], oneshot: false,
       progress: { read: 7, inProgress: 1, unread: 3, total: 11 },
       rating: { value: 4.2, needsCheck: false },

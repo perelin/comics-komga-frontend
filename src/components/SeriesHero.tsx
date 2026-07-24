@@ -62,8 +62,8 @@ export function SeriesHero({ dto, books }: { dto: KomgaSeriesDto; books: KomgaBo
           </div>
 
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-sm text-muted-foreground hero-text-shadow">
-            {s.author && s.author !== '—' ? (
-              <Link to={facetHref({ authors: [s.author] })} className="text-primary hover:underline">{s.author}</Link>
+            {s.authorNames.length > 0 ? (
+              <Link to={facetHref({ authors: [s.authorNames[0]] })} className="text-primary hover:underline">{s.author}</Link>
             ) : (
               <span className="text-primary">{s.author}</span>
             )}

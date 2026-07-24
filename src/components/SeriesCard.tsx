@@ -52,8 +52,8 @@ export function SeriesCard({ s }: { s: SeriesVM }) {
         <div className="truncate text-sm font-semibold text-foreground">{s.title}</div>
         <div className="mt-0.5 flex items-center gap-1.5 text-sm text-muted-foreground">
           <StatusDot status={s.status} showLabel={false} />
-          {s.author && s.author !== '—' ? (
-            <FacetFilterButton href={facetHref({ authors: [s.author] })}
+          {s.authorNames.length > 0 ? (
+            <FacetFilterButton href={facetHref({ authors: [s.authorNames[0]] })}
               className="min-w-0 flex-1 truncate text-left hover:text-foreground hover:underline">
               {s.author}
             </FacetFilterButton>

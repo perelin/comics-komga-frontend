@@ -15,7 +15,7 @@ vi.mock('@/lib/komga/queries', () => ({
 }))
 
 const vm: SeriesVM = {
-  id: 's1', title: 'Saga', author: 'BKV', publisher: 'Image', status: 'ONGOING',
+  id: 's1', title: 'Saga', author: 'BKV', authorNames: ['BKV'], publisher: 'Image', status: 'ONGOING',
   genres: ['Science Fiction'], language: 'en', ageRating: 16, oneshot: false,
   progress: { read: 7, inProgress: 1, unread: 3, total: 11 },
   rating: { value: 4.2, needsCheck: false },
@@ -81,6 +81,20 @@ describe('SeriesCard / SeriesRow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'BKV' }))
     expect(screen.getByTestId('loc')).toHaveTextContent('/?authors=BKV')
     expect(screen.queryByText('SERIES PAGE')).not.toBeInTheDocument()
+  })
+
+  it('shows up to two writers and links only to the first', () => {
+    const multi: SeriesVM = { ...vm, author: 'Greg Tocchini, Rick Remender', authorNames: ['Greg Tocchini', 'Rick Remender'] }
+    const LocationProbe = () => <div data-testid="loc">{useLocation().pathname + useLocation().search}</div>
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <LocationProbe />
+        <SeriesCard s={multi} />
+      </MemoryRouter>,
+    )
+    expect(screen.getByText('Greg Tocchini, Rick Remender')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: 'Greg Tocchini, Rick Remender' }))
+    expect(screen.getByTestId('loc')).toHaveTextContent('/?authors=Greg+Tocchini')
   })
 
   it('quick-action marks an unfinished series read without navigating', () => {
