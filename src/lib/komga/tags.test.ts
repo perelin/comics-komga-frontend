@@ -1,14 +1,14 @@
 import { describe, it, expect } from 'vitest'
-import { allTags, tagHref } from './tags'
+import { allTags, allGenres, tagHref } from './tags'
 import type { KomgaSeriesDto } from './types'
 
-function dto(seriesTags: string[], bookTags: string[] = []): KomgaSeriesDto {
+function dto(seriesTags: string[], bookTags: string[] = [], genres: string[] = []): KomgaSeriesDto {
   return {
     id: 's1', libraryId: 'lib1', name: 'S', oneshot: false,
     booksCount: 1, booksReadCount: 0, booksUnreadCount: 1, booksInProgressCount: 0,
     metadata: {
       status: 'ONGOING', title: 'S', titleSort: 'S', summary: '', publisher: '',
-      genres: [], tags: seriesTags, links: [], ageRating: null, language: '',
+      genres, tags: seriesTags, links: [], ageRating: null, language: '',
       readingDirection: '', totalBookCount: 1,
     },
     booksMetadata: { authors: [], releaseDate: null, tags: bookTags, summary: '', summaryNumber: '' },
@@ -27,13 +27,30 @@ describe('allTags', () => {
       .toEqual(['format:mixed', 'format:singles', 'rating:nomatch'])
   })
 
-  it('orders format, then rating, then free-form tags, alphabetical within each', () => {
+  it('orders free-form tags first, then format, then rating, alphabetical within each', () => {
     expect(allTags(dto(['zeta', 'rating:3.45', 'format:tpb', 'alpha'])))
-      .toEqual(['format:tpb', 'rating:3.45', 'alpha', 'zeta'])
+      .toEqual(['alpha', 'zeta', 'format:tpb', 'rating:3.45'])
   })
 
   it('is empty for an untagged series', () => {
     expect(allTags(dto([]))).toEqual([])
+  })
+})
+
+describe('allGenres', () => {
+  it('sorts the series genres', () => {
+    expect(allGenres(dto([], [], ['Science Fiction', 'Fantasy', 'Horror'])))
+      .toEqual(['Fantasy', 'Horror', 'Science Fiction'])
+  })
+
+  it('is empty when the series has no genres', () => {
+    expect(allGenres(dto(['format:tpb']))).toEqual([])
+  })
+
+  it('does not mutate the dto', () => {
+    const d = dto([], [], ['Science Fiction', 'Fantasy'])
+    allGenres(d)
+    expect(d.metadata.genres).toEqual(['Science Fiction', 'Fantasy'])
   })
 })
 

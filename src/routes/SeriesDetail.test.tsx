@@ -109,6 +109,16 @@ describe('SeriesDetail', () => {
     expect(within(row).getByText('rating:4.2')).toBeInTheDocument()
   })
 
+  it('renders the Metadata tab genres as chips linking to the genre facet', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(screen.getByRole('tab', { name: /Metadata/ }))
+    const row = screen.getByText('Genres').closest('div') as HTMLElement
+    expect(within(row).getByRole('link', { name: 'Fantasy' }))
+      .toHaveAttribute('href', '/?genre=Fantasy')
+    expect(within(row).getByRole('link', { name: 'Science Fiction' })).toBeInTheDocument()
+  })
+
   it('lists the volumes in the default Books tab', () => {
     renderDetail()
     expect(screen.getByText('Volume 1')).toBeInTheDocument()

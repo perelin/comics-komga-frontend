@@ -11,7 +11,6 @@ import { CoverImage } from '@/components/CoverImage'
 import { HeroBackdrop } from '@/components/HeroBackdrop'
 import { Stars } from '@/components/Stars'
 import { StatusDot } from '@/components/StatusDot'
-import { Badge } from '@/components/ui/badge'
 import type { KomgaBookDto, KomgaSeriesDto } from '@/lib/komga/types'
 
 export function SeriesHero({ dto, books }: { dto: KomgaSeriesDto; books: KomgaBookDto[] }) {
@@ -97,11 +96,8 @@ export function SeriesHero({ dto, books }: { dto: KomgaSeriesDto; books: KomgaBo
             </div>
           )}
 
-          {s.genres.length > 0 && (
-            <div className="mt-3.5 flex flex-wrap gap-1.5">
-              {s.genres.map((g) => <Badge key={g} variant="secondary">{g}</Badge>)}
-            </div>
-          )}
+          {/* Genres live in SeriesMetaBand, with the tags and as clickable
+              facet links — the hero used to duplicate them. */}
 
           {summary && (
             <div className="mt-3.5 max-w-2xl">

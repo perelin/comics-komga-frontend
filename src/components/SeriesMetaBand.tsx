@@ -1,17 +1,17 @@
 import { Link } from 'react-router-dom'
 import { creditNames, formatCredit } from '@/lib/komga/mapping'
 import { parseFormat } from '@/lib/komga/format'
-import { allTags } from '@/lib/komga/tags'
+import { allTags, allGenres } from '@/lib/komga/tags'
 import { sumPages, formatIndicator } from '@/lib/komga/books'
 import { facetHref } from '@/lib/komga/filters'
-import { TagList } from '@/components/TagList'
+import { MetaChips } from '@/components/MetaChips'
 import type { KomgaBookDto, KomgaSeriesDto } from '@/lib/komga/types'
 
 interface Block { label: string; value: string; href?: string }
 
 /** Metadata band between the hero and the tabs: one row of stat blocks
- *  (credits, publisher, format) + the complete tag list as chips. The stat
- *  blocks are a curated subset — the tag chips are not, mirroring Komga's own
+ *  (credits, publisher, format) + the complete genre and tag list as chips. The
+ *  stat blocks are a curated subset — the chips are not, mirroring Komga's own
  *  series page, which lists every tag in its primary metadata block. */
 export function SeriesMetaBand({ dto, books }: { dto: KomgaSeriesDto; books: KomgaBookDto[] }) {
   const authors = dto.booksMetadata.authors
@@ -37,8 +37,9 @@ export function SeriesMetaBand({ dto, books }: { dto: KomgaSeriesDto; books: Kom
   if (format) blocks.push({ label: 'Format', value: format })
 
   const tags = allTags(dto)
+  const genres = allGenres(dto)
 
-  if (blocks.length === 0 && tags.length === 0) return null
+  if (blocks.length === 0 && tags.length === 0 && genres.length === 0) return null
 
   return (
     <div className="px-4 pb-5 md:px-6">
@@ -58,7 +59,9 @@ export function SeriesMetaBand({ dto, books }: { dto: KomgaSeriesDto; books: Kom
           ))}
         </div>
       )}
-      {tags.length > 0 && <TagList tags={tags} className="mt-3" />}
+      {(genres.length > 0 || tags.length > 0) && (
+        <MetaChips genres={genres} tags={tags} className="mt-3" />
+      )}
     </div>
   )
 }

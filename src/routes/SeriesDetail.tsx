@@ -8,7 +8,7 @@ import { useMarkBook, useAddToReadList } from '@/lib/komga/mutations'
 import { mapSeries, pickAuthor } from '@/lib/komga/mapping'
 import { bookReadState, bookCoverUrl, bookDownloadUrl, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
-import { allTags } from '@/lib/komga/tags'
+import { allTags, allGenres } from '@/lib/komga/tags'
 import { triggerDownload } from '@/lib/download'
 import { prettyLibraryName, libraryCrumbLabel } from '@/lib/library'
 import { useSmartBack } from '@/hooks/useSmartBack'
@@ -26,7 +26,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { SeriesHero } from '@/components/SeriesHero'
 import { SeriesMetaBand } from '@/components/SeriesMetaBand'
-import { TagList } from '@/components/TagList'
+import { MetaChips } from '@/components/MetaChips'
 import type { KomgaBookDto, KomgaSeriesDto } from '@/lib/komga/types'
 
 const READING_DIR: Record<string, string> = {
@@ -266,8 +266,8 @@ function MetadataTab({ dto, year, libraryName }: { dto: KomgaSeriesDto; year: st
     ['Age rating', m.ageRating != null ? `${m.ageRating}+` : '—'],
     ['Reading dir.', m.readingDirection ? (READING_DIR[m.readingDirection] ?? m.readingDirection) : '—'],
     ['Total books', String(m.totalBookCount ?? dto.booksCount)],
-    ['Genres', m.genres.length ? m.genres.join(', ') : '—'],
-    ['Tags', <TagList tags={allTags(dto)} />],
+    ['Genres', <MetaChips genres={allGenres(dto)} tags={[]} />],
+    ['Tags', <MetaChips tags={allTags(dto)} />],
   ]
   return (
     <div className="max-w-2xl">

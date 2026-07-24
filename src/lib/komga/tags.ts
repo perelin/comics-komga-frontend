@@ -7,12 +7,14 @@ import { isFormatKind } from './format'
 import { facetHref } from './filters'
 import type { KomgaSeriesDto } from './types'
 
-/** Tag group, in display order: convention tags first (matching the
- *  alphabetical order Komga happens to render them in), free-form tags last. */
+/** Tag group, in display order: free-form content tags first, machine-written
+ *  convention tags last — so the chip row's visual weight falls off
+ *  monotonically (see the tiers in `MetaChips`). Series whose only tags are
+ *  convention tags keep the alphabetical order Komga renders them in. */
 function group(tag: string): number {
-  if (tag.startsWith('format:')) return 0
-  if (tag.startsWith('rating:')) return 1
-  return 2
+  if (tag.startsWith('format:')) return 1
+  if (tag.startsWith('rating:')) return 2
+  return 0
 }
 
 /** Every tag on a series — series-level *and* book-level, deduped. Komga stores
@@ -21,6 +23,12 @@ function group(tag: string): number {
 export function allTags(dto: KomgaSeriesDto): string[] {
   const tags = [...new Set([...dto.metadata.tags, ...dto.booksMetadata.tags])]
   return tags.sort((a, b) => group(a) - group(b) || a.localeCompare(b))
+}
+
+/** The series' genres, sorted. Series-level only — Komga's `booksMetadata`
+ *  carries no genres field, so unlike tags there is nothing to union in. */
+export function allGenres(dto: KomgaSeriesDto): string[] {
+  return [...dto.metadata.genres].sort((a, b) => a.localeCompare(b))
 }
 
 /** Where a tag chip links, or undefined when the tag has no matching facet.

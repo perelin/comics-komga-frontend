@@ -98,8 +98,22 @@ describe('SeriesMetaBand', () => {
     expect(screen.getByText('4 issues · ⌀ 28 p. · Singles · mixed')).toBeInTheDocument()
   })
 
+  it('renders genre chips, sorted, each linking to the genre facet', () => {
+    renderBand(dto({ genres: ['Science Fiction', 'Fantasy'] }))
+    const chips = screen.getAllByRole('link', { name: /Fantasy|Science Fiction/ })
+    expect(chips.map((c) => c.textContent)).toEqual(['Fantasy', 'Science Fiction'])
+    expect(chips[0]).toHaveAttribute('href', '/?genre=Fantasy')
+  })
+
+  it('still renders the band when genres are the only chip data', () => {
+    const d = dto({ publisher: '', genres: ['horror'], tags: [] }, [])
+    d.booksMetadata.tags = []
+    renderBand(d, [])
+    expect(screen.getByRole('link', { name: 'horror' })).toBeInTheDocument()
+  })
+
   it('renders nothing at all when there is no data', () => {
-    const empty = dto({ publisher: '', tags: [] }, [])
+    const empty = dto({ publisher: '', genres: [], tags: [] }, [])
     empty.booksMetadata.tags = []
     const { container } = renderBand(empty, [])
     expect(container.firstChild).toBeNull()
