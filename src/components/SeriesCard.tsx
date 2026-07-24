@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Play, CheckCheck, RotateCcw } from 'lucide-react'
 import type { SeriesVM } from '@/lib/komga/mapping'
+import { FORMAT_LABEL } from '@/lib/komga/format'
 import { useMarkSeries } from '@/lib/komga/mutations'
 import { useSeriesPages } from '@/lib/komga/queries'
 import { pagesLabel } from '@/lib/komga/books'
@@ -28,6 +29,11 @@ export function SeriesCard({ s }: { s: SeriesVM }) {
     <Link to={`/series/${s.id}`} className="group block">
       <div className="relative aspect-[2/3] overflow-hidden rounded-md border border-border bg-muted">
         <CoverImage src={s.coverUrl} alt={s.title} />
+        {s.format && (
+          <span className="absolute left-1.5 top-1.5 rounded bg-black/60 px-1.5 py-0.5 text-[10px] font-medium leading-none text-white">
+            {FORMAT_LABEL[s.format.kind]}
+          </span>
+        )}
         {!done && <div className="absolute right-1.5 top-1.5"><ReadProgress variant="ring" progress={s.progress} /></div>}
         {!isMobile && (
           <div className="pointer-events-none absolute inset-0 flex items-end gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">

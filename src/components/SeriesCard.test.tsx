@@ -47,6 +47,14 @@ describe('SeriesCard / SeriesRow', () => {
     renderCard(vm)
     expect(screen.getByText('2012 · 8,340 pp')).toBeInTheDocument()
   })
+  it('card shows a format badge when the series is format-tagged', () => {
+    renderCard({ ...vm, format: { kind: 'tpb', mixed: false } })
+    expect(screen.getByText('TPB')).toBeInTheDocument()
+  })
+  it('card shows no format badge for an untagged series', () => {
+    renderCard(vm)
+    expect(screen.queryByText('TPB')).not.toBeInTheDocument()
+  })
   it('row shows title, publisher, and rating value', () => {
     render(<MemoryRouter><SeriesRow s={vm} /></MemoryRouter>)
     expect(screen.getByText('Saga')).toBeInTheDocument()

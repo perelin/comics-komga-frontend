@@ -66,12 +66,18 @@ describe('SeriesMetaBand', () => {
     expect(screen.queryByText('Editor')).not.toBeInTheDocument()
   })
 
-  it('merges + dedupes tags across series and books, hiding rating tags', () => {
-    renderBand()
+  it('merges + dedupes tags across series and books, hiding rating and format tags', () => {
+    renderBand(dto({ tags: ['rating:3.45', 'format:singles', 'format:mixed', 'variant cover'] }))
     expect(screen.getByText('variant cover')).toBeInTheDocument()
     expect(screen.getByText('sexual violence')).toBeInTheDocument()
     expect(screen.queryByText(/rating:/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/format:/)).not.toBeInTheDocument()
     expect(screen.getAllByText('variant cover')).toHaveLength(1)
+  })
+
+  it('lets the format:* tag override the heuristic format block, with the mixed flag', () => {
+    renderBand(dto({ tags: ['format:singles', 'format:mixed'] }))
+    expect(screen.getByText('4 issues · ⌀ 28 p. · Singles · mixed')).toBeInTheDocument()
   })
 
   it('renders nothing at all when there is no data', () => {

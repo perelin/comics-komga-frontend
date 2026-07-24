@@ -254,7 +254,7 @@ function RelatedTab({ publisher, excludeId }: { publisher: string; excludeId: st
 
 function MetadataTab({ dto, year, libraryName }: { dto: KomgaSeriesDto; year: string | null; libraryName: string }) {
   const m = dto.metadata
-  const tags = m.tags.filter((t) => !t.startsWith('rating:'))
+  const tags = m.tags.filter((t) => !t.startsWith('rating:') && !t.startsWith('format:'))
   const rows: [string, ReactNode][] = [
     ['Library', libraryName || '—'],
     ['Status', <StatusDot status={m.status} />],

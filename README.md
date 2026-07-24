@@ -18,7 +18,7 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
   (only the visible window renders, so 10k+ series stay smooth). Real covers,
   read-progress, and ratings; a live result count; search-within; sort (Title /
   Recently added / Recently updated); and multi-facet filters (read status,
-  library, publication status, genre, publisher, age rating, one-shot). A
+  library, publication status, genre, publisher, age rating, rating, format). A
   **Series ⇄ Issues toggle** switches between series-grouped browsing and a flat
   individual-issue view. **All filter/sort/view state lives in the URL**, so any
   view is deep-linkable and survives a refresh.
@@ -132,6 +132,22 @@ The app parses these into a star display plus a source link. Because Komga
 can't sort by a tag value, rating is **filterable but not sortable**. If your
 library doesn't use this convention, ratings simply won't appear — everything
 else works unchanged.
+
+## How formats work
+
+The same backfill tool also writes a **format tag convention**
+([spec](https://github.com/perelin/comics-komga-ratings/blob/main/docs/format-classifier-spec.md)):
+one primary tag per series — `format:singles`, `format:tpb`, `format:omnibus`,
+`format:oneshot`, `format:ogn` — plus an optional `format:mixed` data-quality
+flag that rides alongside the primary (floppies and trades shelved in one
+series, a cleanup candidate).
+
+The app turns these into a **Format filter** (multi-select over the five
+primary formats, plus a "Mixed formats" toggle for the cleanup work list), a
+format badge on series cards, and the format line in the Series Detail stat
+band (which falls back to a pages-per-book heuristic for untagged series).
+Untagged series are treated as *unknown*: no badge, and they never match a
+format filter.
 
 ## Tech stack
 

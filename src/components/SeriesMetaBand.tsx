@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import { creditNames, formatCredit } from '@/lib/komga/mapping'
+import { parseFormat } from '@/lib/komga/format'
 import { sumPages, formatIndicator } from '@/lib/komga/books'
 import { facetHref } from '@/lib/komga/filters'
 import { Badge } from '@/components/ui/badge'
@@ -17,7 +18,7 @@ export function SeriesMetaBand({ dto, books }: { dto: KomgaSeriesDto; books: Kom
   const artNames = art.length > 0 ? art : creditNames(authors, 'inker')
   const colors = creditNames(authors, 'colorist')
   const editors = creditNames(authors, 'editor')
-  const format = formatIndicator(sumPages(books), books.length)
+  const format = formatIndicator(sumPages(books), books.length, parseFormat(dto.metadata.tags))
 
   const blocks: Block[] = []
   const writer = formatCredit(writers)
@@ -34,7 +35,7 @@ export function SeriesMetaBand({ dto, books }: { dto: KomgaSeriesDto; books: Kom
   if (format) blocks.push({ label: 'Format', value: format })
 
   const tags = [...new Set([...dto.metadata.tags, ...dto.booksMetadata.tags])]
-    .filter((t) => !t.startsWith('rating:'))
+    .filter((t) => !t.startsWith('rating:') && !t.startsWith('format:'))
 
   if (blocks.length === 0 && tags.length === 0) return null
 
