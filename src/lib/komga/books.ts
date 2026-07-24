@@ -1,4 +1,5 @@
 import type { KomgaBookDto, ReadStatus } from './types'
+import { FORMAT_LABEL, type Format } from './format'
 
 export interface ContinueTarget {
   book: KomgaBookDto
@@ -92,12 +93,20 @@ export function yearRange(books: KomgaBookDto[]): string | null {
   return min === max ? min : `${min}–${max}`
 }
 
-/** Physical-format guess from average pages/book: "4 issues · ⌀ 28 p. · Floppies". */
-export function formatIndicator(totalPages: number, booksCount: number): string | null {
+const FORMAT_NOUN: Record<Format['kind'], string> = {
+  singles: 'issue', tpb: 'volume', omnibus: 'volume', oneshot: 'book', ogn: 'book',
+}
+
+/** Physical-format line: "4 issues · ⌀ 28 p. · Floppies". The curated format:*
+ *  tag, when present, decides kind and noun (plus a "mixed" data-quality
+ *  suffix); otherwise both are guessed from average pages/book. */
+export function formatIndicator(totalPages: number, booksCount: number, format?: Format): string | null {
   if (booksCount === 0 || totalPages === 0) return null
   const avg = Math.round(totalPages / booksCount)
-  const kind = avg < 48 ? 'Floppies' : avg < 250 ? 'TPB' : 'Omnibus'
-  const noun = (kind === 'Floppies' ? 'issue' : 'volume') + (booksCount === 1 ? '' : 's')
+  const kind = format ? FORMAT_LABEL[format.kind] : avg < 48 ? 'Floppies' : avg < 250 ? 'TPB' : 'Omnibus'
+  const nounBase = format ? FORMAT_NOUN[format.kind] : kind === 'Floppies' ? 'issue' : 'volume'
+  const noun = nounBase + (booksCount === 1 ? '' : 's')
   const pages = booksCount > 1 ? `⌀ ${avg} p.` : `${totalPages} p.`
-  return `${booksCount} ${noun} · ${pages} · ${kind}`
+  const flag = format?.mixed ? ' · mixed' : ''
+  return `${booksCount} ${noun} · ${pages} · ${kind}${flag}`
 }

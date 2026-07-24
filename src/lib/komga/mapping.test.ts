@@ -58,7 +58,7 @@ const dto: KomgaSeriesDto = {
   booksCount: 11, booksReadCount: 7, booksUnreadCount: 3, booksInProgressCount: 1,
   metadata: {
     status: 'ONGOING', title: 'Saga', titleSort: 'Saga', summary: 's',
-    publisher: 'Image', genres: ['Science Fiction'], tags: ['rating:4.2'],
+    publisher: 'Image', genres: ['Science Fiction'], tags: ['rating:4.2', 'format:singles'],
     links: [{ label: '★ 4.13 · Goodreads (106)', url: 'g' }],
     ageRating: 16, language: 'en', readingDirection: 'LTR', totalBookCount: 11,
   },
@@ -74,8 +74,13 @@ describe('mapSeries', () => {
       genres: ['Science Fiction'], oneshot: false,
       progress: { read: 7, inProgress: 1, unread: 3, total: 11 },
       rating: { value: 4.2, needsCheck: false },
+      format: { kind: 'singles', mixed: false },
       coverUrl: '/komga/api/v1/series/s1/thumbnail',
     })
+  })
+  it('leaves format undefined for an untagged series', () => {
+    const meta = { ...dto.metadata, tags: [] }
+    expect(mapSeries({ ...dto, metadata: meta }).format).toBeUndefined()
   })
   it('derives the release year from the first book (booksMetadata.releaseDate)', () => {
     expect(mapSeries(dto).year).toBe('2012')

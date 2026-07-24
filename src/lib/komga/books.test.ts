@@ -147,4 +147,13 @@ describe('formatIndicator', () => {
     expect(formatIndicator(0, 0)).toBeNull()
     expect(formatIndicator(0, 3)).toBeNull()
   })
+  it('prefers the format:* tag over the page heuristic (kind + noun)', () => {
+    // 28 p./book would guess Floppies; the curated tag wins.
+    expect(formatIndicator(111, 4, { kind: 'tpb', mixed: false })).toBe('4 volumes · ⌀ 28 p. · TPB')
+    expect(formatIndicator(111, 4, { kind: 'singles', mixed: false })).toBe('4 issues · ⌀ 28 p. · Singles')
+    expect(formatIndicator(120, 1, { kind: 'ogn', mixed: false })).toBe('1 book · 120 p. · OGN')
+  })
+  it('appends the mixed data-quality flag', () => {
+    expect(formatIndicator(300, 5, { kind: 'singles', mixed: true })).toBe('5 issues · ⌀ 60 p. · Singles · mixed')
+  })
 })

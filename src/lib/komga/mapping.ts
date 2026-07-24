@@ -1,6 +1,7 @@
 import type { KomgaAuthor, KomgaSeriesDto, SeriesStatus } from './types'
 import type { Progress } from './progress'
 import { releaseYear } from './books'
+import { parseFormat, type Format } from './format'
 
 export interface Rating { value: number; needsCheck: boolean }
 
@@ -19,6 +20,8 @@ export interface SeriesVM {
   oneshot: boolean
   progress: Progress
   rating?: Rating
+  /** Primary publication format from the format:* tag convention; undefined = untagged. */
+  format?: Format
   coverUrl: string
   /** Release year of the first book in the stack (booksMetadata.releaseDate). */
   year: string | null
@@ -67,6 +70,7 @@ export function mapSeries(dto: KomgaSeriesDto): SeriesVM {
       total: dto.booksCount,
     },
     rating: parseRating(dto.metadata.tags),
+    format: parseFormat(dto.metadata.tags),
     coverUrl: `/komga/api/v1/series/${dto.id}/thumbnail`,
     year: releaseYear(dto.booksMetadata.releaseDate),
   }
