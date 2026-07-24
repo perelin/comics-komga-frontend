@@ -149,6 +149,21 @@ band (which falls back to a pages-per-book heuristic for untagged series).
 Untagged series are treated as *unknown*: no badge, and they never match a
 format filter.
 
+## The series tag list
+
+Series Detail lists **every** tag — series-level and book-level, deduped —
+both as chips under the stat blocks and in the Metadata tab, mirroring the tag
+row on Komga's own series page. Convention tags (`format:*`, `rating:*`) are
+*not* hidden just because they also drive first-class UI: on a
+convention-tagged library they are frequently the only tags a series carries,
+so filtering them left most series with no visible tag list at all. They get a
+quieter outline chip so free-form content tags still read first.
+
+Only `format:*` chips are clickable (to the format facet, and `format:mixed` to
+the cleanup list). `rating:*` chips are inert because the convention includes
+non-numeric buckets (`rating:nomatch`, `rating:check`) that no rating bound can
+express; free-form tags are inert because there is no tag facet in `Filters`.
+
 ## Tech stack
 
 Vite · React · TypeScript · Tailwind + shadcn/ui (dark mode) · TanStack Query

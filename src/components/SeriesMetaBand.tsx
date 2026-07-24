@@ -1,16 +1,18 @@
 import { Link } from 'react-router-dom'
 import { creditNames, formatCredit } from '@/lib/komga/mapping'
 import { parseFormat } from '@/lib/komga/format'
+import { allTags } from '@/lib/komga/tags'
 import { sumPages, formatIndicator } from '@/lib/komga/books'
 import { facetHref } from '@/lib/komga/filters'
-import { Badge } from '@/components/ui/badge'
+import { TagList } from '@/components/TagList'
 import type { KomgaBookDto, KomgaSeriesDto } from '@/lib/komga/types'
 
 interface Block { label: string; value: string; href?: string }
 
-/** Curated metadata band between the hero and the tabs: one row of stat
- *  blocks (credits, publisher, format) + one row of tag chips. The Metadata
- *  tab keeps the complete raw table; this is the readable subset. */
+/** Metadata band between the hero and the tabs: one row of stat blocks
+ *  (credits, publisher, format) + the complete tag list as chips. The stat
+ *  blocks are a curated subset — the tag chips are not, mirroring Komga's own
+ *  series page, which lists every tag in its primary metadata block. */
 export function SeriesMetaBand({ dto, books }: { dto: KomgaSeriesDto; books: KomgaBookDto[] }) {
   const authors = dto.booksMetadata.authors
   const writers = creditNames(authors, 'writer')
@@ -34,8 +36,7 @@ export function SeriesMetaBand({ dto, books }: { dto: KomgaSeriesDto; books: Kom
   }
   if (format) blocks.push({ label: 'Format', value: format })
 
-  const tags = [...new Set([...dto.metadata.tags, ...dto.booksMetadata.tags])]
-    .filter((t) => !t.startsWith('rating:') && !t.startsWith('format:'))
+  const tags = allTags(dto)
 
   if (blocks.length === 0 && tags.length === 0) return null
 
@@ -57,11 +58,7 @@ export function SeriesMetaBand({ dto, books }: { dto: KomgaSeriesDto; books: Kom
           ))}
         </div>
       )}
-      {tags.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          {tags.map((t) => <Badge key={t} variant="secondary">{t}</Badge>)}
-        </div>
-      )}
+      {tags.length > 0 && <TagList tags={tags} className="mt-3" />}
     </div>
   )
 }

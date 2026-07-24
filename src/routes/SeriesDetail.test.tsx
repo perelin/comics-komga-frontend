@@ -100,6 +100,15 @@ describe('SeriesDetail', () => {
     expect(screen.getByRole('tab', { name: /Metadata/ })).toBeInTheDocument()
   })
 
+  it('lists every tag in the Metadata tab, book-level and convention tags included', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(screen.getByRole('tab', { name: /Metadata/ }))
+    const row = screen.getByText('Tags').closest('div') as HTMLElement
+    expect(within(row).getByText('space-opera')).toBeInTheDocument()
+    expect(within(row).getByText('rating:4.2')).toBeInTheDocument()
+  })
+
   it('lists the volumes in the default Books tab', () => {
     renderDetail()
     expect(screen.getByText('Volume 1')).toBeInTheDocument()

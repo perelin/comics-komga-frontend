@@ -66,13 +66,31 @@ describe('SeriesMetaBand', () => {
     expect(screen.queryByText('Editor')).not.toBeInTheDocument()
   })
 
-  it('merges + dedupes tags across series and books, hiding rating and format tags', () => {
+  it('merges + dedupes every tag across series and books, convention tags included', () => {
     renderBand(dto({ tags: ['rating:3.45', 'format:singles', 'format:mixed', 'variant cover'] }))
     expect(screen.getByText('variant cover')).toBeInTheDocument()
     expect(screen.getByText('sexual violence')).toBeInTheDocument()
-    expect(screen.queryByText(/rating:/)).not.toBeInTheDocument()
-    expect(screen.queryByText(/format:/)).not.toBeInTheDocument()
+    expect(screen.getByText('rating:3.45')).toBeInTheDocument()
+    expect(screen.getByText('format:singles')).toBeInTheDocument()
+    expect(screen.getByText('format:mixed')).toBeInTheDocument()
     expect(screen.getAllByText('variant cover')).toHaveLength(1)
+  })
+
+  it('shows the convention tags even when they are the only tags (the Alex + Ada case)', () => {
+    const d = dto({ tags: ['format:mixed', 'rating:nomatch', 'format:singles'] })
+    d.booksMetadata.tags = []
+    renderBand(d)
+    expect(screen.getByText('format:mixed')).toBeInTheDocument()
+    expect(screen.getByText('format:singles')).toBeInTheDocument()
+    expect(screen.getByText('rating:nomatch')).toBeInTheDocument()
+  })
+
+  it('links format tags to their filter and leaves rating/free-form tags inert', () => {
+    renderBand(dto({ tags: ['format:singles', 'format:mixed', 'rating:nomatch', 'variant cover'] }))
+    expect(screen.getByRole('link', { name: 'format:singles' })).toHaveAttribute('href', '/?format=singles')
+    expect(screen.getByRole('link', { name: 'format:mixed' })).toHaveAttribute('href', '/?mixed=true')
+    expect(screen.queryByRole('link', { name: 'rating:nomatch' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('link', { name: 'variant cover' })).not.toBeInTheDocument()
   })
 
   it('lets the format:* tag override the heuristic format block, with the mixed flag', () => {
