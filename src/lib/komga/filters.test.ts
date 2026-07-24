@@ -28,7 +28,7 @@ describe('URL <-> Filters round-trip', () => {
       ...DEFAULT_FILTERS,
       readStatus: ['UNREAD'], genre: ['Science Fiction', 'Noir'],
       library: 'lib1', publisher: ['Image'], status: ['ONGOING'],
-      ageRating: ['16'], oneshot: false, search: 'incal',
+      ageRating: ['16'], format: ['tpb', 'singles'], formatMixed: true, search: 'incal',
       sortKey: 'createdDate', sortDir: 'desc',
     }
     const sp = filtersToSearchParams(f)
@@ -79,11 +79,23 @@ describe('filtersToCondition', () => {
         { ageRating: { operator: 'is', value: 16 } },
       ] } })
   })
-  it('oneshot → oneShot isTrue/isFalse (no value)', () => {
-    expect(filtersToCondition({ ...DEFAULT_FILTERS, oneshot: true }))
-      .toEqual({ condition: { oneShot: { operator: 'isTrue' } } })
-    expect(filtersToCondition({ ...DEFAULT_FILTERS, oneshot: false }))
-      .toEqual({ condition: { oneShot: { operator: 'isFalse' } } })
+  it('single format → bare format:* tag node (no anyOf wrapper)', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, format: ['tpb'] }))
+      .toEqual({ condition: { tag: { operator: 'is', value: 'format:tpb' } } })
+  })
+  it('multiple formats → anyOf over format:* tag nodes (OR within)', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, format: ['tpb', 'singles'] }))
+      .toEqual({ condition: { anyOf: [
+        { tag: { operator: 'is', value: 'format:tpb' } },
+        { tag: { operator: 'is', value: 'format:singles' } },
+      ] } })
+  })
+  it('mixed toggle → an AND-ed format:mixed tag node', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, format: ['singles'], formatMixed: true }))
+      .toEqual({ condition: { allOf: [
+        { tag: { operator: 'is', value: 'format:singles' } },
+        { tag: { operator: 'is', value: 'format:mixed' } },
+      ] } })
   })
   it('authors are AND-ed as author nodes (value {name})', () => {
     expect(filtersToCondition({ ...DEFAULT_FILTERS, authors: ['Neil Gaiman', 'Dave McKean'] }))
@@ -184,6 +196,22 @@ describe('searchParamsToFilters drops empty author entries', () => {
   })
 })
 
+describe('format filter', () => {
+  it('round-trips format kinds and the mixed toggle through the URL', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, format: ['omnibus', 'ogn'], formatMixed: true }
+    const sp = filtersToSearchParams(f)
+    expect(sp.get('format')).toBe('omnibus,ogn')
+    expect(sp.get('mixed')).toBe('true')
+    expect(searchParamsToFilters(sp)).toEqual(f)
+  })
+  it('drops unknown format kinds and a non-true mixed param', () => {
+    const f = searchParamsToFilters(new URLSearchParams('format=tpb,hardcover,mixed&mixed=false'))
+    // format:mixed is a flag, not a primary kind — it never enters the kind list.
+    expect(f.format).toEqual(['tpb'])
+    expect(f.formatMixed).toBeUndefined()
+  })
+})
+
 describe('filtersToCondition — Issues dimension', () => {
   it('omits series-only facets (publisher/genre/status/ageRating) from the books body', () => {
     const f: Filters = {
@@ -193,10 +221,10 @@ describe('filtersToCondition — Issues dimension', () => {
     // In series mode all four appear; in issues mode none may (books/list 400s on them).
     expect(filtersToCondition(f, 'issues')).toEqual({})
   })
-  it('keeps the shared facets (readStatus/library/oneshot/rating/author) in issues mode', () => {
+  it('keeps the shared facets (readStatus/library/format/rating/author) in issues mode', () => {
     const f: Filters = {
       ...DEFAULT_FILTERS,
-      library: 'lib1', readStatus: ['UNREAD'], oneshot: true, authors: ['Neil Gaiman'],
+      library: 'lib1', readStatus: ['UNREAD'], format: ['tpb'], authors: ['Neil Gaiman'],
       // series-only facets present but must be dropped
       publisher: ['Image'], genre: ['noir'],
     }
@@ -206,7 +234,7 @@ describe('filtersToCondition — Issues dimension', () => {
         allOf: [
           { readStatus: { operator: 'is', value: 'UNREAD' } },
           { libraryId: { operator: 'is', value: 'lib1' } },
-          { oneShot: { operator: 'isTrue' } },
+          { tag: { operator: 'is', value: 'format:tpb' } },
           { author: { operator: 'is', value: { name: 'Neil Gaiman' } } },
         ],
       },

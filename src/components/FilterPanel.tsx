@@ -8,6 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { usePersistentState } from '@/hooks/usePersistentState'
 import { cn } from '@/lib/utils'
 import { resetFiltersKeepingSort, type Filters, type BrowseDim } from '@/lib/komga/filters'
+import type { FormatKind } from '@/lib/komga/format'
 import type { ReadStatus, SeriesStatus } from '@/lib/komga/types'
 import { useGenres, usePublishers, useAgeRatings } from '@/lib/komga/queries'
 import { AuthorFacet } from './AuthorFacet'
@@ -103,6 +104,10 @@ function RatingFacet({ min, max, onChange }: { min?: number; max?: number; onCha
 
 const READ_STATUS: [ReadStatus, string][] = [['UNREAD', 'Unread'], ['IN_PROGRESS', 'In progress'], ['READ', 'Read']]
 const STATUS: [SeriesStatus, string][] = [['ONGOING', 'Ongoing'], ['ENDED', 'Ended'], ['HIATUS', 'Hiatus'], ['ABANDONED', 'Abandoned']]
+const FORMATS: [FormatKind, string][] = [
+  ['singles', 'Singles'], ['tpb', 'Trades (TPB)'], ['omnibus', 'Omnibus'],
+  ['oneshot', 'One-shots'], ['ogn', 'Graphic novels (OGN)'],
+]
 
 export function FilterPanelInner({ filters, onChange, dim = 'series' }: { filters: Filters; onChange: (f: Filters) => void; dim?: BrowseDim }) {
   // /books/list can't filter on these series-level facets → grey them out in Issues mode.
@@ -123,7 +128,7 @@ export function FilterPanelInner({ filters, onChange, dim = 'series' }: { filter
     publisher: filters.publisher.length > 0,
     ageRating: filters.ageRating.length > 0,
     rating: filters.ratingMin !== undefined || filters.ratingMax !== undefined,
-    format: filters.oneshot === true,
+    format: filters.format.length > 0 || filters.formatMixed === true,
   }
   const isOpen = (key: string): boolean => openMap[key] ?? active[key] ?? false
   const toggleFacet = (key: string) => setOpenMap({ ...openMap, [key]: !isOpen(key) })
@@ -167,7 +172,10 @@ export function FilterPanelInner({ filters, onChange, dim = 'series' }: { filter
           />
         </Facet>
         <Facet title="Format" open={isOpen('format')} onToggle={() => toggleFacet('format')}>
-          <Opt label="One-shots only" checked={filters.oneshot === true} onToggle={() => onChange({ ...filters, oneshot: filters.oneshot === true ? undefined : true })} />
+          {FORMATS.map(([k, l]) => <Opt key={k} label={l} checked={filters.format.includes(k)} onToggle={() => onChange({ ...filters, format: toggle(filters.format, k) })} />)}
+          <div className="mt-1 border-t border-border pt-1">
+            <Opt label="Mixed formats (cleanup)" checked={filters.formatMixed === true} onToggle={() => onChange({ ...filters, formatMixed: filters.formatMixed === true ? undefined : true })} />
+          </div>
         </Facet>
       </ScrollArea>
     </>

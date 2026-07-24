@@ -66,7 +66,7 @@ export function applySmartFolder(preset: Filters, current: Filters): Filters {
 
 // A folder is active when every NON-scope field of `current` matches the preset.
 const SIGNATURE_KEYS: (keyof Filters)[] = [
-  'readStatus', 'genre', 'publisher', 'status', 'ageRating', 'authors', 'oneshot', 'search', 'sortKey', 'sortDir',
+  'readStatus', 'genre', 'publisher', 'status', 'ageRating', 'authors', 'format', 'formatMixed', 'search', 'sortKey', 'sortDir',
 ]
 export function isSmartFolderActive(preset: Filters, current: Filters): boolean {
   // Compares serialized values per key; relies on canonical array order (presets use [] or single-element arrays, so order is stable).

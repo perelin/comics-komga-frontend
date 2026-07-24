@@ -1,4 +1,5 @@
 import type { ReadStatus, SeriesStatus } from './types'
+import { isFormatKind, type FormatKind } from './format'
 
 export type View = 'grid' | 'list'
 /** The browse dimension: series-grouped (default) vs. flat individual issues. */
@@ -19,7 +20,10 @@ export interface Filters {
   status: SeriesStatus[]
   ageRating: string[]
   authors: string[]
-  oneshot?: boolean
+  /** format:* tag facet — selected primary formats (OR). Untagged series never match. */
+  format: FormatKind[]
+  /** true = only series flagged `format:mixed` (the data-quality cleanup list). */
+  formatMixed?: boolean
   /** Inclusive rating bounds (1–5 stars). Both undefined = no rating filter. */
   ratingMin?: number
   ratingMax?: number
@@ -30,7 +34,7 @@ export interface Filters {
 
 export const DEFAULT_FILTERS: Filters = {
   readStatus: [], library: undefined, genre: [], publisher: [], status: [],
-  ageRating: [], authors: [], oneshot: undefined,
+  ageRating: [], authors: [], format: [], formatMixed: undefined,
   ratingMin: undefined, ratingMax: undefined, search: undefined,
   sortKey: 'titleSort', sortDir: 'asc',
 }
@@ -39,7 +43,7 @@ export function resetFiltersKeepingSort(f: Filters): Filters {
   return { ...DEFAULT_FILTERS, library: f.library, sortKey: f.sortKey, sortDir: f.sortDir }
 }
 
-const ARRAY_KEYS = ['readStatus', 'genre', 'publisher', 'status', 'ageRating', 'authors'] as const
+const ARRAY_KEYS = ['readStatus', 'genre', 'publisher', 'status', 'ageRating', 'authors', 'format'] as const
 
 export function filtersToSearchParams(f: Filters): URLSearchParams {
   const sp = new URLSearchParams()
@@ -47,7 +51,7 @@ export function filtersToSearchParams(f: Filters): URLSearchParams {
     if (f[k].length) sp.set(k, (f[k] as string[]).join(','))
   }
   if (f.library) sp.set('library', f.library)
-  if (f.oneshot !== undefined) sp.set('oneshot', String(f.oneshot))
+  if (f.formatMixed) sp.set('mixed', 'true')
   if (f.ratingMin !== undefined) sp.set('ratingMin', String(f.ratingMin))
   if (f.ratingMax !== undefined) sp.set('ratingMax', String(f.ratingMax))
   if (f.search) sp.set('q', f.search)
@@ -91,7 +95,8 @@ export function searchParamsToFilters(sp: URLSearchParams): Filters {
     status: split(sp.get('status')).filter((v): v is SeriesStatus => VALID_SERIES_STATUS.includes(v as SeriesStatus)),
     ageRating: split(sp.get('ageRating')),
     authors: split(sp.get('authors')),
-    oneshot: sp.has('oneshot') ? sp.get('oneshot') === 'true' : undefined,
+    format: split(sp.get('format')).filter(isFormatKind),
+    formatMixed: sp.get('mixed') === 'true' ? true : undefined,
     ratingMin: parseRatingBound(sp.get('ratingMin')),
     ratingMax: parseRatingBound(sp.get('ratingMax')),
     search: sp.get('q') ?? undefined,
@@ -176,7 +181,7 @@ function ratingFacet(min?: number, max?: number): Condition | null {
  *  a multi-value facet, allOf (AND) within the author facet, search →
  *  fullTextSearch. In the Issues dimension the series-only facets (genre,
  *  publisher, seriesStatus, ageRating) are omitted — `/books/list` 400s on them.
- *  The shared facets (readStatus, library, oneShot, rating tag, author) use
+ *  The shared facets (readStatus, library, format tag, rating tag, author) use
  *  identical operator shapes on both `/series/list` and `/books/list`. */
 export function filtersToCondition(f: Filters, dim: BrowseDim = 'series'): SeriesListBody {
   const parts: Condition[] = []
@@ -189,7 +194,10 @@ export function filtersToCondition(f: Filters, dim: BrowseDim = 'series'): Serie
   if (seriesOnly) add(orFacet('publisher', f.publisher))
   if (seriesOnly) add(orFacet('seriesStatus', f.status))
   if (seriesOnly) add(orFacet('ageRating', f.ageRating.map(Number)))
-  if (f.oneshot !== undefined) add({ oneShot: { operator: f.oneshot ? 'isTrue' : 'isFalse' } })
+  // Format: OR over the selected primary format:* tags. Untagged ("unknown")
+  // series carry no format tag, so any active selection excludes them.
+  add(orFacet('tag', f.format.map((k) => `format:${k}`)))
+  if (f.formatMixed) add(isEq('tag', 'format:mixed'))
   add(ratingFacet(f.ratingMin, f.ratingMax))
   // Authors: AND each (the concrete collaboration) — see spec decision 2.
   for (const name of f.authors) add({ author: { operator: 'is', value: { name } } })

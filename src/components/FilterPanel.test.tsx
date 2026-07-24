@@ -43,7 +43,7 @@ describe('FilterPanelInner', () => {
     renderPanel()
     expect(screen.getByRole('button', { name: 'Read status' })).toHaveAttribute('aria-expanded', 'false')
     expect(screen.queryByLabelText('Unread')).not.toBeInTheDocument()
-    expect(screen.queryByLabelText('One-shots only')).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Singles')).not.toBeInTheDocument()
   })
 
   it('auto-expands a facet that has an active selection', () => {
@@ -90,6 +90,28 @@ describe('FilterPanelInner', () => {
     renderPanel()
     fireEvent.click(screen.getByRole('button', { name: 'Rating' }))
     expect(screen.getByText('Any rating')).toBeInTheDocument()
+  })
+
+  it('toggles a format kind and emits updated filters', () => {
+    const onChange = vi.fn()
+    renderPanel(DEFAULT_FILTERS, onChange)
+    fireEvent.click(screen.getByRole('button', { name: 'Format' }))
+    fireEvent.click(screen.getByLabelText('Trades (TPB)'))
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ format: ['tpb'] }))
+  })
+
+  it('toggles the mixed cleanup flag independently of the format kinds', () => {
+    const onChange = vi.fn()
+    renderPanel({ ...DEFAULT_FILTERS, format: ['singles'] }, onChange)
+    // Auto-expanded via the active format selection.
+    expect(screen.getByRole('button', { name: 'Format' })).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(screen.getByLabelText('Mixed formats (cleanup)'))
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ format: ['singles'], formatMixed: true }))
+  })
+
+  it('auto-expands the Format facet when only the mixed flag is active', () => {
+    renderPanel({ ...DEFAULT_FILTERS, formatMixed: true })
+    expect(screen.getByRole('button', { name: 'Format' })).toHaveAttribute('aria-expanded', 'true')
   })
 
   it('emits a rating bound when the min thumb is stepped up via keyboard', () => {

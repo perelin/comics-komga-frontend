@@ -12,6 +12,23 @@ describe('ActiveFilters', () => {
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ authors: [] }))
   })
 
+  it('shows format chips with display labels and removes by raw kind', () => {
+    const onChange = vi.fn()
+    render(<ActiveFilters filters={{ ...DEFAULT_FILTERS, format: ['tpb', 'singles'] }} onChange={onChange} />)
+    expect(screen.getByText('TPB')).toBeTruthy()
+    expect(screen.getByText('Singles')).toBeTruthy()
+    fireEvent.click(screen.getByLabelText('remove Format TPB'))
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ format: ['singles'] }))
+  })
+
+  it('shows a Mixed chip and clears the flag on remove', () => {
+    const onChange = vi.fn()
+    render(<ActiveFilters filters={{ ...DEFAULT_FILTERS, formatMixed: true }} onChange={onChange} />)
+    expect(screen.getByText('Mixed')).toBeTruthy()
+    fireEvent.click(screen.getByLabelText('remove Format Mixed'))
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ formatMixed: undefined }))
+  })
+
   it('hides series-only chips in the Issues dimension, keeps the shared ones', () => {
     const filters = { ...DEFAULT_FILTERS, publisher: ['Image'], genre: ['noir'], authors: ['Neil Gaiman'], readStatus: ['UNREAD' as const] }
     const { rerender } = render(<ActiveFilters filters={filters} onChange={vi.fn()} dim="series" />)

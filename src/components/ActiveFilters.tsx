@@ -2,8 +2,10 @@ import { X } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { resetFiltersKeepingSort, isSeriesOnlyFacet, type Filters, type BrowseDim } from '@/lib/komga/filters'
+import { FORMAT_LABEL } from '@/lib/komga/format'
 
-type Chip = { field: keyof Filters; label: string; value: string }
+/** `value` is the raw filter entry (used for removal); `display` overrides it in the chip. */
+type Chip = { field: keyof Filters; label: string; value: string; display?: string }
 
 function chipsFor(f: Filters, dim: BrowseDim): Chip[] {
   const chips: Chip[] = []
@@ -14,7 +16,8 @@ function chipsFor(f: Filters, dim: BrowseDim): Chip[] {
   push('status', 'Status', f.status)
   push('ageRating', 'Age', f.ageRating)
   push('authors', 'Creator', f.authors)
-  if (f.oneshot !== undefined) chips.push({ field: 'oneshot', label: 'One-shot', value: String(f.oneshot) })
+  f.format.forEach((k) => chips.push({ field: 'format', label: 'Format', value: k, display: FORMAT_LABEL[k] }))
+  if (f.formatMixed) chips.push({ field: 'formatMixed', label: 'Format', value: 'mixed', display: 'Mixed' })
   if (f.ratingMin !== undefined || f.ratingMax !== undefined) {
     chips.push({ field: 'ratingMin', label: 'Rating', value: `${(f.ratingMin ?? 1).toFixed(1)}–${(f.ratingMax ?? 5).toFixed(1)} ★` })
   }
@@ -27,7 +30,7 @@ export function ActiveFilters({ filters, onChange, dim = 'series' }: { filters: 
   const chips = chipsFor(filters, dim)
   if (!chips.length) return null
   const remove = (c: Chip) => {
-    if (c.field === 'oneshot') return onChange({ ...filters, oneshot: undefined })
+    if (c.field === 'formatMixed') return onChange({ ...filters, formatMixed: undefined })
     if (c.field === 'ratingMin') return onChange({ ...filters, ratingMin: undefined, ratingMax: undefined })
     const arr = (filters[c.field] as string[]).filter((v) => v !== c.value)
     onChange({ ...filters, [c.field]: arr })
@@ -37,8 +40,8 @@ export function ActiveFilters({ filters, onChange, dim = 'series' }: { filters: 
       <span className="text-[10px] uppercase tracking-wider text-muted-foreground">Filters</span>
       {chips.map((c) => (
         <Badge key={`${c.field}:${c.value}`} variant="secondary" className="gap-1">
-          <span className="text-muted-foreground">{c.label}:</span>{c.value}
-          <button onClick={() => remove(c)} aria-label={`remove ${c.label} ${c.value}`}><X className="size-3" /></button>
+          <span className="text-muted-foreground">{c.label}:</span>{c.display ?? c.value}
+          <button onClick={() => remove(c)} aria-label={`remove ${c.label} ${c.display ?? c.value}`}><X className="size-3" /></button>
         </Badge>
       ))}
       <Button variant="ghost" size="sm" className="h-6" onClick={() => onChange(resetFiltersKeepingSort(filters))}>
