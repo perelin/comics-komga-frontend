@@ -17,7 +17,8 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
 - **Library Browser** — a virtualized grid + list over your entire library
   (only the visible window renders, so 10k+ series stay smooth). Real covers,
   read-progress, and ratings; a live result count; search-within; sort (Title /
-  Recently added / Recently updated); and multi-facet filters (read status,
+  Date added / Date updated / Release date / Books / Last read / Random —
+  release date, newest first by default); and multi-facet filters (read status,
   library, publication status, genre, publisher, age rating, rating, format). A
   **Series ⇄ Issues toggle** switches between series-grouped browsing and a flat
   individual-issue view. **All filter/sort/view state lives in the URL**, so any
