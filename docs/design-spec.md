@@ -2,14 +2,49 @@
 
 > **Note:** This is the original design spec (design intent, constraints,
 > success criteria) authored before implementation. It is preserved here so this
-> repo is self-contained. Where the as-built code differs, **`HANDOVER.md` is
+> repo is self-contained. Where the as-built code differs, **`README.md` is
 > authoritative** — notably: the shipped stack is **React 19 / react-router-dom
 > v7 / shadcn (base-ui variant)** (the spec says React 18 / RR v6), the list is
 > a CSS-grid layout rather than a `<table>`, and `Progress`/`readPct` live in
 > `lib/komga/progress.ts`. The slice described below was fully implemented and
 > live-verified.
+>
+> (This note used to name `HANDOVER.md`, which was removed in `5cdaac6` when the
+> repo was prepared for public release — its as-built content now lives in the
+> README. History: `git show 5cdaac6`.)
 
 ---
+
+### Tag conventions consumed (contract note, added 2026-07-26)
+
+The app reads two tag conventions written by
+[`comics-komga-ratings`](https://github.com/perelin/comics-komga-ratings); it
+never writes them. This spec predates the format convention entirely, so the
+authorities live elsewhere — deliberately not restated here, to keep one source
+of truth per convention:
+
+| Convention | Vocabulary authority (ratings repo) | What this app does with it |
+|---|---|---|
+| `rating:<bucket>`, `rating:check`, `★ … · Goodreads` link | [`docs/design-spec.md`](https://github.com/perelin/comics-komga-ratings/blob/main/docs/design-spec.md) | `parseRating` (`lib/komga/mapping.ts`) → star display + source link; rating bounds → `ratingFacet` (`lib/komga/filters.ts`) |
+| `format:<kind>` + the `format:mixed` flag | [`docs/format-classifier-spec.md`](https://github.com/perelin/comics-komga-ratings/blob/main/docs/format-classifier-spec.md) | `parseFormat` (`lib/komga/format.ts`) → Format facet, card badge, Series Detail stat-band line, `format:mixed` → the cleanup work list |
+
+README's *How ratings work* / *How formats work* / *The series classification
+chips* describe the user-facing behaviour; `lib/komga/format.ts` carries the
+invariants (at most one primary tag per series; `mixed` is a flag, never a
+format; untagged series get no badge and never match a format filter).
+
+**Two corrections to the 2026-06-01 findings below** — accurate as observed,
+but they no longer describe the convention:
+
+- Buckets are **0.05 steps written with two decimals** (`rating:4.15`), not
+  "1.0–5.0 in 0.2 steps". `parseRating` still accepts one decimal, so older tags
+  keep displaying.
+- Rating filtering is a tag match, but *not* a single `tag=rating:X.X`:
+  `ratingFacet` enumerates every 0.05 bucket between the bounds as an OR. A
+  one-decimal legacy tag therefore displays a star yet never matches a rating
+  bound — as of 2026-07-26 that is one series in the reference library
+  (`rating:3.8`); a `--refresh` on the ratings side rewrites it to `rating:3.80`.
+  README's chips section records the same consequence.
 
 ## Goal
 
@@ -129,4 +164,8 @@ search + navigate + localStorage recents).
 
 Write actions, On-Deck, full Series Detail editing, Command Palette action
 execution, light mode, mobile layout, and the production Docker Compose stack.
-See `HANDOVER.md` → Backlog for the prioritized continuation.
+
+(The prioritized continuation used to live in `HANDOVER.md` → Backlog; that file
+was removed in `5cdaac6` — see the README for the current feature set, and
+`git show 5cdaac6:HANDOVER.md` for the historical backlog. Several items listed
+as out of scope above have since shipped, mobile layout among them.)
