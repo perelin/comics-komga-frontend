@@ -43,8 +43,11 @@ but they no longer describe the convention:
   `ratingFacet` enumerates every 0.05 bucket between the bounds as an OR. A
   one-decimal legacy tag therefore displays a star yet never matches a rating
   bound — as of 2026-07-26 that is one series in the reference library
-  (`rating:3.8`); a `--refresh` on the ratings side rewrites it to `rating:3.80`.
-  README's chips section records the same consequence.
+  (`rating:3.8`). Re-rating that series writes `rating:3.80`, but the ratings
+  tool has no per-series target: `--refresh` re-queries Goodreads for every
+  already-rated series (~1846 calls), so in practice the tag gets fixed as a
+  by-product of the next full refresh. README's chips section records the same
+  consequence from the display side.
 
 ## Goal
 
@@ -166,6 +169,7 @@ Write actions, On-Deck, full Series Detail editing, Command Palette action
 execution, light mode, mobile layout, and the production Docker Compose stack.
 
 (The prioritized continuation used to live in `HANDOVER.md` → Backlog; that file
-was removed in `5cdaac6` — see the README for the current feature set, and
-`git show 5cdaac6:HANDOVER.md` for the historical backlog. Several items listed
-as out of scope above have since shipped, mobile layout among them.)
+was removed in `5cdaac6` — **README → Roadmap is the current list**, and
+`git show 5cdaac6:HANDOVER.md` has the historical backlog. Some items above have
+since shipped, so read this section as the v1 slice boundary, not as today's
+scope.)
