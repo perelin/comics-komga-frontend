@@ -147,6 +147,15 @@ server-sortable Title); `FilterPanel` (read-status, library, status, genre,
 publisher, age-rating, one-shot → URL); loading / error / empty states. Shared
 atoms: `Stars`, `ReadProgress`, `StatusDot`, `CoverImage`.
 
+**Toolbar wrap contract.** The toolbar's controls need ~850px before the search
+field gets any width, so the row **must stay `flex-wrap` at every breakpoint**
+and every control group must be `shrink-0`. Otherwise the search wrapper is the
+only shrinkable child and silently absorbs the whole shortfall — it collapsed to
+a 48px icon box below ~1400px, and the overflow disappeared into `main`'s
+`overflow-hidden`, making sort unreachable on iPad and 1024–1280 laptops.
+Widths here are verified by measuring a real browser; jsdom does no layout, so
+the unit test can only guard the classes.
+
 ### Scaffolded routes
 
 `SeriesDetail` (real read-only hero + volumes); `CommandPalette` (⌘K, server
