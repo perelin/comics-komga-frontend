@@ -139,9 +139,10 @@ smart-folder presets).
 ### UI — Library Browser
 
 `AppShell` (sidebar + main grid); `Sidebar` (smart folders, libraries with
-`xCat:` stripped, readlist search); `Toolbar` (live count, debounced search,
-grid/list toggle, density S/M/L, sort [Title / Recently added / Recently
-updated — no rating], filter toggle); `ActiveFilters` (URL-derived chips);
+`xCat:` stripped, readlist search); `Toolbar` (live count, debounced search
+with a × / Esc clear that skips the debounce, grid/list toggle, density S/M/L,
+sort [Title / Recently added / Recently updated — no rating], filter toggle);
+`ActiveFilters` (URL-derived chips);
 `SeriesGrid` (virtualized cover wall) / `SeriesList` (virtualized rows,
 server-sortable Title); `FilterPanel` (read-status, library, status, genre,
 publisher, age-rating, one-shot → URL); loading / error / empty states. Shared

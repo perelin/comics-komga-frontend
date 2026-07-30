@@ -16,7 +16,8 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
 
 - **Library Browser** — a virtualized grid + list over your entire library
   (only the visible window renders, so 10k+ series stay smooth). Real covers,
-  read-progress, and ratings; a live result count; search-within; sort (Title /
+  read-progress, and ratings; a live result count; search-within (clear with the
+  × or Esc); sort (Title /
   Date added / Date updated / Release date / Books / Last read / Random —
   release date, newest first by default); and multi-facet filters (read status,
   library, publication status, genre, publisher, age rating, rating, format). A

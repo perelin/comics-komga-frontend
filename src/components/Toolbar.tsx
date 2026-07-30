@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { LayoutGrid, List, SlidersHorizontal, Search, ArrowUp, ArrowDown, Library, FileStack } from 'lucide-react'
+import { LayoutGrid, List, SlidersHorizontal, Search, X, ArrowUp, ArrowDown, Library, FileStack } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -36,6 +36,12 @@ export function Toolbar(props: {
     }, 300)
     return () => clearTimeout(id)
   }, [term])
+  // Clear is a deliberate act, so it skips the 300ms debounce and drops the
+  // filter right away instead of leaving stale results on screen.
+  const clearSearch = () => {
+    setTerm('')
+    if (filters.search) onFiltersChange({ ...filters, search: undefined })
+  }
 
   const sortOptions = sortOptionsFor(dim)
   const activeSort = sortOptions.find((o) => o.key === filters.sortKey) ?? sortOptions[0]
@@ -62,7 +68,25 @@ export function Toolbar(props: {
       <div className="flex-1" />
       <div className="relative order-last w-full shrink-0 md:order-none md:w-72">
         <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-        <Input value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Filter these results…" className="h-9 pl-9" />
+        <Input
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Escape' && term) { e.preventDefault(); clearSearch() } }}
+          placeholder="Filter these results…"
+          className="h-9 pl-9 pr-9"
+        />
+        {term && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-1 top-1 size-7 p-0 text-muted-foreground hover:text-foreground"
+            aria-label="Clear search"
+            title="Clear search (Esc)"
+            onClick={clearSearch}
+          >
+            <X className="size-4" />
+          </Button>
+        )}
       </div>
       {!isMobile && (
         <>
