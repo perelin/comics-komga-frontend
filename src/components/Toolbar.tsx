@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { LayoutGrid, List, SlidersHorizontal, Search, ArrowUp, ArrowDown, Library, FileStack } from 'lucide-react'
+import { LayoutGrid, List, SlidersHorizontal, Search, X, ArrowUp, ArrowDown, Library, FileStack } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import {
@@ -36,18 +36,28 @@ export function Toolbar(props: {
     }, 300)
     return () => clearTimeout(id)
   }, [term])
+  // Clear is a deliberate act, so it skips the 300ms debounce and drops the
+  // filter right away instead of leaving stale results on screen.
+  const clearSearch = () => {
+    setTerm('')
+    if (filters.search) onFiltersChange({ ...filters, search: undefined })
+  }
 
   const sortOptions = sortOptionsFor(dim)
   const activeSort = sortOptions.find((o) => o.key === filters.sortKey) ?? sortOptions[0]
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2.5 md:flex-nowrap">
-      <div className="flex items-center gap-2 whitespace-nowrap">
+    // Wrapping is unconditional: the controls need ~850px before the search field
+    // gets anything, so a nowrap row squeezed the search (its only shrinkable
+    // child) down to the bare icon and pushed sort out of the clipped overflow.
+    // Every group below is shrink-0, so a shortfall surfaces as an extra row.
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-b border-border px-4 py-2.5">
+      <div className="flex shrink-0 items-center gap-2 whitespace-nowrap">
         <ScopePicker value={filters.library} onChange={(library) => onFiltersChange({ ...filters, library })} />
         <span className="text-sm tabular-nums text-muted-foreground">{count.toLocaleString()}</span>
       </div>
       {/* Browse dimension — series-grouped vs. flat issues. Always visible (incl.
           mobile): more fundamental than the grid/list view toggle. */}
-      <div className="flex rounded-md border border-border p-0.5">
+      <div className="flex shrink-0 rounded-md border border-border p-0.5">
         <Button variant={dim === 'series' ? 'secondary' : 'ghost'} size="sm" className="h-7 gap-1" onClick={() => onDimChange('series')}>
           <Library className="size-4" />Series
         </Button>
@@ -56,13 +66,31 @@ export function Toolbar(props: {
         </Button>
       </div>
       <div className="flex-1" />
-      <div className="relative order-last w-full md:order-none md:w-72">
+      <div className="relative order-last w-full shrink-0 md:order-none md:w-72">
         <Search className="absolute left-3 top-2.5 size-4 text-muted-foreground" />
-        <Input value={term} onChange={(e) => setTerm(e.target.value)} placeholder="Filter these results…" className="h-9 pl-9" />
+        <Input
+          value={term}
+          onChange={(e) => setTerm(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Escape' && term) { e.preventDefault(); clearSearch() } }}
+          placeholder="Filter these results…"
+          className="h-9 pl-9 pr-9"
+        />
+        {term && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-1 top-1 size-7 p-0 text-muted-foreground hover:text-foreground"
+            aria-label="Clear search"
+            title="Clear search (Esc)"
+            onClick={clearSearch}
+          >
+            <X className="size-4" />
+          </Button>
+        )}
       </div>
       {!isMobile && (
         <>
-          <div className="flex rounded-md border border-border p-0.5">
+          <div className="flex shrink-0 rounded-md border border-border p-0.5">
             <Button variant={view === 'grid' ? 'secondary' : 'ghost'} size="sm" className="h-7 gap-1" onClick={() => onViewChange('grid')}>
               <LayoutGrid className="size-4" />Grid
             </Button>
@@ -71,7 +99,7 @@ export function Toolbar(props: {
             </Button>
           </div>
           {view === 'grid' && (
-            <div className="flex rounded-md border border-border p-0.5">
+            <div className="flex shrink-0 rounded-md border border-border p-0.5">
               {(['s', 'm', 'l'] as Density[]).map((d) => (
                 <Button key={d} variant={density === d ? 'secondary' : 'ghost'} size="sm" className="h-7 w-7 p-0 uppercase" onClick={() => onDensityChange(d)}>{d}</Button>
               ))}
@@ -79,7 +107,7 @@ export function Toolbar(props: {
           )}
         </>
       )}
-      <div className="flex items-center gap-1">
+      <div className="flex shrink-0 items-center gap-1">
         <Select value={filters.sortKey} onValueChange={(v) => onFiltersChange(applySortField(filters, v as SortKey))}>
           <SelectTrigger className="h-9 w-36"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -100,7 +128,7 @@ export function Toolbar(props: {
         )}
       </div>
       {isMobile && (
-        <Button variant={filterOpen ? 'secondary' : 'outline'} size="sm" className="h-9 gap-1.5" onClick={onToggleFilter}>
+        <Button variant={filterOpen ? 'secondary' : 'outline'} size="sm" className="h-9 shrink-0 gap-1.5" onClick={onToggleFilter}>
           <SlidersHorizontal className="size-4" />Filters
         </Button>
       )}

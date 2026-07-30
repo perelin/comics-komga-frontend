@@ -39,6 +39,40 @@ describe('Toolbar', () => {
   })
 })
 
+describe('Toolbar — search field', () => {
+  it('offers no clear button while the field is empty', () => {
+    renderToolbar()
+    expect(screen.queryByLabelText(/clear search/i)).toBeNull()
+  })
+
+  it('clears the term and drops the filter immediately when the × is clicked', async () => {
+    const { onFiltersChange } = renderSort({ search: 'blade' })
+    const input = screen.getByPlaceholderText(/filter these results/i)
+    expect(input).toHaveValue('blade')
+    await userEvent.click(screen.getByLabelText(/clear search/i))
+    expect(input).toHaveValue('')
+    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ search: undefined }))
+    expect(screen.queryByLabelText(/clear search/i)).toBeNull()
+  })
+
+  it('clears on Escape as well', async () => {
+    const { onFiltersChange } = renderSort({ search: 'blade' })
+    await userEvent.type(screen.getByPlaceholderText(/filter these results/i), '{Escape}')
+    expect(onFiltersChange).toHaveBeenCalledWith(expect.objectContaining({ search: undefined }))
+  })
+
+  // jsdom does no CSS layout, so this only guards the classes that keep the row
+  // wrapping; the actual widths are verified by measuring a real browser.
+  it('lets the row wrap and keeps the search field unshrinkable', () => {
+    renderToolbar()
+    const wrapper = screen.getByPlaceholderText(/filter these results/i).parentElement!
+    expect(wrapper.className).toContain('shrink-0')
+    const row = wrapper.closest('div.border-b')!
+    expect(row.className).toContain('flex-wrap')
+    expect(row.className).not.toContain('flex-nowrap')
+  })
+})
+
 function renderSort(overrides: Partial<Filters> = {}) {
   const onFiltersChange = vi.fn()
   const qc = new QueryClient()
