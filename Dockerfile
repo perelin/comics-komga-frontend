@@ -37,3 +37,8 @@ FROM caddy:2-alpine
 COPY Caddyfile /etc/caddy/Caddyfile
 COPY --from=build /app/dist /srv
 EXPOSE 80
+
+# /healthz answers without touching Komga, so an upstream outage doesn't mark the
+# container unhealthy. busybox wget ships in the caddy alpine image.
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+	CMD wget -q -O /dev/null http://localhost/healthz || exit 1
