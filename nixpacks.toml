@@ -1,0 +1,3 @@
+# Coolify/nixpacks: default nixpkgs archive ships Node 22.11 < Vite 8 requirement (>=22.12)
+[phases.setup]
+nixpkgsArchive = "70ce234312134a463ba7728e94da2486a1d237ac"
