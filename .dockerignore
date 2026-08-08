@@ -1,0 +1,22 @@
+# Keep the build context small and free of secrets. `COPY . .` in the build
+# stage would otherwise pull local env files into the image.
+node_modules
+dist
+dist-ssr
+.git
+.github
+
+# Local env (secrets) — .env.example is intentionally kept.
+.env
+*.local
+deploy.env
+
+# Local-only / operational
+.superpowers
+docs/superpowers
+HANDOVER.md
+deploy
+*.log
+.vscode
+.idea
+.DS_Store

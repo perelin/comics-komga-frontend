@@ -65,13 +65,47 @@ relative path `/komga/api/v1/…`.
 
 ## Self-hosting (production)
 
-The production build is a static SPA (`dist/`). Because the app only ever calls
-the relative path `/komga/*`, **any reverse proxy works** — the one requirement
-is that the proxy injects your `X-API-Key` header server-side (never ship the
-key to the browser). Point `/komga/*` at your Komga server and serve `dist/`
-with a client-side-routing fallback to `index.html`.
+Two paths: the **Docker image** built from this repo (batteries included — Komga
+proxy and API-key injection are part of it), or serving the static `dist/` behind
+a reverse proxy you configure yourself.
 
-A minimal [Caddy](https://caddyserver.com) example:
+One rule holds either way: the `X-API-Key` is injected **server-side**. The app
+only ever calls the relative path `/komga/*`, so the browser never sees the key.
+
+### Docker
+
+```bash
+docker build -t comics-komga-frontend \
+  --build-arg VITE_KOMGA_PUBLIC_URL=https://komga.example.com .
+
+docker run -d -p 8080:80 \
+  -e KOMGA_BASE_URL=https://komga.example.com \
+  -e KOMGA_API_KEY=your-komga-api-key \
+  comics-komga-frontend
+```
+
+The image builds the SPA (with the test suite as a build gate) and serves it
+with Caddy on port 80, proxying `/komga/*` to your Komga server. Terminate TLS
+at your own edge in front of it.
+
+| Variable | When | Purpose |
+|----------|------|---------|
+| `VITE_KOMGA_PUBLIC_URL` | **build** (`--build-arg`) | Browser-facing Komga origin, baked into the bundle for the native-reader and OPDS deep-links. Public, not a secret; changing it needs a rebuild. |
+| `KOMGA_BASE_URL` | run (`-e`) | Where the container proxies `/komga/*`. Include the scheme. |
+| `KOMGA_API_KEY` | run (`-e`) | Injected server-side on every proxied request. Never pass it as a build arg — it must not reach the bundle. |
+
+`GET /healthz` returns `200` without touching Komga, so a health check won't
+fail the container during a Komga outage.
+
+If your edge adds basic-auth, note that the container drops the inbound
+`Authorization` header before proxying — otherwise Komga tries to authenticate
+those credentials as a Komga user and returns 401, ignoring the API key.
+
+### Behind your own reverse proxy
+
+Serve `dist/` with a client-side-routing fallback to `index.html` and point
+`/komga/*` at your Komga server. A minimal [Caddy](https://caddyserver.com)
+example:
 
 ```caddy
 :80 {
@@ -81,6 +115,10 @@ A minimal [Caddy](https://caddyserver.com) example:
 	handle_path /komga/* {
 		reverse_proxy https://komga.example.com {
 			header_up Host komga.example.com
+			# Only needed if something in front of you adds basic-auth: Komga
+			# would try to authenticate those credentials as a Komga user and
+			# 401, ignoring the API key.
+			header_up -Authorization
 			header_up X-API-Key {$KOMGA_API_KEY}
 		}
 	}
@@ -104,8 +142,9 @@ way. A first-party Docker image is on the roadmap.
 
 ### Scripted deploy (`npm run deploy`)
 
-If your host serves `dist/` from a directory you can reach over SSH (e.g. one
-bind-mounted into the proxy container), `npm run deploy` does the whole cycle:
+An alternative to the Docker image, for the bind-mount pattern: if your host
+serves `dist/` from a directory you can reach over SSH (e.g. one bind-mounted
+into the proxy container), `npm run deploy` does the whole cycle:
 test gate → build → ship over SSH (via `tar`, no `rsync` needed on the remote)
 → optional health check. Configure the target once:
 
@@ -190,7 +229,6 @@ Not in this alpha, planned next:
 - The **On-Deck** smart folder and richer Series Detail editing.
 - **Command Palette action execution** (beyond navigation).
 - **Light mode** and a **mobile/responsive** layout.
-- A first-party **Docker image** for one-command self-hosting.
 
 ## License
 
