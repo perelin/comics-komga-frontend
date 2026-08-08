@@ -1,0 +1,47 @@
+# Container-internal Caddy for the first-party Docker image (see README → Docker).
+#
+# Listens on :80 over plain HTTP — TLS belongs at your edge (a reverse proxy,
+# tunnel, or PaaS ingress in front of this container). It serves the static SPA
+# and proxies /komga/* to your Komga server, injecting X-API-Key server-side so
+# the browser never sees the key.
+#
+# Environment:
+#   KOMGA_BASE_URL  upstream Komga origin, scheme included — https://komga.example.com
+#   KOMGA_API_KEY   Komga API key, injected on every proxied request
+{
+	admin off
+}
+
+:80 {
+	encode gzip zstd
+
+	# Cheap liveness endpoint for container/PaaS health checks — answers without
+	# touching Komga, so a Komga outage doesn't get the container killed.
+	handle /healthz {
+		respond "ok" 200
+	}
+
+	# API + thumbnails → Komga. handle_path strips the /komga prefix so
+	# /komga/api/v1/x → /api/v1/x upstream. Mirrors the Vite dev proxy.
+	handle_path /komga/* {
+		reverse_proxy {$KOMGA_BASE_URL} {
+			# Send the upstream's own Host, not the browser-facing one. Caddy 2.11+
+			# would do this for HTTPS upstreams anyway; being explicit keeps the
+			# config correct on older Caddy too. ({upstream_host} does not exist —
+			# an invalid Host header makes every proxied request 502.)
+			header_up Host {upstream_hostport}
+			# Drop an inbound Authorization header — if your edge uses basic-auth,
+			# Komga would otherwise try to authenticate those credentials as a
+			# Komga user and 401, ignoring the API key.
+			header_up -Authorization
+			header_up X-API-Key {$KOMGA_API_KEY}
+		}
+	}
+
+	# Static SPA with client-side-routing fallback to index.html
+	handle {
+		root * /srv
+		try_files {path} /index.html
+		file_server
+	}
+}
