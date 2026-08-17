@@ -69,6 +69,15 @@ export function CommandPalette() {
     recents = []
   }
 
+  // shouldFilter={false} disables cmdk's own matching, so the library group has
+  // to narrow itself — against the pretty name, which is what the user reads.
+  const needle = q.trim().toLowerCase()
+  const libraries = (libs.data ?? []).filter(
+    (l) => needle === '' || prettyLibraryName(l.name).toLowerCase().includes(needle),
+  )
+  const shownSeries = results.data?.content.length ?? 0
+  const totalSeries = results.data?.totalElements ?? 0
+
   return (
     // base-ui Dialog.Root uses onOpenChange(open, eventDetails) — we only need open
     <Dialog open={open} onOpenChange={(next) => setOpen(next)}>
@@ -99,8 +108,10 @@ export function CommandPalette() {
                 ))}
               </CommandGroup>
             )}
-            {(results.data?.content.length ?? 0) > 0 && (
-              <CommandGroup heading="Series">
+            {shownSeries > 0 && (
+              <CommandGroup
+                heading={totalSeries > shownSeries ? `Series (${shownSeries} of ${totalSeries})` : 'Series'}
+              >
                 {results.data!.content.map((s) => (
                   <CommandItem
                     key={s.id}
@@ -116,21 +127,23 @@ export function CommandPalette() {
                 ))}
               </CommandGroup>
             )}
-            <CommandGroup heading="Jump to library">
-              {(libs.data ?? []).slice(0, 8).map((l) => (
-                <CommandItem
-                  key={l.id}
-                  value={`lib-${l.id}`}
-                  onSelect={() => {
-                    setOpen(false)
-                    navigate(`/?library=${l.id}`)
-                  }}
-                >
-                  <Library className="mr-2 size-4" />
-                  {prettyLibraryName(l.name)}
-                </CommandItem>
-              ))}
-            </CommandGroup>
+            {libraries.length > 0 && (
+              <CommandGroup heading="Jump to library">
+                {libraries.map((l) => (
+                  <CommandItem
+                    key={l.id}
+                    value={`lib-${l.id}`}
+                    onSelect={() => {
+                      setOpen(false)
+                      navigate(`/?library=${l.id}`)
+                    }}
+                  >
+                    <Library className="mr-2 size-4" />
+                    {prettyLibraryName(l.name)}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            )}
           </CommandList>
         </Command>
       </DialogContent>
