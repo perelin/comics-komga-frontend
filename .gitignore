@@ -26,9 +26,6 @@ dist-ssr
 # Local env (secrets)
 .env
 
-# Deploy target config (host details) — commit deploy.env.example, not this
-deploy.env
-
 # brainstorming visual companion
 .superpowers/
 

@@ -141,24 +141,23 @@ npm run build
 ```
 
 nginx, Traefik, or any other proxy that can add a request header works the same
-way. A first-party Docker image is on the roadmap.
+way.
 
-### Scripted deploy (`npm run deploy`)
+### Deploying on a push (how this instance runs)
 
-An alternative to the Docker image, for the bind-mount pattern: if your host
-serves `dist/` from a directory you can reach over SSH (e.g. one bind-mounted
-into the proxy container), `npm run deploy` does the whole cycle:
-test gate → build → ship over SSH (via `tar`, no `rsync` needed on the remote)
-→ optional health check. Configure the target once:
+Any platform that builds a `Dockerfile` straight from a git repository deploys
+this app with no extra tooling — no build server, no registry, no deploy script
+in this repo. This instance runs on [Coolify](https://coolify.io): it watches
+`main`, builds the image on push, and removes the previous container once the
+new one reports healthy (that's what the `HEALTHCHECK` on `/healthz` is for).
+Dokku, Kamal, or Portainer behave the same way.
 
-```bash
-cp deploy.env.example deploy.env   # git-ignored; set REMOTE, REMOTE_DIR, …
-npm run deploy
-```
+Set `KOMGA_BASE_URL` and `KOMGA_API_KEY` as runtime environment variables and
+`VITE_KOMGA_PUBLIC_URL` as a build argument in the platform's own settings (see
+the table above) — the API key must never reach the repo or the bundle.
 
-`REMOTE` is any host/alias from your `~/.ssh/config` (a bastion/ProxyJump is
-handled there). Set `HEALTHCHECK_PORT` to verify the deployed bundle and the
-`/komga` proxy after shipping, or leave it empty to skip that check.
+So: **push to `main` and the deploy is the build.** Since the test suite is the
+image's build gate, a red suite means no new container rather than a broken one.
 
 ## How ratings work
 
