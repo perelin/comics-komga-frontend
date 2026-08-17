@@ -160,6 +160,20 @@ function orFacet(field: string, values: unknown[]): Condition | null {
   return { anyOf: values.map((v) => isEq(field, v)) }
 }
 
+/** Age rating "N+" facet — upward-inclusive: checking `17+` also matches 18 or
+ *  21. Komga's numeric DSL has no >= operator (only `is` / `greaterthan` /
+ *  `lessthan`, live-verified v1.23.6), so a bound becomes anyOf[is N, gt N].
+ *  Since every selection is upward-open, OR-ing them collapses to the lowest
+ *  bound — one node pair instead of one per checkbox. Non-numeric entries (the
+ *  API reports "None" for unrated series) are dropped: Komga 500s on a null
+ *  ageRating value, and "unrated" isn't expressible as a lower bound. */
+function ageRatingFacet(values: string[]): Condition | null {
+  const nums = values.map(Number).filter((n) => Number.isFinite(n))
+  if (nums.length === 0) return null
+  const min = Math.min(...nums)
+  return { anyOf: [isEq('ageRating', min), { ageRating: { operator: 'greaterthan', value: min } }] }
+}
+
 /** Rating filter → anyOf over the discrete `rating:X.XX` tags in [min, max].
  *  Komga can't range-compare tag *values* (they're strings), so we enumerate the
  *  0.05 grid (the real tag granularity) and OR exact `tag is rating:X.XX` nodes —
@@ -178,7 +192,7 @@ function ratingFacet(min?: number, max?: number): Condition | null {
 }
 
 /** Build the search body for either dimension: allOf across facets, anyOf within
- *  a multi-value facet, allOf (AND) within the author facet, search →
+ *  a multi-value facet (the author facet included), search →
  *  fullTextSearch. In the Issues dimension the series-only facets (genre,
  *  publisher, seriesStatus, ageRating) are omitted — `/books/list` 400s on them.
  *  The shared facets (readStatus, library, format tag, rating tag, author) use
@@ -193,14 +207,15 @@ export function filtersToCondition(f: Filters, dim: BrowseDim = 'series'): Serie
   if (seriesOnly) add(orFacet('genre', f.genre))
   if (seriesOnly) add(orFacet('publisher', f.publisher))
   if (seriesOnly) add(orFacet('seriesStatus', f.status))
-  if (seriesOnly) add(orFacet('ageRating', f.ageRating.map(Number)))
+  if (seriesOnly) add(ageRatingFacet(f.ageRating))
   // Format: OR over the selected primary format:* tags. Untagged ("unknown")
   // series carry no format tag, so any active selection excludes them.
   add(orFacet('tag', f.format.map((k) => `format:${k}`)))
   if (f.formatMixed) add(isEq('tag', 'format:mixed'))
   add(ratingFacet(f.ratingMin, f.ratingMax))
-  // Authors: AND each (the concrete collaboration) — see spec decision 2.
-  for (const name of f.authors) add({ author: { operator: 'is', value: { name } } })
+  // Creators: OR over the selected names (everything they worked on, not only
+  // their joint work) — the same "OR within a facet" rule as every other facet.
+  add(orFacet('author', f.authors.map((name) => ({ name }))))
 
   const body: SeriesListBody = {}
   if (parts.length === 1) body.condition = parts[0]

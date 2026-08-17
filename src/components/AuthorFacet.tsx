@@ -9,7 +9,8 @@ function toggle(arr: string[], v: string): string[] {
 }
 
 /** Creator filter: server-backed name typeahead (GET /authors/names) + selected
- *  chips. Selected names are AND-ed by the query layer (the concrete pairing). */
+ *  chips. Selected names are OR-ed by the query layer (everything any of them
+ *  worked on). */
 export function AuthorFacet({ authors, onChange }: { authors: string[]; onChange: (next: string[]) => void }) {
   const [q, setQ] = useState('')
   const [debounced, setDebounced] = useState('')

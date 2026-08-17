@@ -20,7 +20,10 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
   × or Esc); sort (Title /
   Date added / Date updated / Release date / Books / Last read / Random —
   release date, newest first by default); and multi-facet filters (read status,
-  library, publication status, genre, publisher, age rating, rating, format). A
+  library, creators, publication status, genre, publisher, age rating, rating,
+  format). Facets combine as **AND across fields, OR within one** — picking two
+  creators shows everything either of them worked on, not just their joint work.
+  Age rating is the one upward-open facet: `16+` also matches 18 or 21. A
   **Series ⇄ Issues toggle** switches between series-grouped browsing and a flat
   individual-issue view. **All filter/sort/view state lives in the URL**, so any
   view is deep-linkable and survives a refresh.

@@ -115,7 +115,9 @@ export function FilterPanelInner({ filters, onChange, dim = 'series' }: { filter
   const HINT = 'Only in Series view'
   const genres = useGenres().data ?? []
   const publishers = usePublishers().data ?? []
-  const ageRatings = useAgeRatings().data ?? []
+  // The endpoint reports "None" for unrated series — not a lower bound, and the
+  // query layer can't express it (Komga 500s on a null ageRating value).
+  const ageRatings = (useAgeRatings().data ?? []).filter((a) => Number.isFinite(Number(a)))
   const [genreQ, setGenreQ] = useState('')
   const [pubQ, setPubQ] = useState('')
   const [openMap, setOpenMap] = usePersistentState<Record<string, boolean>>('komga.facets.open', {})

@@ -7,7 +7,7 @@ import { DEFAULT_FILTERS } from '@/lib/komga/filters'
 vi.mock('@/lib/komga/queries', () => ({
   useGenres: () => ({ data: ['Science Fiction', 'Noir'] }),
   usePublishers: () => ({ data: ['Image', 'Dark Horse'] }),
-  useAgeRatings: () => ({ data: [16, 18] }),
+  useAgeRatings: () => ({ data: ['None', 16, 18] }),
   useAuthorSearch: () => ({ data: [], isFetching: false }),
 }))
 
@@ -37,6 +37,16 @@ describe('FilterPanelInner', () => {
     // The creators search input lives inside the (collapsed) Creators body.
     fireEvent.click(screen.getByRole('button', { name: 'Creators' }))
     expect(screen.getByPlaceholderText(/search creators/i)).toBeInTheDocument()
+  })
+
+  it('offers numeric age ratings as "N+" bounds and hides the "None" entry', () => {
+    const onChange = vi.fn()
+    renderPanel(DEFAULT_FILTERS, onChange)
+    fireEvent.click(screen.getByRole('button', { name: 'Age rating' }))
+    expect(screen.getByLabelText('16+')).toBeInTheDocument()
+    expect(screen.queryByLabelText('None+')).not.toBeInTheDocument()
+    fireEvent.click(screen.getByLabelText('16+'))
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ageRating: ['16'] }))
   })
 
   it('renders all facets collapsed by default', () => {

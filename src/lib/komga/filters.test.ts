@@ -72,11 +72,29 @@ describe('filtersToCondition', () => {
         { genre: { operator: 'is', value: 'noir' } },
       ] } })
   })
-  it('maps status → seriesStatus and ageRating → numeric value', () => {
+  it('maps status → seriesStatus and ageRating → an upward-inclusive bound', () => {
     expect(filtersToCondition({ ...DEFAULT_FILTERS, status: ['ONGOING'], ageRating: ['16'] }))
       .toEqual({ condition: { allOf: [
         { seriesStatus: { operator: 'is', value: 'ONGOING' } },
-        { ageRating: { operator: 'is', value: 16 } },
+        { anyOf: [
+          { ageRating: { operator: 'is', value: 16 } },
+          { ageRating: { operator: 'greaterthan', value: 16 } },
+        ] },
+      ] } })
+  })
+  it('collapses several age ratings to the lowest bound (each is upward-open)', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, ageRating: ['18', '13', '21'] }))
+      .toEqual({ condition: { anyOf: [
+        { ageRating: { operator: 'is', value: 13 } },
+        { ageRating: { operator: 'greaterthan', value: 13 } },
+      ] } })
+  })
+  it('drops non-numeric age ratings ("None") instead of sending a null bound', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, ageRating: ['None'] })).toEqual({})
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, ageRating: ['None', '17'] }))
+      .toEqual({ condition: { anyOf: [
+        { ageRating: { operator: 'is', value: 17 } },
+        { ageRating: { operator: 'greaterthan', value: 17 } },
       ] } })
   })
   it('single format → bare format:* tag node (no anyOf wrapper)', () => {
@@ -97,11 +115,21 @@ describe('filtersToCondition', () => {
         { tag: { operator: 'is', value: 'format:mixed' } },
       ] } })
   })
-  it('authors are AND-ed as author nodes (value {name})', () => {
+  it('authors are OR-ed as author nodes (value {name})', () => {
     expect(filtersToCondition({ ...DEFAULT_FILTERS, authors: ['Neil Gaiman', 'Dave McKean'] }))
-      .toEqual({ condition: { allOf: [
+      .toEqual({ condition: { anyOf: [
         { author: { operator: 'is', value: { name: 'Neil Gaiman' } } },
         { author: { operator: 'is', value: { name: 'Dave McKean' } } },
+      ] } })
+  })
+  it('OR-s within the author facet but still AND-s it against other facets', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, publisher: ['Image'], authors: ['Neil Gaiman', 'Dave McKean'] }))
+      .toEqual({ condition: { allOf: [
+        { publisher: { operator: 'is', value: 'Image' } },
+        { anyOf: [
+          { author: { operator: 'is', value: { name: 'Neil Gaiman' } } },
+          { author: { operator: 'is', value: { name: 'Dave McKean' } } },
+        ] },
       ] } })
   })
   it('mixes facets with allOf and lifts search to fullTextSearch', () => {
