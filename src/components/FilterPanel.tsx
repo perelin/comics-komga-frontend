@@ -153,13 +153,13 @@ export function FilterPanelInner({ filters, onChange, dim = 'series' }: { filter
         </Facet>
         <Facet title="Genre" open={isOpen('genre')} onToggle={() => toggleFacet('genre')} disabled={seriesOnly} disabledHint={HINT}>
           <Input value={genreQ} onChange={(e) => setGenreQ(e.target.value)} placeholder="Search genres…" className="mb-1 h-7 text-sm" />
-          {genres.filter((g) => g.toLowerCase().includes(genreQ.toLowerCase())).slice(0, 100).map((g) => (
+          {genres.filter((g) => g.toLowerCase().includes(genreQ.toLowerCase())).map((g) => (
             <Opt key={g} label={g} checked={filters.genre.includes(g)} onToggle={() => onChange({ ...filters, genre: toggle(filters.genre, g) })} />
           ))}
         </Facet>
         <Facet title="Publisher" open={isOpen('publisher')} onToggle={() => toggleFacet('publisher')} disabled={seriesOnly} disabledHint={HINT}>
           <Input value={pubQ} onChange={(e) => setPubQ(e.target.value)} placeholder="Search publishers…" className="mb-1 h-7 text-sm" />
-          {publishers.filter((p) => p.toLowerCase().includes(pubQ.toLowerCase())).slice(0, 100).map((p) => (
+          {publishers.filter((p) => p.toLowerCase().includes(pubQ.toLowerCase())).map((p) => (
             <Opt key={p} label={p} checked={filters.publisher.includes(p)} onToggle={() => onChange({ ...filters, publisher: toggle(filters.publisher, p) })} />
           ))}
         </Facet>

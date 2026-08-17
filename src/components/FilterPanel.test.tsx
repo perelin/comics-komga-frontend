@@ -4,9 +4,14 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { FilterPanelInner } from './FilterPanel'
 import { DEFAULT_FILTERS } from '@/lib/komga/filters'
 
+const referential = vi.hoisted(() => ({
+  genres: ['Science Fiction', 'Noir'] as string[],
+  publishers: ['Image', 'Dark Horse'] as string[],
+}))
+
 vi.mock('@/lib/komga/queries', () => ({
-  useGenres: () => ({ data: ['Science Fiction', 'Noir'] }),
-  usePublishers: () => ({ data: ['Image', 'Dark Horse'] }),
+  useGenres: () => ({ data: referential.genres }),
+  usePublishers: () => ({ data: referential.publishers }),
   useAgeRatings: () => ({ data: ['None', 16, 18] }),
   useAuthorSearch: () => ({ data: [], isFetching: false }),
 }))
@@ -19,7 +24,11 @@ function renderPanel(filters = DEFAULT_FILTERS, onChange = vi.fn()) {
 }
 
 describe('FilterPanelInner', () => {
-  beforeEach(() => localStorage.clear())
+  beforeEach(() => {
+    localStorage.clear()
+    referential.genres = ['Science Fiction', 'Noir']
+    referential.publishers = ['Image', 'Dark Horse']
+  })
 
   it('toggles a read-status facet and emits updated filters', () => {
     const onChange = vi.fn()
@@ -132,5 +141,32 @@ describe('FilterPanelInner', () => {
     // From the full range [1, 5], stepping the min up by 0.5 → ratingMin 1.5,
     // ratingMax cleared (5 maps back to undefined = inactive upper bound).
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ratingMin: 1.5, ratingMax: undefined }))
+  })
+
+  // A render cap used to hide the tail of the alphabet: the live library has 143
+  // publishers, so everything from "N" on was browsable only by name-guessing.
+  it('renders every publisher, not just the first hundred', () => {
+    referential.publishers = Array.from({ length: 143 }, (_, i) => `Pub ${String(i).padStart(3, '0')}`)
+    renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Publisher' }))
+    expect(screen.getByLabelText('Pub 142')).toBeInTheDocument()
+    expect(screen.getAllByLabelText(/^Pub \d{3}$/)).toHaveLength(143)
+  })
+
+  it('renders every genre, not just the first hundred', () => {
+    referential.genres = Array.from({ length: 120 }, (_, i) => `Genre ${String(i).padStart(3, '0')}`)
+    renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Genre' }))
+    expect(screen.getByLabelText('Genre 119')).toBeInTheDocument()
+    expect(screen.getAllByLabelText(/^Genre \d{3}$/)).toHaveLength(120)
+  })
+
+  it('still narrows the publisher list by the search box', () => {
+    referential.publishers = ['Image', 'Dark Horse', 'Oni Press']
+    renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Publisher' }))
+    fireEvent.change(screen.getByPlaceholderText(/search publishers/i), { target: { value: 'oni' } })
+    expect(screen.getByLabelText('Oni Press')).toBeInTheDocument()
+    expect(screen.queryByLabelText('Image')).not.toBeInTheDocument()
   })
 })
