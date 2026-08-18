@@ -23,9 +23,11 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
   library, creators, publication status, genre, publisher, age rating, rating,
   format). Facets combine as **AND across fields, OR within one** — picking two
   creators shows everything either of them worked on, not just their joint work.
-  Age rating is the one upward-open facet: `16+` also matches 18 or 21. A
-  **Series ⇄ Issues toggle** switches between series-grouped browsing and a flat
-  individual-issue view. **All filter/sort/view state lives in the URL**, so any
+  Two exceptions: age rating is upward-open (`16+` also matches 18 or 21), and
+  the *Mixed formats (cleanup)* checkbox is a separate AND term rather than
+  another format choice, so ticking it alongside Singles asks for series flagged
+  both. A **Series ⇄ Issues toggle** switches between series-grouped browsing
+  and a flat individual-issue view. **All filter/sort/view state lives in the URL**, so any
   view is deep-linkable and survives a refresh.
 - **Sidebar** — smart folders (Continue reading / Recently added / Unread),
   your libraries, and read-list search.
@@ -34,8 +36,9 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
   full credits + format stat band (writer / art / colors / editor, publisher,
   issue count · avg pages · format), link pills, and an ambient
   progressive-blur cover backdrop.
-- **Command Palette** (⌘K / Ctrl-K) — server-backed series search, jump-to
-  navigation, and recently-visited series.
+- **Command Palette** (⌘K / Ctrl-K) — server-backed series search (the heading
+  names the withheld remainder when a page cuts the matches), searchable
+  jump-to-library navigation across every library, and recently-visited series.
 
 ## Requirements
 
