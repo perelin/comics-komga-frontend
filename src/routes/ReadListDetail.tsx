@@ -112,7 +112,13 @@ export function ReadListDetail() {
                       <CoverImage src={bookCoverUrl(b.id)} alt="" />
                     </a>
                     <a href={komgaReaderUrl(b.id)} target="_blank" rel="noreferrer" className="truncate text-sm hover:underline">
-                      {b.metadata.title || b.name}
+                      {/* A list spans series → lead with the comic (series) name; the
+                          ComicInfo title alone is often just the story subtitle. */}
+                      <span className="font-medium text-foreground">{b.seriesTitle}</span>
+                      {b.metadata.number && <span className="text-muted-foreground"> #{b.metadata.number}</span>}
+                      {b.metadata.title && b.metadata.title !== b.name && (
+                        <span className="text-muted-foreground"> · {b.metadata.title}</span>
+                      )}
                       {b.readProgress?.completed && <span className="ml-1 text-xs text-green-500">· gelesen</span>}
                     </a>
                     <button onClick={() => remove(b.id)} aria-label="Entfernen" className="flex justify-center text-muted-foreground hover:text-destructive"><X className="size-4" /></button>

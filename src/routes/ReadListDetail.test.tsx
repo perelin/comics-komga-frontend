@@ -8,8 +8,8 @@ vi.mock('@/lib/komga/queries', () => ({
   useReadLists: () => ({ data: { content: [] } }),
   useReadList: () => ({ isLoading: false, isError: false, data: { id: 'r1', name: 'To Read', bookIds: ['b1', 'b2'] } }),
   useReadListBooks: () => ({ data: { content: [
-    { id: 'b1', name: 'One', media: { pagesCount: 1 }, metadata: { title: 'One', number: '1', numberSort: 1, releaseDate: null, summary: '' }, readProgress: { page: 1, completed: true, readDate: '' } },
-    { id: 'b2', name: 'Two', media: { pagesCount: 1 }, metadata: { title: 'Two', number: '2', numberSort: 2, releaseDate: null, summary: '' }, readProgress: null },
+    { id: 'b1', seriesId: 's1', seriesTitle: 'Batman', name: 'Batman 001', media: { pagesCount: 1 }, metadata: { title: 'One', number: '1', numberSort: 1, releaseDate: null, summary: '' }, readProgress: { page: 1, completed: true, readDate: '' } },
+    { id: 'b2', seriesId: 's2', seriesTitle: 'Superman', name: 'Superman 002', media: { pagesCount: 1 }, metadata: { title: 'Two', number: '2', numberSort: 2, releaseDate: null, summary: '' }, readProgress: null },
   ] } }),
 }))
 vi.mock('@/lib/komga/mutations', () => ({ useUpdateReadList: () => ({ mutate: update }), useDeleteReadList: () => ({ mutate: vi.fn() }) }))
@@ -23,9 +23,15 @@ beforeEach(() => update.mockClear())
 describe('ReadListDetail', () => {
   it('renders books and removing one PATCHes the trimmed array', () => {
     renderDetail()
-    expect(screen.getByText('One')).toBeInTheDocument()
+    expect(screen.getByText('· One')).toBeInTheDocument()
     fireEvent.click(screen.getAllByLabelText('Entfernen')[0])
     expect(update).toHaveBeenCalledWith({ bookIds: ['b2'] })
+  })
+  it('leads each row with the comic (series) name, not just the story subtitle', () => {
+    renderDetail()
+    expect(screen.getByText('Batman')).toBeInTheDocument()
+    expect(screen.getByText('Superman')).toBeInTheDocument()
+    expect(screen.getByText('#1')).toBeInTheDocument()
   })
   it('"Gelesene entfernen" drops completed books', () => {
     renderDetail()
