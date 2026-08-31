@@ -20,17 +20,18 @@ const vm: SeriesVM = {
   progress: { read: 7, inProgress: 1, unread: 3, total: 11 },
   rating: { value: 4.2, needsCheck: false },
   coverUrl: '/komga/api/v1/series/s1/thumbnail', year: '2012',
+  credits: [{ name: 'Fiona Staples', role: 'colorist' }, { name: 'BKV', role: 'writer' }, { name: 'Fiona Staples', role: 'penciller' }],
 }
 const doneVm: SeriesVM = { ...vm, progress: { read: 11, inProgress: 0, unread: 0, total: 11 } }
 
 beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.unstubAllGlobals())
 
-function renderCard(s: SeriesVM) {
+function renderCard(s: SeriesVM, matchedCreators?: string[]) {
   return render(
     <MemoryRouter initialEntries={['/']}>
       <Routes>
-        <Route path="/" element={<SeriesCard s={s} />} />
+        <Route path="/" element={<SeriesCard s={s} matchedCreators={matchedCreators} />} />
         <Route path="/series/:id" element={<div>SERIES PAGE</div>} />
       </Routes>
     </MemoryRouter>,
@@ -124,5 +125,36 @@ describe('SeriesCard / SeriesRow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mark all unread' }))
     expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: false })
     expect(screen.queryByText('SERIES PAGE')).not.toBeInTheDocument()
+  })
+})
+
+describe('SeriesCard / SeriesRow — creator match chips', () => {
+  it('card shows no chips without an active creator filter', () => {
+    renderCard(vm)
+    expect(screen.queryByText('Fiona Staples')).not.toBeInTheDocument()
+  })
+  it('card shows the searched creator with the roles they hold here, canonically ordered', () => {
+    renderCard(vm, ['Fiona Staples'])
+    expect(screen.getByText('Fiona Staples')).toBeInTheDocument()
+    // colorist + penciller credits collapse into one canonical-order chip
+    expect(screen.getByText('penciller · colorist')).toBeInTheDocument()
+  })
+  it('card chip is the dimmed dashed variant for a cover-only match', () => {
+    const coverOnly: SeriesVM = { ...vm, credits: [{ name: 'Fiona Staples', role: 'cover' }] }
+    renderCard(coverOnly, ['Fiona Staples'])
+    expect(screen.getByText('cover')).toBeInTheDocument()
+  })
+  it('card shows one chip per selected creator, in selection order', () => {
+    renderCard(vm, ['BKV', 'Fiona Staples'])
+    expect(screen.getByText('writer')).toBeInTheDocument()
+    expect(screen.getByText('penciller · colorist')).toBeInTheDocument()
+  })
+  it('row shows the match as a second mini line under the author', () => {
+    render(<MemoryRouter><SeriesRow s={vm} matchedCreators={['Fiona Staples']} /></MemoryRouter>)
+    expect(screen.getByText('penciller · colorist')).toBeInTheDocument()
+  })
+  it('a selected creator without credits in the series gets no chip', () => {
+    renderCard(vm, ['Chip Zdarsky'])
+    expect(screen.queryByText('Chip Zdarsky')).not.toBeInTheDocument()
   })
 })

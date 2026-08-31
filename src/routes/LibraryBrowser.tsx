@@ -128,6 +128,7 @@ export function LibraryBrowser() {
           <SeriesGrid
             items={seriesItems}
             density={density}
+            matchedCreators={filters.authors}
             hasNext={!!query.hasNextPage}
             fetchNext={query.fetchNextPage}
             initialIndex={initialIndex}

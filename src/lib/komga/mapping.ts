@@ -12,6 +12,8 @@ export interface SeriesVM {
   author: string
   /** Underlying writer names (fallback: first credited author), for facet links. */
   authorNames: string[]
+  /** Aggregated book credits (name+role) — source for the creator-match chips. */
+  credits: KomgaAuthor[]
   publisher: string
   status: SeriesStatus
   genres: string[]
@@ -57,6 +59,7 @@ export function mapSeries(dto: KomgaSeriesDto): SeriesVM {
     title: dto.metadata.title || dto.name,
     author: pickAuthor(dto.booksMetadata.authors),
     authorNames: writerNames(dto.booksMetadata.authors),
+    credits: dto.booksMetadata.authors,
     publisher: dto.metadata.publisher || '—',
     status: dto.metadata.status,
     genres: dto.metadata.genres,
@@ -90,6 +93,44 @@ export function pickSummary(dto: KomgaSeriesDto): SummaryPick | null {
 /** All author names credited with a given role, in DTO order. */
 export function creditNames(authors: KomgaAuthor[], role: string): string[] {
   return authors.filter((a) => a.role === role).map((a) => a.name)
+}
+
+/** Canonical display order for credit roles; unknown roles sort last. */
+export const ROLE_ORDER = ['writer', 'penciller', 'inker', 'colorist', 'cover', 'letterer', 'editor', 'translator']
+
+/** Roles that count as a story credit (solid match chip). Everything else —
+ *  cover, letterer, editor, translator — renders as the dimmed variant, so
+ *  variant-cover-only "noise" matches stay distinguishable at a glance. */
+export const STORY_ROLES: ReadonlySet<string> = new Set(['writer', 'penciller', 'inker', 'colorist'])
+
+export interface CreatorMatch { name: string; roles: string[] }
+
+function sortRoles(roles: string[]): string[] {
+  return [...roles].sort((a, b) => {
+    const ia = ROLE_ORDER.indexOf(a)
+    const ib = ROLE_ORDER.indexOf(b)
+    if (ia !== -1 && ib !== -1) return ia - ib
+    if (ia !== -1) return -1
+    if (ib !== -1) return 1
+    return a.localeCompare(b)
+  })
+}
+
+/** The searched creator names found in a series' aggregated credits, each with
+ *  the roles that creator holds there (canonical order). Follows the given name
+ *  order, so multi-select chips mirror the filter selection; names without a
+ *  credit in this series are omitted. */
+export function creatorMatches(credits: KomgaAuthor[], names: string[]): CreatorMatch[] {
+  const byName = new Map<string, Set<string>>()
+  for (const a of credits) {
+    let roles = byName.get(a.name)
+    if (!roles) byName.set(a.name, (roles = new Set()))
+    roles.add(a.role)
+  }
+  return names.flatMap((name) => {
+    const roles = byName.get(name)
+    return roles ? [{ name, roles: sortRoles([...roles]) }] : []
+  })
 }
 
 /** "A", "A, B" or "A, B +1" — at most `max` names, the rest collapsed. */

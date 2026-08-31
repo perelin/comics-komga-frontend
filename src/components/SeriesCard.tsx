@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { Play, CheckCheck, RotateCcw } from 'lucide-react'
-import type { SeriesVM } from '@/lib/komga/mapping'
+import { creatorMatches, type SeriesVM } from '@/lib/komga/mapping'
 import { FORMAT_LABEL } from '@/lib/komga/format'
 import { useMarkSeries } from '@/lib/komga/mutations'
 import { useSeriesPages } from '@/lib/komga/queries'
@@ -8,18 +8,20 @@ import { pagesLabel } from '@/lib/komga/books'
 import { facetHref } from '@/lib/komga/filters'
 import { useIsMobile } from '@/hooks/useIsMobile'
 import { CoverImage } from './CoverImage'
+import { CreatorMatches } from './CreatorMatches'
 import { FacetFilterButton } from './FacetFilterButton'
 import { ReadProgress } from './ReadProgress'
 import { Stars } from './Stars'
 import { StatusDot } from './StatusDot'
 import { AddToReadListButton } from './AddToReadListButton'
 
-export function SeriesCard({ s }: { s: SeriesVM }) {
+export function SeriesCard({ s, matchedCreators }: { s: SeriesVM; matchedCreators?: string[] }) {
   const done = s.progress.total > 0 && s.progress.read >= s.progress.total
   const markSeries = useMarkSeries()
   const isMobile = useIsMobile()
   const { data: pages } = useSeriesPages(s.id, s.progress.total)
   const meta = [s.year, pagesLabel(pages, s.progress.total)].filter(Boolean).join(' · ')
+  const matches = creatorMatches(s.credits, matchedCreators ?? [])
   const onMark = (e: React.MouseEvent) => {
     e.preventDefault()
     e.stopPropagation()
@@ -70,6 +72,7 @@ export function SeriesCard({ s }: { s: SeriesVM }) {
         </div>
         <div className="mt-0.5 truncate text-xs tabular-nums text-muted-foreground/70">{meta}</div>
         {s.rating && <div className="mt-1"><Stars rating={s.rating} size={12} /></div>}
+        <CreatorMatches matches={matches} className="mt-1" />
       </div>
     </Link>
   )

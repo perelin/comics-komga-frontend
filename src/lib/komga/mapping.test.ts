@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseRating, pickAuthor, writerNames, mapSeries, pickSummary, creditNames, formatCredit } from './mapping'
+import { parseRating, pickAuthor, writerNames, mapSeries, pickSummary, creditNames, formatCredit, creatorMatches } from './mapping'
 import type { KomgaSeriesDto } from './types'
 
 describe('parseRating', () => {
@@ -75,6 +75,7 @@ describe('mapSeries', () => {
       progress: { read: 7, inProgress: 1, unread: 3, total: 11 },
       rating: { value: 4.2, needsCheck: false },
       format: { kind: 'singles', mixed: false },
+      credits: [{ name: 'BKV', role: 'writer' }],
       coverUrl: '/komga/api/v1/series/s1/thumbnail',
     })
   })
@@ -134,5 +135,35 @@ describe('creditNames / formatCredit', () => {
   })
   it('returns null for no names', () => {
     expect(formatCredit([])).toBeNull()
+  })
+})
+
+describe('creatorMatches', () => {
+  const credits = [
+    { name: 'Fiona Staples', role: 'colorist' },
+    { name: 'BKV', role: 'writer' },
+    { name: 'Fiona Staples', role: 'cover' },
+    { name: 'Fiona Staples', role: 'penciller' },
+    { name: 'Fiona Staples', role: 'letterer' },
+  ]
+  it('collapses one name\'s credits into one match with canonically ordered roles', () => {
+    expect(creatorMatches(credits, ['Fiona Staples'])).toEqual([
+      { name: 'Fiona Staples', roles: ['penciller', 'colorist', 'cover', 'letterer'] },
+    ])
+  })
+  it('follows the requested name order (multi-select mirrors the filter)', () => {
+    expect(creatorMatches(credits, ['BKV', 'Fiona Staples']).map((m) => m.name)).toEqual(['BKV', 'Fiona Staples'])
+  })
+  it('omits selected names without a credit in this series', () => {
+    expect(creatorMatches(credits, ['Fiona Staples', 'Chip Zdarsky']).map((m) => m.name))
+      .toEqual(['Fiona Staples'])
+    expect(creatorMatches(credits, [])).toEqual([])
+  })
+  it('sorts unknown roles last, alphabetically', () => {
+    const weird = [{ name: 'X', role: 'inker' }, { name: 'X', role: 'zither' }, { name: 'X', role: 'writer' }]
+    expect(creatorMatches(weird, ['X'])[0].roles).toEqual(['writer', 'inker', 'zither'])
+  })
+  it('returns nothing for empty credits', () => {
+    expect(creatorMatches([], ['Fiona Staples'])).toEqual([])
   })
 })

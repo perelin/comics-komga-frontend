@@ -67,7 +67,7 @@ export function SeriesList({ items, filters, onFiltersChange, hasNext, fetchNext
         {virtualRows.map((vi) => (
           <div key={items[vi.index].id}
             style={{ position: 'absolute', top: 0, left: 0, width: '100%', transform: `translateY(${vi.start}px)`, height: vi.size }}>
-            <SeriesRow s={items[vi.index]} />
+            <SeriesRow s={items[vi.index]} matchedCreators={filters.authors} />
           </div>
         ))}
       </div>

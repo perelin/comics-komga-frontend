@@ -1,9 +1,10 @@
 import { Link } from 'react-router-dom'
-import type { SeriesVM } from '@/lib/komga/mapping'
+import { creatorMatches, type SeriesVM } from '@/lib/komga/mapping'
 import { useSeriesPages } from '@/lib/komga/queries'
 import { pagesLabel } from '@/lib/komga/books'
 import { facetHref } from '@/lib/komga/filters'
 import { CoverImage } from './CoverImage'
+import { CreatorMatches } from './CreatorMatches'
 import { FacetFilterButton } from './FacetFilterButton'
 import { StatusDot } from './StatusDot'
 import { ReadProgress } from './ReadProgress'
@@ -15,18 +16,20 @@ const FACET_CELL = 'block w-full truncate text-left hover:text-foreground hover:
 // cover · Title · Author · Publisher · Status · Year · Books · Pages · Progress · Rating
 export const SERIES_GRID_COLS = '40px minmax(0,2.5fr) minmax(0,1.2fr) minmax(0,1fr) 96px 56px 64px 84px 130px 96px'
 
-export function SeriesRow({ s }: { s: SeriesVM }) {
+export function SeriesRow({ s, matchedCreators }: { s: SeriesVM; matchedCreators?: string[] }) {
   const { data: pages } = useSeriesPages(s.id, s.progress.total)
+  const matches = creatorMatches(s.credits, matchedCreators ?? [])
   return (
     <Link to={`/series/${s.id}`}
       className="grid h-[52px] items-center gap-3 border-b border-border px-3 text-sm hover:bg-accent/40"
       style={{ gridTemplateColumns: SERIES_GRID_COLS }}>
       <div className="h-9 w-6 overflow-hidden rounded-sm border border-border"><CoverImage src={s.coverUrl} alt={s.title} /></div>
       <div className="truncate font-medium text-foreground">{s.title}</div>
-      <div className="truncate text-muted-foreground">
+      <div className="min-w-0 text-muted-foreground">
         {s.authorNames.length > 0
           ? <FacetFilterButton href={facetHref({ authors: [s.authorNames[0]] })} className={FACET_CELL}>{s.author}</FacetFilterButton>
-          : s.author}
+          : <span className="block truncate">{s.author}</span>}
+        <CreatorMatches matches={matches} className="mt-0.5" />
       </div>
       <div className="truncate text-muted-foreground">
         {s.publisher && s.publisher !== '—'
