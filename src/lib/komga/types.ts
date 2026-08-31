@@ -51,7 +51,17 @@ export interface KomgaBookDto {
   seriesTitle: string
   name: string
   media: { pagesCount: number }
-  metadata: { title: string; number: string; numberSort: number; releaseDate: string | null; summary: string }
+  metadata: {
+    title: string
+    number: string
+    numberSort: number
+    releaseDate: string | null
+    summary: string
+    /** Per-issue credits ({name, role}). Present on live DTOs (this is the
+     *  source Komga aggregates the series-level authors from); optional here so
+     *  fixtures can omit it — credit tallies treat missing as untagged. */
+    authors?: KomgaAuthor[]
+  }
   readProgress: { page: number; completed: boolean; readDate: string } | null
 }
 

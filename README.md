@@ -33,9 +33,11 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
   your libraries, and read-list search.
 - **Series Detail** — a read-only hero (cover, author, publisher, status,
   rating) with a summary (falling back to volume 1 when the series has none),
-  full credits + format stat band (writer / art / colors / editor, publisher,
-  issue count · avg pages · format), link pills, and an ambient
-  progressive-blur cover backdrop.
+  a credit stat band that lists *every* credited name per role, content-sized
+  and never truncated — ranked by issue count (derived client-side from the
+  volume list; regulars carry an "(n)" tally, each name its own filter link;
+  writer / art / colors / editor, publisher, issue count · avg pages ·
+  format), link pills, and an ambient progressive-blur cover backdrop.
 - **Command Palette** (⌘K / Ctrl-K) — server-backed series search (the heading
   names the withheld remainder when a page cuts the matches), searchable
   jump-to-library navigation across every library, and recently-visited series.

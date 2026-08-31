@@ -55,6 +55,27 @@ export function sumPages(books: KomgaBookDto[]): number {
   return books.reduce((total, b) => total + b.media.pagesCount, 0)
 }
 
+/** Per-issue credit tallies across a series' books: role → name → how many
+ *  books credit that name with that role. This is the ground truth Komga's
+ *  series-level `booksMetadata.authors` is aggregated from — counting it back
+ *  per name needs no extra requests. Only volumes whose metadata carries
+ *  authors contribute; untagged volumes are silently absent from the tallies. */
+export function creditCounts(books: KomgaBookDto[]): Map<string, Map<string, number>> {
+  const counts = new Map<string, Map<string, number>>()
+  for (const b of books) {
+    const seen = new Set<string>()
+    for (const a of b.metadata.authors ?? []) {
+      const key = `${a.role}\u0000${a.name}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      let names = counts.get(a.role)
+      if (!names) counts.set(a.role, (names = new Map()))
+      names.set(a.name, (names.get(a.name) ?? 0) + 1)
+    }
+  }
+  return counts
+}
+
 /** A page total for display: thousands-separated + a "pp" suffix, e.g. "8,340 pp". */
 export function formatPages(n: number): string {
   return `${n.toLocaleString('en-US')} pp`

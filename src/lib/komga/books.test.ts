@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickContinueBook, bookReadState, releaseYear, bookCoverUrl, bookProgressPct, sumPages, formatPages, pagesLabel, bookPageUrl, yearRange, formatIndicator } from './books'
+import { pickContinueBook, bookReadState, releaseYear, bookCoverUrl, bookProgressPct, sumPages, creditCounts, formatPages, pagesLabel, bookPageUrl, yearRange, formatIndicator } from './books'
 import type { KomgaBookDto } from './types'
 
 function book(n: number, progress: KomgaBookDto['readProgress'], pages = 100): KomgaBookDto {
@@ -65,6 +65,30 @@ describe('sumPages', () => {
   })
   it('is 0 for an empty series', () => {
     expect(sumPages([])).toBe(0)
+  })
+})
+
+describe('creditCounts', () => {
+  const credited = (n: number, authors: { name: string; role: string }[]) => {
+    const b = book(n, null)
+    return { ...b, metadata: { ...b.metadata, authors } }
+  }
+  it('tallies how many volumes credit each name per role', () => {
+    const counts = creditCounts([
+      credited(1, [{ name: 'Will', role: 'writer' }, { name: 'Buck', role: 'penciller' }]),
+      credited(2, [{ name: 'Will', role: 'writer' }, { name: 'Buck', role: 'penciller' }, { name: 'Buck', role: 'inker' }]),
+    ])
+    expect(counts.get('writer')?.get('Will')).toBe(2)
+    expect(counts.get('penciller')?.get('Buck')).toBe(2)
+    expect(counts.get('inker')?.get('Buck')).toBe(1)
+    expect(counts.get('colorist')).toBeUndefined()
+  })
+  it('counts a duplicated name+role within one volume only once', () => {
+    const counts = creditCounts([credited(1, [{ name: 'Buck', role: 'penciller' }, { name: 'Buck', role: 'penciller' }])])
+    expect(counts.get('penciller')?.get('Buck')).toBe(1)
+  })
+  it('treats volumes without author metadata as untagged', () => {
+    expect(creditCounts([book(1, null), book(2, null)])).toEqual(new Map())
   })
 })
 

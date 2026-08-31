@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { SeriesMetaBand } from './SeriesMetaBand'
 import type { KomgaBookDto, KomgaSeriesDto } from '@/lib/komga/types'
@@ -25,11 +25,11 @@ function dto(over: Partial<KomgaSeriesDto['metadata']> = {}, authors = [
   }
 }
 
-function book(n: number, pages: number): KomgaBookDto {
+function book(n: number, pages: number, authors: { name: string; role: string }[] = []): KomgaBookDto {
   return {
     id: `b${n}`, seriesId: 's1', seriesTitle: 'Neonomicon', name: `Vol ${n}`,
     media: { pagesCount: pages },
-    metadata: { title: `Part ${n}`, number: String(n), numberSort: n, releaseDate: '2010-08-01', summary: '' },
+    metadata: { title: `Part ${n}`, number: String(n), numberSort: n, releaseDate: '2010-08-01', summary: '', authors },
     readProgress: null,
   }
 }
@@ -39,14 +39,32 @@ const renderBand = (d = dto(), b = books) =>
   render(<MemoryRouter><SeriesMetaBand dto={d} books={b} /></MemoryRouter>)
 
 describe('SeriesMetaBand', () => {
-  it('renders credit blocks with role labels', () => {
+  it('renders credit blocks with role labels and a per-role count', () => {
     renderBand()
     expect(screen.getByText('Writer')).toBeInTheDocument()
     expect(screen.getByText('Alan Moore')).toBeInTheDocument()
     expect(screen.getByText('Art')).toBeInTheDocument()
     expect(screen.getByText('Jacen Burrows')).toBeInTheDocument()
     expect(screen.getByText('Colors')).toBeInTheDocument()
-    expect(screen.getByText('Mark Seifert +1')).toBeInTheDocument()
+    expect(screen.getByText('Editor')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument() // editor count
+  })
+
+  it('lists every credited name — no "+N" cap, no truncation', () => {
+    renderBand()
+    expect(screen.getByRole('link', { name: 'Mark Seifert' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'William Christensen' })).toBeInTheDocument()
+    expect(screen.queryByText(/\+\d/)).not.toBeInTheDocument()
+  })
+
+  it('links every credited name to the authors facet', () => {
+    renderBand()
+    const authorLinks = screen
+      .getAllByRole('link')
+      .filter((l) => l.getAttribute('href')?.includes('authors='))
+    expect(authorLinks.map((l) => l.textContent)).toEqual([
+      'Alan Moore', 'Jacen Burrows', 'Juanmar', 'Mark Seifert', 'William Christensen',
+    ])
   })
 
   it('writer and publisher link to freshly-scoped filtered lists', () => {
@@ -83,6 +101,28 @@ describe('SeriesMetaBand', () => {
     expect(screen.getByText('format:mixed')).toBeInTheDocument()
     expect(screen.getByText('format:singles')).toBeInTheDocument()
     expect(screen.getByText('rating:nomatch')).toBeInTheDocument()
+  })
+
+  it('ranks credits by issue count and shows the tally for regulars', () => {
+    const credited = (n: number, authors: { name: string; role: string }[]) => book(n, 27, authors)
+    renderBand(dto(), [
+      credited(1, [{ name: 'Jacen Burrows', role: 'penciller' }, { name: 'Mark Seifert', role: 'editor' }]),
+      credited(2, [{ name: 'Jacen Burrows', role: 'penciller' }, { name: 'Mark Seifert', role: 'editor' }, { name: 'William Christensen', role: 'editor' }]),
+      credited(3, [{ name: 'Jacen Burrows', role: 'penciller' }, { name: 'Mark Seifert', role: 'editor' }, { name: 'William Christensen', role: 'editor' }]),
+    ])
+    // Stamm-Crew trägt ihre Heftzahl, Namen ohne Count sind Einzel-Credits.
+    expect(screen.getAllByText('(3)')).toHaveLength(2) // Jacen Burrows, Mark Seifert
+    expect(screen.getByText('(2)')).toBeInTheDocument() // William Christensen
+    expect(screen.queryByText('(1)')).not.toBeInTheDocument()
+    // Editor-Rangfolge: mehr Hefte zuerst (nicht DTO-Reihenfolge).
+    const editorCard = screen.getByText('Editor').parentElement as HTMLElement
+    expect(within(editorCard).getAllByRole('link').map((l) => l.textContent))
+      .toEqual(['Mark Seifert', 'William Christensen'])
+  })
+
+  it('shows no tallies when the volumes carry no per-issue author metadata', () => {
+    renderBand(dto(), books)
+    expect(screen.queryByText(/\(\d+\)/)).not.toBeInTheDocument()
   })
 
   it('links format tags to their filter and leaves rating/free-form tags inert', () => {
