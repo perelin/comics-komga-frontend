@@ -23,6 +23,10 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
   library, creators, publication status, genre, publisher, age rating, rating,
   format). Facets combine as **AND across fields, OR within one** — picking two
   creators shows everything either of them worked on, not just their joint work.
+  With a creator filter active, each card names the searched creator(s) with the
+  roles they hold in that series — solid chips for story credits
+  (writer/penciller/inker/colorist), dashed and dimmed for cover-only matches —
+  so a variant-cover hit is self-explanatory.
   Two exceptions: age rating is upward-open (`16+` also matches 18 or 21), and
   the *Mixed formats (cleanup)* checkbox is a separate AND term rather than
   another format choice, so ticking it alongside Singles asks for series flagged
