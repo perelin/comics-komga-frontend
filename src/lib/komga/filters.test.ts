@@ -195,6 +195,69 @@ describe('rating filter', () => {
   })
 })
 
+describe('release year filter', () => {
+  it('round-trips yearMin/yearMax through the URL', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, yearMin: 1990, yearMax: 1999 }
+    const sp = filtersToSearchParams(f)
+    expect(sp.get('yearMin')).toBe('1990')
+    expect(sp.get('yearMax')).toBe('1999')
+    expect(searchParamsToFilters(sp)).toEqual(f)
+  })
+  it('round-trips one-sided bounds', () => {
+    const f: Filters = { ...DEFAULT_FILTERS, yearMax: 2020 }
+    expect(searchParamsToFilters(filtersToSearchParams(f))).toEqual(f)
+  })
+  it('drops non-integer / out-of-range year bounds', () => {
+    const f = searchParamsToFilters(new URLSearchParams('yearMin=1990.5&yearMax=abc'))
+    expect(f.yearMin).toBeUndefined()
+    expect(f.yearMax).toBeUndefined()
+    expect(searchParamsToFilters(new URLSearchParams('yearMin=99999')).yearMin).toBeUndefined()
+  })
+  it('no bounds → no condition', () => {
+    expect(filtersToCondition(DEFAULT_FILTERS)).toEqual({})
+  })
+  it('a year window → allOf after (Y-1)-12-31T23:59:59Z / before (Y+1)-01-01T00:00:00Z', () => {
+    // The lower bound must NOT be Jan 1: the date operators compare at calendar-
+    // day granularity, so `after 1990-01-01` would drop everything dated exactly
+    // Jan 1 of 1990 (live-verified against Komga 1.26.3).
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, yearMin: 1990, yearMax: 1999 }))
+      .toEqual({ condition: { allOf: [
+        { releaseDate: { operator: 'after', dateTime: '1989-12-31T23:59:59Z' } },
+        { releaseDate: { operator: 'before', dateTime: '2000-01-01T00:00:00Z' } },
+      ] } })
+  })
+  it('a single year → the same two-bound window', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, yearMin: 1990, yearMax: 1990 }))
+      .toEqual({ condition: { allOf: [
+        { releaseDate: { operator: 'after', dateTime: '1989-12-31T23:59:59Z' } },
+        { releaseDate: { operator: 'before', dateTime: '1991-01-01T00:00:00Z' } },
+      ] } })
+  })
+  it('min-only → a bare after node (no allOf wrapper)', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, yearMin: 2015 }))
+      .toEqual({ condition: { releaseDate: { operator: 'after', dateTime: '2014-12-31T23:59:59Z' } } })
+  })
+  it('max-only → a bare before node (no allOf wrapper)', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, yearMax: 1950 }))
+      .toEqual({ condition: { releaseDate: { operator: 'before', dateTime: '1951-01-01T00:00:00Z' } } })
+  })
+  it('combines the year window with other facets via allOf', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, readStatus: ['UNREAD'], yearMin: 1990, yearMax: 1990 }))
+      .toEqual({ condition: { allOf: [
+        { readStatus: { operator: 'is', value: 'UNREAD' } },
+        { releaseDate: { operator: 'after', dateTime: '1989-12-31T23:59:59Z' } },
+        { releaseDate: { operator: 'before', dateTime: '1991-01-01T00:00:00Z' } },
+      ] } })
+  })
+  it('reaches the books body in issues mode (releaseDate is a shared facet there)', () => {
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, yearMin: 1990, yearMax: 1999 }, 'issues'))
+      .toEqual({ condition: { allOf: [
+        { releaseDate: { operator: 'after', dateTime: '1989-12-31T23:59:59Z' } },
+        { releaseDate: { operator: 'before', dateTime: '2000-01-01T00:00:00Z' } },
+      ] } })
+  })
+})
+
 describe('listQueryParams', () => {
   it('emits sort/page/size, mapping the sort key', () => {
     const p = listQueryParams({ ...DEFAULT_FILTERS, sortKey: 'createdDate', sortDir: 'desc' }, 2, 50)
@@ -305,7 +368,7 @@ describe('listQueryParams — Issues dimension sort', () => {
 describe('isSeriesOnlyFacet', () => {
   it('flags the four facets books/list rejects', () => {
     for (const k of ['genre', 'publisher', 'status', 'ageRating']) expect(isSeriesOnlyFacet(k)).toBe(true)
-    for (const k of ['readStatus', 'creators', 'rating', 'format', 'library']) expect(isSeriesOnlyFacet(k)).toBe(false)
+    for (const k of ['readStatus', 'creators', 'rating', 'year', 'format', 'library']) expect(isSeriesOnlyFacet(k)).toBe(false)
   })
 })
 

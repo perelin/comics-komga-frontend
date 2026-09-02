@@ -10,6 +10,8 @@ vi.mock('@/lib/komga/queries', () => ({
   useAgeRatings: () => ({ data: [16] }),
   useLibraries: () => ({ data: [{ id: 'l1', name: 'xCat:Pub Image' }] }),
   useAuthorSearch: () => ({ data: [], isFetching: false }),
+  useReleaseYears: () => ({ data: [1940, 2026] as [number, number] }),
+  FALLBACK_YEAR_BOUNDS: [1950, 2026] as [number, number],
 }))
 
 describe('FacetRail', () => {

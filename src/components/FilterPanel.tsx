@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 import { resetFiltersKeepingSort, type Filters, type BrowseDim } from '@/lib/komga/filters'
 import type { FormatKind } from '@/lib/komga/format'
 import type { ReadStatus, SeriesStatus } from '@/lib/komga/types'
-import { useGenres, usePublishers, useAgeRatings } from '@/lib/komga/queries'
+import { useGenres, usePublishers, useAgeRatings, useReleaseYears, FALLBACK_YEAR_BOUNDS } from '@/lib/komga/queries'
 import { AuthorFacet } from './AuthorFacet'
 
 function toggle<T>(arr: T[], v: T): T[] {
@@ -102,6 +102,32 @@ function RatingFacet({ min, max, onChange }: { min?: number; max?: number; onCha
   )
 }
 
+/** Release-year range slider over the years actually present in the library.
+ *  Full span = filter inactive (both bounds undefined), mirroring the rating
+ *  facet's convention. Series dim filters the aggregated series start year,
+ *  issues dim the per-book release date. */
+function YearFacet({ min, max, lo, hi, onChange }: { min?: number; max?: number; lo: number; hi: number; onChange: (min?: number, max?: number) => void }) {
+  const active = min !== undefined || max !== undefined
+  return (
+    <div className="px-1 pt-1">
+      <Slider
+        min={lo}
+        max={hi}
+        step={1}
+        value={[min ?? lo, max ?? hi]}
+        thumbLabels={['Minimum year', 'Maximum year']}
+        onValueChange={(v) => {
+          const [a, b] = v as number[]
+          onChange(a <= lo ? undefined : a, b >= hi ? undefined : b)
+        }}
+      />
+      <div className="mt-1 text-xs text-muted-foreground">
+        {active ? `${min ?? lo} – ${max ?? hi}` : 'Any year'}
+      </div>
+    </div>
+  )
+}
+
 const READ_STATUS: [ReadStatus, string][] = [['UNREAD', 'Unread'], ['IN_PROGRESS', 'In progress'], ['READ', 'Read']]
 const STATUS: [SeriesStatus, string][] = [['ONGOING', 'Ongoing'], ['ENDED', 'Ended'], ['HIATUS', 'Hiatus'], ['ABANDONED', 'Abandoned']]
 const FORMATS: [FormatKind, string][] = [
@@ -118,6 +144,7 @@ export function FilterPanelInner({ filters, onChange, dim = 'series' }: { filter
   // The endpoint reports "None" for unrated series — not a lower bound, and the
   // query layer can't express it (Komga 500s on a null ageRating value).
   const ageRatings = (useAgeRatings().data ?? []).filter((a) => Number.isFinite(Number(a)))
+  const yearBounds = useReleaseYears().data ?? FALLBACK_YEAR_BOUNDS
   const [genreQ, setGenreQ] = useState('')
   const [pubQ, setPubQ] = useState('')
   const [openMap, setOpenMap] = usePersistentState<Record<string, boolean>>('komga.facets.open', {})
@@ -130,6 +157,7 @@ export function FilterPanelInner({ filters, onChange, dim = 'series' }: { filter
     publisher: filters.publisher.length > 0,
     ageRating: filters.ageRating.length > 0,
     rating: filters.ratingMin !== undefined || filters.ratingMax !== undefined,
+    year: filters.yearMin !== undefined || filters.yearMax !== undefined,
     format: filters.format.length > 0 || filters.formatMixed === true,
   }
   const isOpen = (key: string): boolean => openMap[key] ?? active[key] ?? false
@@ -171,6 +199,15 @@ export function FilterPanelInner({ filters, onChange, dim = 'series' }: { filter
             min={filters.ratingMin}
             max={filters.ratingMax}
             onChange={(ratingMin, ratingMax) => onChange({ ...filters, ratingMin, ratingMax })}
+          />
+        </Facet>
+        <Facet title="Release year" open={isOpen('year')} onToggle={() => toggleFacet('year')}>
+          <YearFacet
+            min={filters.yearMin}
+            max={filters.yearMax}
+            lo={yearBounds[0]}
+            hi={yearBounds[1]}
+            onChange={(yearMin, yearMax) => onChange({ ...filters, yearMin, yearMax })}
           />
         </Facet>
         <Facet title="Format" open={isOpen('format')} onToggle={() => toggleFacet('format')}>

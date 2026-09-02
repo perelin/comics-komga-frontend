@@ -64,6 +64,22 @@ export const useGenres = () => useQuery({ queryKey: ['genres'], queryFn: komga.g
 export const usePublishers = () => useQuery({ queryKey: ['publishers'], queryFn: komga.publishers })
 export const useAgeRatings = () => useQuery({ queryKey: ['age-ratings'], queryFn: komga.ageRatings })
 
+/** Slider bounds fallback while the years query loads/fails (empty server etc.). */
+export const FALLBACK_YEAR_BOUNDS: [number, number] = [1950, new Date().getFullYear()]
+
+/** Release-year slider bounds: min/max of the years present in the library.
+ *  Deliberately global (not library-scoped), like every other facet source —
+ *  bounds must never shift under an active filter when the scope changes. */
+export const useReleaseYears = () =>
+  useQuery({
+    queryKey: ['release-years'],
+    queryFn: komga.releaseDates,
+    select: (years): [number, number] => {
+      const nums = years.map(Number).filter((n) => Number.isInteger(n))
+      return nums.length ? [Math.min(...nums), Math.max(...nums)] : FALLBACK_YEAR_BOUNDS
+    },
+  })
+
 export const useSeries = (id: string) => useQuery({ queryKey: ['series', id], queryFn: () => komga.seriesById(id) })
 export const useSeriesBooks = (id: string) => useQuery({ queryKey: ['series', id, 'books'], queryFn: () => komga.seriesBooks(id) })
 // Total page count for an overview card/row: lazily fetch the series' books and

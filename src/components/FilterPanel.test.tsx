@@ -14,6 +14,8 @@ vi.mock('@/lib/komga/queries', () => ({
   usePublishers: () => ({ data: referential.publishers }),
   useAgeRatings: () => ({ data: ['None', 16, 18] }),
   useAuthorSearch: () => ({ data: [], isFetching: false }),
+  useReleaseYears: () => ({ data: [1940, 2026] as [number, number] }),
+  FALLBACK_YEAR_BOUNDS: [1950, 2026] as [number, number],
 }))
 
 function renderPanel(filters = DEFAULT_FILTERS, onChange = vi.fn()) {
@@ -109,6 +111,29 @@ describe('FilterPanelInner', () => {
     renderPanel()
     fireEvent.click(screen.getByRole('button', { name: 'Rating' }))
     expect(screen.getByText('Any rating')).toBeInTheDocument()
+  })
+
+  it('auto-expands the Release year facet when a bound is active and shows the range label', () => {
+    renderPanel({ ...DEFAULT_FILTERS, yearMin: 1990 })
+    expect(screen.getByRole('button', { name: 'Release year' })).toHaveAttribute('aria-expanded', 'true')
+    // One-sided lower bound renders against the data extremes: 1990 – 2026.
+    expect(screen.getByText('1990 – 2026')).toBeInTheDocument()
+  })
+
+  it('shows "Any year" when the Release year facet is opened without a bound', () => {
+    renderPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Release year' }))
+    expect(screen.getByText('Any year')).toBeInTheDocument()
+  })
+
+  it('emits a year bound when the min thumb is stepped up via keyboard', () => {
+    const onChange = vi.fn()
+    renderPanel(DEFAULT_FILTERS, onChange)
+    fireEvent.click(screen.getByRole('button', { name: 'Release year' }))
+    fireEvent.keyDown(screen.getByLabelText('Minimum year'), { key: 'ArrowRight' })
+    // From the full data span [1940, 2026], stepping the min up by 1 → yearMin
+    // 1941, yearMax cleared (2026 maps back to undefined = inactive upper bound).
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ yearMin: 1941, yearMax: undefined }))
   })
 
   it('toggles a format kind and emits updated filters', () => {

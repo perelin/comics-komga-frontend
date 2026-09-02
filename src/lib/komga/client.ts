@@ -54,6 +54,11 @@ export const komga = {
   genres: () => get<string[]>('/genres'),
   publishers: () => get<string[]>('/publishers'),
   ageRatings: () => get<number[]>('/age-ratings'),
+  /** All release years present in the library, bare "YYYY" strings. The v1
+   *  array endpoint is byte-identical to GET /api/v2/series/release-years
+   *  ?unpaged=true and fits this client without pagination plumbing
+   *  (live-verified Komga 1.26.3). Bounds source for the year facet. */
+  releaseDates: () => get<string[]>('/series/release-dates'),
   authorNames: (search: string) =>
     get<string[]>('/authors/names', new URLSearchParams({ search })),
 

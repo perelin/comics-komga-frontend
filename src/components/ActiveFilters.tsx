@@ -21,6 +21,12 @@ function chipsFor(f: Filters, dim: BrowseDim): Chip[] {
   if (f.ratingMin !== undefined || f.ratingMax !== undefined) {
     chips.push({ field: 'ratingMin', label: 'Rating', value: `${(f.ratingMin ?? 1).toFixed(1)}–${(f.ratingMax ?? 5).toFixed(1)} ★` })
   }
+  if (f.yearMin !== undefined || f.yearMax !== undefined) {
+    const year = f.yearMin !== undefined && f.yearMax !== undefined ? `${f.yearMin}–${f.yearMax}`
+      : f.yearMin !== undefined ? `≥ ${f.yearMin}`
+      : `≤ ${f.yearMax}`
+    chips.push({ field: 'yearMin', label: 'Year', value: year })
+  }
   // In Issues mode the series-only facets don't reach /books/list, so don't show
   // chips that imply an active filter that isn't being applied.
   return dim === 'issues' ? chips.filter((c) => !isSeriesOnlyFacet(c.field)) : chips
@@ -32,6 +38,7 @@ export function ActiveFilters({ filters, onChange, dim = 'series' }: { filters: 
   const remove = (c: Chip) => {
     if (c.field === 'formatMixed') return onChange({ ...filters, formatMixed: undefined })
     if (c.field === 'ratingMin') return onChange({ ...filters, ratingMin: undefined, ratingMax: undefined })
+    if (c.field === 'yearMin') return onChange({ ...filters, yearMin: undefined, yearMax: undefined })
     const arr = (filters[c.field] as string[]).filter((v) => v !== c.value)
     onChange({ ...filters, [c.field]: arr })
   }

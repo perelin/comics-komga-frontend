@@ -27,6 +27,11 @@ export interface Filters {
   /** Inclusive rating bounds (1–5 stars). Both undefined = no rating filter. */
   ratingMin?: number
   ratingMax?: number
+  /** Inclusive release-year bounds. Series dim: the aggregated series start
+   *  year (booksMetadata.releaseDate = MIN of its books — live-verified);
+   *  issues dim: per-book metadata.releaseDate. Both undefined = inactive. */
+  yearMin?: number
+  yearMax?: number
   search?: string
   sortKey: SortKey
   sortDir: SortDir
@@ -35,7 +40,8 @@ export interface Filters {
 export const DEFAULT_FILTERS: Filters = {
   readStatus: [], library: undefined, genre: [], publisher: [], status: [],
   ageRating: [], authors: [], format: [], formatMixed: undefined,
-  ratingMin: undefined, ratingMax: undefined, search: undefined,
+  ratingMin: undefined, ratingMax: undefined,
+  yearMin: undefined, yearMax: undefined, search: undefined,
   sortKey: 'releaseDate', sortDir: 'desc',
 }
 
@@ -54,6 +60,8 @@ export function filtersToSearchParams(f: Filters): URLSearchParams {
   if (f.formatMixed) sp.set('mixed', 'true')
   if (f.ratingMin !== undefined) sp.set('ratingMin', String(f.ratingMin))
   if (f.ratingMax !== undefined) sp.set('ratingMax', String(f.ratingMax))
+  if (f.yearMin !== undefined) sp.set('yearMin', String(f.yearMin))
+  if (f.yearMax !== undefined) sp.set('yearMax', String(f.yearMax))
   if (f.search) sp.set('q', f.search)
   if (f.sortKey !== DEFAULT_FILTERS.sortKey) sp.set('sortKey', f.sortKey)
   if (f.sortDir !== DEFAULT_FILTERS.sortDir) sp.set('sortDir', f.sortDir)
@@ -83,6 +91,14 @@ function parseRatingBound(v: string | null): number | undefined {
   return Number.isFinite(n) && n >= 1 && n <= 5 ? n : undefined
 }
 
+/** Parse a year bound: a finite integer in a sane window, else undefined.
+ *  Strictly integer (Number, not parseInt) so "1990.5" doesn't truncate in. */
+function parseYearBound(v: string | null): number | undefined {
+  if (v === null) return undefined
+  const n = Number(v)
+  return Number.isInteger(n) && n >= 1000 && n <= 3000 ? n : undefined
+}
+
 export function searchParamsToFilters(sp: URLSearchParams): Filters {
   const split = (v: string | null) => (v ? v.split(',').filter(Boolean) : [])
   const rawSortKey = sp.get('sortKey')
@@ -99,6 +115,8 @@ export function searchParamsToFilters(sp: URLSearchParams): Filters {
     formatMixed: sp.get('mixed') === 'true' ? true : undefined,
     ratingMin: parseRatingBound(sp.get('ratingMin')),
     ratingMax: parseRatingBound(sp.get('ratingMax')),
+    yearMin: parseYearBound(sp.get('yearMin')),
+    yearMax: parseYearBound(sp.get('yearMax')),
     search: sp.get('q') ?? undefined,
     sortKey: rawSortKey !== null && VALID_SORT_KEYS.includes(rawSortKey as SortKey) ? (rawSortKey as SortKey) : DEFAULT_FILTERS.sortKey,
     sortDir: rawSortDir !== null && VALID_SORT_DIRS.includes(rawSortDir as SortDir) ? (rawSortDir as SortDir) : DEFAULT_FILTERS.sortDir,
@@ -143,7 +161,8 @@ function sortParam(f: Filters, dim: BrowseDim): string {
   return `${map[f.sortKey] ?? fallback},${f.sortDir}`
 }
 
-// --- POST /series/list search DSL (Komga v1.23.6, operator shapes live-verified) ---
+// --- POST /series/list search DSL (operator shapes live-verified: v1.23.6 for
+// --- the string/numeric/tag/author operators, 1.26.3 for the date operators) ---
 
 export type Condition = Record<string, unknown>
 export interface SeriesListBody {
@@ -191,12 +210,31 @@ function ratingFacet(min?: number, max?: number): Condition | null {
   return orFacet('tag', tags)
 }
 
+/** Release-year filter → an inclusive date window. Both DSLs take the plain
+ *  field name `releaseDate` (series dim: the aggregated series start year; books
+ *  dim: per-book metadata.releaseDate) with ONLY date operators `after`/`before`
+ *  and a `dateTime` value key holding full RFC3339 with timezone — there is no
+ *  `is`/`greaterthan` and no integer-year field (`year`/`releaseYear`/
+ *  `metadata.releaseDate` are hard 400s; live-verified Komga 1.26.3).
+ *  The lower bound MUST be Dec 31 23:59:59 of Y-1, not Jan 1 of Y: the operators
+ *  compare at calendar-day granularity, so `after Y-01-01T00:00:00Z` excludes
+ *  everything dated exactly Jan 1 of Y (verified: 8 vs 9 series, 95 vs 102 books
+ *  for 1990). The upper bound `(Y+1)-01-01T00:00:00Z` is correct as-is.
+ *  Returns the window's 0–2 bare nodes so filtersToCondition can keep every
+ *  allOf flat — nested allOf under allOf is not a live-verified shape. */
+function releaseDateFacet(min?: number, max?: number): Condition[] {
+  const parts: Condition[] = []
+  if (min !== undefined) parts.push({ releaseDate: { operator: 'after', dateTime: `${min - 1}-12-31T23:59:59Z` } })
+  if (max !== undefined) parts.push({ releaseDate: { operator: 'before', dateTime: `${max + 1}-01-01T00:00:00Z` } })
+  return parts
+}
+
 /** Build the search body for either dimension: allOf across facets, anyOf within
  *  a multi-value facet (the author facet included), search →
  *  fullTextSearch. In the Issues dimension the series-only facets (genre,
  *  publisher, seriesStatus, ageRating) are omitted — `/books/list` 400s on them.
- *  The shared facets (readStatus, library, format tag, rating tag, author) use
- *  identical operator shapes on both `/series/list` and `/books/list`. */
+ *  The shared facets (readStatus, library, format tag, rating tag, release year,
+ *  author) use identical operator shapes on both `/series/list` and `/books/list`. */
 export function filtersToCondition(f: Filters, dim: BrowseDim = 'series'): SeriesListBody {
   const parts: Condition[] = []
   const add = (c: Condition | null) => { if (c) parts.push(c) }
@@ -213,6 +251,7 @@ export function filtersToCondition(f: Filters, dim: BrowseDim = 'series'): Serie
   add(orFacet('tag', f.format.map((k) => `format:${k}`)))
   if (f.formatMixed) add(isEq('tag', 'format:mixed'))
   add(ratingFacet(f.ratingMin, f.ratingMax))
+  parts.push(...releaseDateFacet(f.yearMin, f.yearMax))
   // Creators: OR over the selected names (everything they worked on, not only
   // their joint work) — the same "OR within a facet" rule as every other facet.
   add(orFacet('author', f.authors.map((name) => ({ name }))))
