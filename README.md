@@ -23,6 +23,11 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
   library, creators, publication status, genre, publisher, age rating, rating,
   release year, format). Facets combine as **AND across fields, OR within one** — picking two
   creators shows everything either of them worked on, not just their joint work.
+  The **rating** and **release year** facets are range controls: one entry +
+  Enter gives an exact point (`= 1986`, `= 4.15 ★` — ratings snap onto the
+  0.05 tag grid), the second field widens it into a span, an emptied side
+  reopens that bound (`≥ 2019`), and decade / threshold presets are the quick
+  picks.
   With a creator filter active, each card names the searched creator(s) with the
   roles they hold in that series — solid chips for story credits
   (writer/penciller/inker/colorist), dashed and dimmed for cover-only matches —
