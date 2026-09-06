@@ -21,7 +21,7 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
   Date added / Date updated / Release date / Books / Last read / Random —
   release date, newest first by default); and multi-facet filters (read status,
   library, creators, publication status, genre, publisher, age rating, rating,
-  format). Facets combine as **AND across fields, OR within one** — picking two
+  release year, format). Facets combine as **AND across fields, OR within one** — picking two
   creators shows everything either of them worked on, not just their joint work.
   With a creator filter active, each card names the searched creator(s) with the
   roles they hold in that series — solid chips for story credits
