@@ -23,10 +23,10 @@ function chipsFor(f: Filters, dim: BrowseDim): Chip[] {
     // (4.15 → "4.15", 4.5 → "4.5", 4 → "4"). min === max renders as a point.
     const lo = f.ratingMin ?? 1
     const hi = f.ratingMax ?? 5
-    chips.push({ field: 'ratingMin', label: 'Rating', value: lo === hi ? `${lo} ★` : `${lo}–${hi} ★` })
+    chips.push({ field: 'ratingMin', label: 'Rating', value: lo === hi ? `= ${lo} ★` : `${lo}–${hi} ★` })
   }
   if (f.yearMin !== undefined || f.yearMax !== undefined) {
-    const year = f.yearMin !== undefined && f.yearMin === f.yearMax ? String(f.yearMin)
+    const year = f.yearMin !== undefined && f.yearMin === f.yearMax ? `= ${f.yearMin}`
       : f.yearMin !== undefined && f.yearMax !== undefined ? `${f.yearMin}–${f.yearMax}`
       : f.yearMin !== undefined ? `≥ ${f.yearMin}`
       : `≤ ${f.yearMax}`

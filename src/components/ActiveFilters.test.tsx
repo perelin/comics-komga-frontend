@@ -45,12 +45,12 @@ describe('ActiveFilters', () => {
     expect(screen.getByText('≤ 2020')).toBeTruthy()
   })
 
-  it('renders point ranges as single values (1986, not 1986–1986)', () => {
+  it('renders point ranges with = notation and clears both bounds on remove', () => {
     const onChange = vi.fn()
     render(<ActiveFilters filters={{ ...DEFAULT_FILTERS, yearMin: 1986, yearMax: 1986, ratingMin: 4, ratingMax: 4 }} onChange={onChange} />)
-    expect(screen.getByText('1986')).toBeTruthy()
-    expect(screen.getByText('4 ★')).toBeTruthy()
-    fireEvent.click(screen.getByLabelText('remove Year 1986'))
+    expect(screen.getByText('= 1986')).toBeTruthy()
+    expect(screen.getByText('= 4 ★')).toBeTruthy()
+    fireEvent.click(screen.getByLabelText('remove Year = 1986'))
     expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ yearMin: undefined, yearMax: undefined }))
   })
 

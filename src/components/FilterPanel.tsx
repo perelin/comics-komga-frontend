@@ -1,9 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Slider } from '@/components/ui/slider'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { usePersistentState } from '@/hooks/usePersistentState'
 import { cn } from '@/lib/utils'
@@ -76,46 +75,41 @@ function Opt({ label, checked, onToggle }: { label: string; checked: boolean; on
   )
 }
 
-/** One numeric bound field. Empty = bound unset; Enter/blur commits, Escape
- *  reverts the draft. While focused the field is uncontrolled so live slider
- *  moves don't fight the caret. `parse` maps the raw entry to the committed
- *  number (returning the current value rejects a malformed entry); an empty
- *  input clears the bound. Unlike the slider gesture, a typed value at the
- *  span edge is an explicit bound — that's how "GENAU <earliest year>" works. */
-function BoundsInput({ value, placeholder, label, parse, onCommit }: {
-  value?: number
-  placeholder: string
-  label: string
-  parse: (raw: string, current: number | undefined) => number | undefined
-  onCommit: (v: number | undefined) => void
-}) {
-  const [draft, setDraft] = useState<string | null>(null)
-  const commit = () => {
-    if (draft === null) return
-    setDraft(null)
-    const raw = draft.trim()
-    const next = raw === '' ? undefined : parse(raw, value)
-    if (next !== value) onCommit(next)
-  }
+/** Status line for a bound pair, in the same notation as the filter chips:
+ *  `≥ 2019` / `≤ 2023` / `1986 – 2020` / `= 1986` (point) / the any-label. */
+function rangeStatusLabel(min: number | undefined, max: number | undefined, unit: string, anyLabel: string): string {
+  if (min === undefined && max === undefined) return anyLabel
+  if (min !== undefined && min === max) return `= ${min}${unit}`
+  if (min !== undefined && max !== undefined) return `${min} – ${max}${unit}`
+  if (min !== undefined) return `≥ ${min}${unit}`
+  return `≤ ${max}${unit}`
+}
+
+/** A small preset chip (`80s`, `≥ 4 ★`) — the quick-pick row that replaces the
+ *  slider's coarse gesture. Clicking the active preset clears it again. */
+function PresetChip({ label, active, ariaLabel, onClick }: { label: string; active: boolean; ariaLabel: string; onClick: () => void }) {
   return (
-    <Input
-      value={draft ?? (value === undefined ? '' : String(value))}
-      inputMode="decimal"
-      placeholder={placeholder}
-      aria-label={label}
-      className="h-7 min-w-0 flex-1 border-border/60 bg-background/60 text-center text-xs"
-      onChange={(e) => setDraft(e.target.value)}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter') { e.preventDefault(); commit() }
-        else if (e.key === 'Escape') setDraft(null)
-      }}
-      onBlur={commit}
-    />
+    <button
+      type="button"
+      aria-pressed={active}
+      aria-label={ariaLabel}
+      onClick={onClick}
+      className={cn(
+        'rounded border px-1.5 py-0.5 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring',
+        active ? 'border-primary bg-primary/10 text-foreground' : 'border-border text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+      )}
+    >
+      {label}
+    </button>
   )
 }
 
-/** The von/bis entry row under a range slider. Both bounds equal = point range
- *  (GENAU 1986 / GENAU 4 ★); a committed pair with min > max is swapped. */
+/** The von/bis entry row — the ONLY input for a range facet, following the
+ *  date-range-picker convention: committing the first value SEEDS both ends
+ *  (a point — `= 1986` after one entry, no double typing); the second field
+ *  then widens it, and clearing it reopens that side (`≥ 1986`). Fields are
+ *  select-all-on-focus; Enter/blur commits, Escape reverts the draft; a
+ *  committed pair with min > max is swapped. */
 function BoundPair({ min, max, placeholderMin, placeholderMax, labelMin, labelMax, parse, onCommit }: {
   min?: number
   max?: number
@@ -126,51 +120,113 @@ function BoundPair({ min, max, placeholderMin, placeholderMax, labelMin, labelMa
   parse: (raw: string, current: number | undefined, which: 'min' | 'max') => number | undefined
   onCommit: (min: number | undefined, max: number | undefined) => void
 }) {
-  const commit = (v: number | undefined, which: 'min' | 'max') => {
-    let a = which === 'min' ? v : min
-    let b = which === 'max' ? v : max
+  const [draftMin, setDraftMin] = useState<string | null>(null)
+  const [draftMax, setDraftMax] = useState<string | null>(null)
+  const maxRef = useRef<HTMLInputElement>(null)
+  // Set by the keyboard-advance path; the post-render effect performs the
+  // focus+select once the seeded value has actually rendered into the field.
+  const advanceRef = useRef(false)
+  useEffect(() => {
+    if (!advanceRef.current) return
+    advanceRef.current = false
+    maxRef.current?.focus()
+    maxRef.current?.select()
+  })
+
+  const emit = (a: number | undefined, b: number | undefined) => {
     if (a !== undefined && b !== undefined && a > b) [a, b] = [b, a]
     onCommit(a, b)
   }
+
+  // --- lower bound ---
+  const commitMin = (advance: boolean) => {
+    if (draftMin === null) {
+      if (advance) maxRef.current?.focus()
+      return
+    }
+    setDraftMin(null)
+    const raw = draftMin.trim()
+    const next = raw === '' ? undefined : parse(raw, min, 'min')
+    if (next !== min) {
+      if (next === undefined) emit(undefined, max)
+      else if (max === undefined) emit(next, next) // point seed: one entry = exactly this value
+      else emit(next, max)
+    }
+    if (advance) advanceRef.current = true
+  }
+  // --- upper bound ---
+  const commitMax = () => {
+    if (draftMax === null) return
+    setDraftMax(null)
+    const raw = draftMax.trim()
+    const next = raw === '' ? undefined : parse(raw, max, 'max')
+    if (next !== max) emit(min, next)
+  }
+
+  const fieldProps = {
+    inputMode: 'decimal' as const,
+    className: 'h-7 min-w-0 flex-1 border-border/60 bg-background/60 text-center text-xs',
+    onFocus: (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select(),
+  }
+
   return (
     <div className="mt-1.5 flex items-center gap-1.5">
-      <BoundsInput value={min} placeholder={placeholderMin} label={labelMin}
-        parse={(raw, cur) => parse(raw, cur, 'min')} onCommit={(v) => commit(v, 'min')} />
+      <Input
+        {...fieldProps}
+        value={draftMin ?? (min === undefined ? '' : String(min))}
+        placeholder={placeholderMin}
+        aria-label={labelMin}
+        onChange={(e) => setDraftMin(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === 'Tab') {
+            e.preventDefault()
+            commitMin(true)
+          } else if (e.key === 'Escape') setDraftMin(null)
+        }}
+        onBlur={() => commitMin(false)}
+      />
       <span aria-hidden="true" className="text-xs text-muted-foreground">–</span>
-      <BoundsInput value={max} placeholder={placeholderMax} label={labelMax}
-        parse={(raw, cur) => parse(raw, cur, 'max')} onCommit={(v) => commit(v, 'max')} />
+      <Input
+        {...fieldProps}
+        ref={maxRef}
+        value={draftMax ?? (max === undefined ? '' : String(max))}
+        placeholder={placeholderMax}
+        aria-label={labelMax}
+        onChange={(e) => setDraftMax(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') { e.preventDefault(); commitMax() }
+          else if (e.key === 'Escape') setDraftMax(null)
+        }}
+        onBlur={commitMax}
+      />
     </div>
   )
 }
 
-/** Rating range (1–5 stars): a coarse 0.5-step slider plus exact numeric entry.
- *  Typed bounds are snapped onto the 0.05 tag grid (4.13 → 4.15) — an off-grid
- *  bound would enumerate tags no series carries. Full range = filter inactive
- *  (both bounds undefined); pulling a slider handle to the edge clears that
- *  bound, while a typed edge value is an explicit bound. */
+/** Rating facet (1–5 stars): presets for the common thresholds plus exact
+ *  numeric entry. Typed bounds are snapped onto the 0.05 tag grid (4.13 →
+ *  4.15) — an off-grid bound would enumerate tags no series carries. One
+ *  entry + Enter = exactly that rating (point seed); an empty side = open. */
 function RatingFacet({ min, max, onChange }: { min?: number; max?: number; onChange: (min?: number, max?: number) => void }) {
-  const lo = min ?? 1
-  const hi = max ?? 5
-  const active = min !== undefined || max !== undefined
-  const point = min !== undefined && min === max
+  const presets: [number, string][] = [[4, '≥ 4 ★'], [4.5, '≥ 4.5 ★']]
   return (
     <div className="px-1 pt-1">
-      <Slider
-        min={1}
-        max={5}
-        step={0.5}
-        value={[lo, hi]}
-        thumbLabels={['Minimum rating', 'Maximum rating']}
-        onValueChange={(v) => {
-          const [a, b] = v as number[]
-          onChange(a <= 1 ? undefined : a, b >= 5 ? undefined : b)
-        }}
-      />
+      <div className="flex flex-wrap gap-1">
+        {presets.map(([v, label]) => (
+          <PresetChip
+            key={label}
+            label={label}
+            ariaLabel={`Rating at least ${v}`}
+            active={min === v && max === undefined}
+            onClick={() => onChange(min === v && max === undefined ? undefined : v, undefined)}
+          />
+        ))}
+      </div>
       <BoundPair
         min={min}
         max={max}
-        placeholderMin="1"
-        placeholderMax="5"
+        placeholderMin="ab"
+        placeholderMax="bis"
         labelMin="Rating from"
         labelMax="Rating to"
         parse={(raw, cur) => {
@@ -179,39 +235,44 @@ function RatingFacet({ min, max, onChange }: { min?: number; max?: number; onCha
         }}
         onCommit={(ratingMin, ratingMax) => onChange(ratingMin, ratingMax)}
       />
-      <div className="mt-1 text-xs text-muted-foreground">
-        {point ? `${min} ★ (exakt)` : active ? `${lo} – ${hi} ★` : 'Any rating'}
+      <div role="status" className="mt-1 text-xs text-muted-foreground">
+        {rangeStatusLabel(min, max, ' ★', 'Any rating')}
       </div>
     </div>
   )
 }
 
-/** Release-year range over the years actually present in the library: a coarse
- *  slider plus exact numeric entry; both bounds equal = exactly that year.
- *  Full span = filter inactive (both bounds undefined), mirroring the rating
- *  facet's convention. Series dim filters the aggregated series start year,
- *  issues dim the per-book release date. */
+/** Release-year facet over the years actually present in the library: decade
+ *  presets for the coarse pick, exact numeric entry below. One entry + Enter =
+ *  exactly that year; an empty side = open. Series dim filters the aggregated
+ *  series start year, issues dim the per-book release date. */
 function YearFacet({ min, max, lo, hi, onChange }: { min?: number; max?: number; lo: number; hi: number; onChange: (min?: number, max?: number) => void }) {
-  const active = min !== undefined || max !== undefined
-  const point = min !== undefined && min === max
+  const decades: [number, number, string][] = []
+  for (let d = Math.floor(lo / 10) * 10; d <= hi; d += 10) {
+    const end = Math.min(hi, d + 9)
+    decades.push([d, end, `${String(d % 100).padStart(2, '0')}s`])
+  }
   return (
     <div className="px-1 pt-1">
-      <Slider
-        min={lo}
-        max={hi}
-        step={1}
-        value={[min ?? lo, max ?? hi]}
-        thumbLabels={['Minimum year', 'Maximum year']}
-        onValueChange={(v) => {
-          const [a, b] = v as number[]
-          onChange(a <= lo ? undefined : a, b >= hi ? undefined : b)
-        }}
-      />
+      <div className="flex flex-wrap gap-1">
+        {decades.map(([d, end, label]) => (
+          <PresetChip
+            key={d}
+            label={label}
+            ariaLabel={`${d}s`}
+            active={min === d && max === end}
+            onClick={() => {
+              const on = min === d && max === end
+              onChange(on ? undefined : d, on ? undefined : end)
+            }}
+          />
+        ))}
+      </div>
       <BoundPair
         min={min}
         max={max}
-        placeholderMin={String(lo)}
-        placeholderMax={String(hi)}
+        placeholderMin="ab"
+        placeholderMax="bis"
         labelMin="Year from"
         labelMax="Year to"
         parse={(raw, cur) => {
@@ -221,8 +282,8 @@ function YearFacet({ min, max, lo, hi, onChange }: { min?: number; max?: number;
         }}
         onCommit={(yearMin, yearMax) => onChange(yearMin, yearMax)}
       />
-      <div className="mt-1 text-xs text-muted-foreground">
-        {point ? `${min} (exakt)` : active ? `${min ?? lo} – ${max ?? hi}` : 'Any year'}
+      <div role="status" className="mt-1 text-xs text-muted-foreground">
+        {rangeStatusLabel(min, max, '', 'Any year')}
       </div>
     </div>
   )

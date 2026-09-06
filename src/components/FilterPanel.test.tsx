@@ -125,8 +125,8 @@ describe('FilterPanelInner', () => {
   it('auto-expands the Rating facet when a bound is active and shows the range label', () => {
     renderPanel({ ...DEFAULT_FILTERS, ratingMin: 4 })
     expect(screen.getByRole('button', { name: 'Rating' })).toHaveAttribute('aria-expanded', 'true')
-    // Rating bounds render trimmed onto the tag grid: 4 → "4", not "4.0".
-    expect(screen.getByText('4 – 5 ★')).toBeInTheDocument()
+    // Status uses the chip notation: one-sided lower bound → ≥.
+    expect(screen.getByRole('status')).toHaveTextContent('≥ 4 ★')
   })
 
   it('shows "Any rating" when the Rating facet is opened without a bound', () => {
@@ -138,24 +138,14 @@ describe('FilterPanelInner', () => {
   it('auto-expands the Release year facet when a bound is active and shows the range label', () => {
     renderPanel({ ...DEFAULT_FILTERS, yearMin: 1990 })
     expect(screen.getByRole('button', { name: 'Release year' })).toHaveAttribute('aria-expanded', 'true')
-    // One-sided lower bound renders against the data extremes: 1990 – 2026.
-    expect(screen.getByText('1990 – 2026')).toBeInTheDocument()
+    // One-sided lower bound → ≥ notation, matching the filter chips.
+    expect(screen.getByText('≥ 1990')).toBeInTheDocument()
   })
 
   it('shows "Any year" when the Release year facet is opened without a bound', () => {
     renderPanel()
     fireEvent.click(screen.getByRole('button', { name: 'Release year' }))
     expect(screen.getByText('Any year')).toBeInTheDocument()
-  })
-
-  it('emits a year bound when the min thumb is stepped up via keyboard', () => {
-    const onChange = vi.fn()
-    renderPanel(DEFAULT_FILTERS, onChange)
-    fireEvent.click(screen.getByRole('button', { name: 'Release year' }))
-    fireEvent.keyDown(screen.getByLabelText('Minimum year'), { key: 'ArrowRight' })
-    // From the full data span [1940, 2026], stepping the min up by 1 → yearMin
-    // 1941, yearMax cleared (2026 maps back to undefined = inactive upper bound).
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ yearMin: 1941, yearMax: undefined }))
   })
 
   it('toggles a format kind and emits updated filters', () => {
@@ -180,24 +170,61 @@ describe('FilterPanelInner', () => {
     expect(screen.getByRole('button', { name: 'Format' })).toHaveAttribute('aria-expanded', 'true')
   })
 
-  it('emits a rating bound when the min thumb is stepped up via keyboard', () => {
-    const onChange = vi.fn()
-    renderPanel(DEFAULT_FILTERS, onChange)
-    fireEvent.click(screen.getByRole('button', { name: 'Rating' }))
-    fireEvent.keyDown(screen.getByLabelText('Minimum rating'), { key: 'ArrowRight' })
-    // From the full range [1, 5], stepping the min up by 0.5 → ratingMin 1.5,
-    // ratingMax cleared (5 maps back to undefined = inactive upper bound).
-    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ ratingMin: 1.5, ratingMax: undefined }))
-  })
-
-  it('commits typed year bounds as a point range (GENAU 1986)', () => {
+  it('seeds a point range from a single entry (Enter in the from-field)', () => {
     const { log } = renderStatefulPanel()
     fireEvent.click(screen.getByRole('button', { name: 'Release year' }))
-    typeAndCommit('Year from', '1986')
-    expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ yearMin: 1986, yearMax: undefined }))
-    typeAndCommit('Year to', '1986')
+    // Date-range-picker convention: the first committed value seeds BOTH ends.
+    fireEvent.change(screen.getByLabelText('Year from'), { target: { value: '1986' } })
+    fireEvent.keyDown(screen.getByLabelText('Year from'), { key: 'Enter' })
     expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ yearMin: 1986, yearMax: 1986 }))
-    expect(screen.getByText('1986 (exakt)')).toBeInTheDocument()
+    expect(screen.getByText('= 1986')).toBeInTheDocument()
+    // The end field is seeded and ready to widen the point into a range.
+    expect(screen.getByLabelText('Year to')).toHaveValue('1986')
+    fireEvent.change(screen.getByLabelText('Year to'), { target: { value: '2020' } })
+    fireEvent.keyDown(screen.getByLabelText('Year to'), { key: 'Enter' })
+    expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ yearMin: 1986, yearMax: 2020 }))
+    expect(screen.getByText('1986 – 2020')).toBeInTheDocument()
+  })
+
+  it('seeds a rating point from one entry, snapped onto the 0.05 tag grid', () => {
+    const { log } = renderStatefulPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Rating' }))
+    fireEvent.change(screen.getByLabelText('Rating from'), { target: { value: '4.13' } })
+    fireEvent.keyDown(screen.getByLabelText('Rating from'), { key: 'Enter' })
+    expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ ratingMin: 4.15, ratingMax: 4.15 }))
+    expect(screen.getByText('= 4.15 ★')).toBeInTheDocument()
+    expect(screen.getByLabelText('Rating to')).toHaveValue('4.15')
+  })
+
+  it('converts a retyped lower bound into a point and widens via the to-field', () => {
+    const { log } = renderStatefulPanel({ ...DEFAULT_FILTERS, yearMin: 2019 })
+    // Auto-opened via the active yearMin — no header click.
+    fireEvent.change(screen.getByLabelText('Year from'), { target: { value: '2015' } })
+    fireEvent.keyDown(screen.getByLabelText('Year from'), { key: 'Enter' })
+    expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ yearMin: 2015, yearMax: 2015 }))
+    fireEvent.change(screen.getByLabelText('Year to'), { target: { value: '' } })
+    fireEvent.keyDown(screen.getByLabelText('Year to'), { key: 'Enter' })
+    // Clearing the seeded end reopens that side: ≥ 2015.
+    expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ yearMin: 2015, yearMax: undefined }))
+    expect(screen.getByText('≥ 2015')).toBeInTheDocument()
+  })
+
+  it('applies and clears decade presets', () => {
+    const { log } = renderStatefulPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Release year' }))
+    fireEvent.click(screen.getByRole('button', { name: '1980s' }))
+    expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ yearMin: 1980, yearMax: 1989 }))
+    expect(screen.getByRole('button', { name: '1980s' })).toHaveAttribute('aria-pressed', 'true')
+    fireEvent.click(screen.getByRole('button', { name: '1980s' }))
+    expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ yearMin: undefined, yearMax: undefined }))
+  })
+
+  it('applies the rating threshold preset', () => {
+    const { log } = renderStatefulPanel()
+    fireEvent.click(screen.getByRole('button', { name: 'Rating' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Rating at least 4' }))
+    expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ ratingMin: 4, ratingMax: undefined }))
+    expect(screen.getByRole('status')).toHaveTextContent('≥ 4 ★')
   })
 
   it('swaps typed bounds that cross (von > bis)', () => {
@@ -223,16 +250,6 @@ describe('FilterPanelInner', () => {
     expect(log).not.toHaveBeenCalled()
     // The draft is dropped and the field falls back to the bound-less display.
     expect(screen.getByLabelText('Year to')).toHaveValue('')
-  })
-
-  it('commits typed rating bounds snapped onto the 0.05 tag grid', () => {
-    const { log } = renderStatefulPanel()
-    fireEvent.click(screen.getByRole('button', { name: 'Rating' }))
-    typeAndCommit('Rating from', '4.13')
-    expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ ratingMin: 4.15, ratingMax: undefined }))
-    typeAndCommit('Rating to', '4.15')
-    expect(log).toHaveBeenLastCalledWith(expect.objectContaining({ ratingMin: 4.15, ratingMax: 4.15 }))
-    expect(screen.getByText('4.15 ★ (exakt)')).toBeInTheDocument()
   })
 
   // A render cap used to hide the tail of the alphabet: the live library has 143
