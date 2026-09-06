@@ -122,9 +122,11 @@ thumbnails) and never knows the real Komga origin or key.
 - **Dev:** Vite `server.proxy` maps `/komga` → `${KOMGA_BASE_URL}`, rewrites
   `/komga/api/...` → `/api/...`, and injects `X-API-Key` from a gitignored
   `.env`. Fixes CORS, makes thumbnail `<img>` work, keeps the key off the client.
-- **Production (future):** a Docker Compose stack — static SPA behind a reverse
-  proxy (Caddy/nginx) that proxies `/komga/*` and injects the key, mirroring the
-  dev proxy. The relative `/komga` path means **no client changes** dev→prod.
+- **Production:** the first-party Docker image — the Go server in `server/`
+  serves the static SPA, gates everything behind a single shared password
+  (signed HttpOnly cookie), and proxies `/komga/*` to Komga with the key
+  injected, mirroring the dev proxy. The relative `/komga` path means **no
+  client changes** dev→prod.
 
 ### Data layer (`src/lib/komga/`)
 

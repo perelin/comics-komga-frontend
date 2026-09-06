@@ -5,9 +5,57 @@ import { filtersToCondition, listQueryParams, type Filters } from './filters'
 
 const BASE = '/komga/api/v1'
 
+// --- Session-expiry handling --------------------------------------------------
+// The production server gates everything (including /komga/*) behind a signed
+// session cookie. When that cookie expires mid-session, every API call starts
+// failing with 401. Instead of surfacing cryptic errors, probe the server's
+// auth-check endpoint once: a 401 there means our session is genuinely gone →
+// bounce to the login page (we come back afterwards via its ?next= target,
+// since all view state lives in the URL). Any other outcome leaves the error
+// to surface normally: 200 = the session is fine and the 401 came from Komga
+// itself (e.g. a broken API key); 404 = no auth layer exists here at all
+// (the Vite dev server).
+
+let redirectingToLogin = false
+let navigateImpl: (url: string) => void = (url) => window.location.assign(url)
+
+/** Test hooks: reset the one-shot navigation latch and swap the navigation
+ *  side effect (jsdom's window.location cannot be spied on or replaced). */
+export function resetSessionRedirectForTests(): void {
+  redirectingToLogin = false
+}
+export function setSessionNavigatorForTests(navigate: (url: string) => void): void {
+  navigateImpl = navigate
+}
+
+export async function handleSessionExpired(
+  doFetch: typeof fetch = fetch,
+  navigate: (url: string) => void = navigateImpl,
+): Promise<void> {
+  if (redirectingToLogin) return
+  let status: number
+  try {
+    status = (await doFetch('/auth/check', { headers: { Accept: 'application/json' } })).status
+  } catch {
+    return // network hiccup — never navigate on a flaky connection
+  }
+  if (status !== 401) return
+  redirectingToLogin = true
+  navigate(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`)
+}
+
+/** Every API response funnels through here before its error is thrown: a 401
+ *  *may* mean our instance session expired — fire the probe (once) and let
+ *  the original error still throw so React Query renders its error state in
+ *  the meantime. */
+function checkSession(res: Response): void {
+  if (res.status === 401) void handleSessionExpired()
+}
+
 async function get<T>(path: string, params?: URLSearchParams): Promise<T> {
   const qs = params && [...params.keys()].length ? `?${params.toString()}` : ''
   const res = await fetch(`${BASE}${path}${qs}`, { headers: { Accept: 'application/json' } })
+  checkSession(res)
   if (!res.ok) throw new Error(`Komga ${res.status} ${res.statusText} on ${path}`)
   return (await res.json()) as T
 }
@@ -21,6 +69,7 @@ async function send(method: string, path: string, body?: unknown): Promise<void>
       ? { headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }
       : {}),
   })
+  checkSession(res)
   if (!res.ok) throw new Error(`Komga ${res.status} ${res.statusText} on ${method} ${path}`)
 }
 
@@ -32,6 +81,7 @@ async function postList<T>(path: string, body: unknown, params?: URLSearchParams
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
     body: JSON.stringify(body),
   })
+  checkSession(res)
   if (!res.ok) throw new Error(`Komga ${res.status} ${res.statusText} on ${path}`)
   return (await res.json()) as T
 }

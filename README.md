@@ -45,12 +45,17 @@ filtering, a ⌘K command palette, and an ambient Series Detail page.
 - **Command Palette** (⌘K / Ctrl-K) — server-backed series search (the heading
   names the withheld remainder when a page cuts the matches), searchable
   jump-to-library navigation across every library, and recently-visited series.
+- **Single-password gate** — the production server requires one shared password
+  (no user management) before anything loads, including the `/komga/*` data
+  proxy. Signed HttpOnly cookie, logout at `/logout`, failed-attempt throttling
+  on the login form. Dev mode has no login. See [Authentication](#authentication).
 
 ## Requirements
 
 - A running **[Komga](https://komga.org) server** you can reach over HTTP(S).
 - A Komga **API key** (Komga → *Account Settings* → *API Keys*).
-- **Node.js 20+** and npm.
+- **Node.js 20+** and npm for development; **Go 1.22+** only if you want to run
+  the production server outside Docker.
 
 ## Quick start (development)
 
@@ -68,18 +73,23 @@ CORS restriction, lets `<img>` tags load thumbnails (which require auth), and
 keeps your API key out of the browser bundle. The app only ever calls the
 relative path `/komga/api/v1/…`.
 
+There is no login in dev mode — the password gate is part of the production
+server (see [Authentication](#authentication)).
+
 ## Scripts
 
 - `npm run dev` — dev server (with the Komga proxy)
 - `npm run build` — typecheck (`tsc -b`) + production build into `dist/`
 - `npm test` — unit tests (Vitest)
 - `npm run lint` — ESLint
+- `go test ./...` (inside `server/`) — unit tests for the Go server
 
 ## Self-hosting (production)
 
-Two paths: the **Docker image** built from this repo (batteries included — Komga
-proxy and API-key injection are part of it), or serving the static `dist/` behind
-a reverse proxy you configure yourself.
+Two paths: the **Docker image** built from this repo (batteries included —
+password gate, Komga proxy, and API-key injection are all part of it), or the
+**Go server alone**: build the SPA and run `server/` next to it, no Docker
+involved.
 
 One rule holds either way: the `X-API-Key` is injected **server-side**. The app
 only ever calls the relative path `/komga/*`, so the browser never sees the key.
@@ -91,66 +101,59 @@ docker build -t comics-komga-frontend \
   --build-arg VITE_KOMGA_PUBLIC_URL=https://komga.example.com .
 
 docker run -d -p 8080:80 \
+  -e APP_PASSWORD=your-instance-password \
   -e KOMGA_BASE_URL=https://komga.example.com \
   -e KOMGA_API_KEY=your-komga-api-key \
   comics-komga-frontend
 ```
 
-The image builds the SPA (with the test suite as a build gate) and serves it
-with Caddy on port 80, proxying `/komga/*` to your Komga server. Terminate TLS
-at your own edge in front of it.
+The image builds the SPA and the Go server (each with its test suite as a build
+gate) and runs the server on port 80: it serves the SPA, requires the instance
+password, and proxies `/komga/*` to your Komga server. Terminate TLS at your
+own edge in front of it.
 
 | Variable | When | Purpose |
 |----------|------|---------|
 | `VITE_KOMGA_PUBLIC_URL` | **build** (`--build-arg`) | Browser-facing Komga origin, baked into the bundle for the native-reader and OPDS deep-links. Public, not a secret; changing it needs a rebuild. |
-| `KOMGA_BASE_URL` | run (`-e`) | Where the container proxies `/komga/*`. Include the scheme. |
+| `APP_PASSWORD` | run (`-e`) | The instance password — required. Everything except `/healthz` sits behind it. Changing it also invalidates all sessions. |
+| `KOMGA_BASE_URL` | run (`-e`) | Where the server proxies `/komga/*`. Include the scheme. |
 | `KOMGA_API_KEY` | run (`-e`) | Injected server-side on every proxied request. Never pass it as a build arg — it must not reach the bundle. |
+
+Optional runtime knobs: `ADDR` (listen address, default `:80`), `SRV_DIR`
+(Where the built SPA lives, default `/srv`), `SESSION_MAX_AGE` (cookie
+lifetime as a Go duration, default `720h`).
 
 `GET /healthz` returns `200` without touching Komga, so a health check won't
 fail the container during a Komga outage.
 
-If your edge adds basic-auth, note that the container drops the inbound
+If your edge adds basic-auth, note that the server drops the inbound
 `Authorization` header before proxying — otherwise Komga tries to authenticate
 those credentials as a Komga user and returns 401, ignoring the API key.
 
 ### Behind your own reverse proxy
 
-Serve `dist/` with a client-side-routing fallback to `index.html` and point
-`/komga/*` at your Komga server. A minimal [Caddy](https://caddyserver.com)
-example:
-
-```caddy
-:80 {
-	encode gzip zstd
-
-	# Strip the /komga prefix and inject the API key server-side.
-	handle_path /komga/* {
-		reverse_proxy https://komga.example.com {
-			header_up Host komga.example.com
-			# Only needed if something in front of you adds basic-auth: Komga
-			# would try to authenticate those credentials as a Komga user and
-			# 401, ignoring the API key.
-			header_up -Authorization
-			header_up X-API-Key {$KOMGA_API_KEY}
-		}
-	}
-
-	# Static SPA with client-side-routing fallback.
-	handle {
-		root * /srv/dist
-		try_files {path} /index.html
-		file_server
-	}
-}
-```
+The Go server is self-contained — it serves the SPA, enforces the password
+gate, and proxies `/komga/*` — so your edge only has to terminate TLS and
+forward everything. Build the SPA and run the server next to it (Go 1.22+):
 
 ```bash
 npm run build
-# serve ./dist behind the proxy above, with KOMGA_API_KEY set in its environment
+cd server
+APP_PASSWORD=… KOMGA_BASE_URL=https://komga.example.com \
+  KOMGA_API_KEY=… ADDR=:8080 SRV_DIR=../dist go run .
 ```
 
-nginx, Traefik, or any other proxy that can add a request header works the same
-way.
+A minimal [Caddy](https://caddyserver.com) example for the edge:
+
+```caddy
+komga.example.com {
+	reverse_proxy 127.0.0.1:8080
+}
+```
+
+nginx, Traefik, or any other TLS-terminating proxy works the same way — forward
+the whole origin at the server and make sure `X-Forwarded-Proto: https` reaches
+it, so the session cookie gets its `Secure` flag.
 
 ### Deploying on a push (how this instance runs)
 
@@ -161,12 +164,54 @@ in this repo. This instance runs on [Coolify](https://coolify.io): it watches
 new one reports healthy (that's what the `HEALTHCHECK` on `/healthz` is for).
 Dokku, Kamal, or Portainer behave the same way.
 
-Set `KOMGA_BASE_URL` and `KOMGA_API_KEY` as runtime environment variables and
-`VITE_KOMGA_PUBLIC_URL` as a build argument in the platform's own settings (see
-the table above) — the API key must never reach the repo or the bundle.
+Set `APP_PASSWORD`, `KOMGA_BASE_URL`, and `KOMGA_API_KEY` as runtime
+environment variables and `VITE_KOMGA_PUBLIC_URL` as a build argument in the
+platform's own settings (see the table above) — the API key must never reach
+the repo or the bundle.
 
-So: **push to `main` and the deploy is the build.** Since the test suite is the
-image's build gate, a red suite means no new container rather than a broken one.
+So: **push to `main` and the deploy is the build.** Since the test suites are
+the image's build gate, a red suite means no new container rather than a broken
+one.
+
+## Authentication
+
+The production server has a deliberately small auth layer — **one shared
+password, no user management**:
+
+- Everything except `/healthz` and `/login` is behind it — **including the
+  `/komga/*` proxy**. Protecting only the page would be theater: the data
+  flows through the proxy, so the gate sits in front of both.
+- On success the server sets a **signed HttpOnly cookie** (`ckf_session`,
+  HMAC-SHA256, `SameSite=Lax`): stateless — no session store, no JWT library.
+  The signing key is derived from `APP_PASSWORD`, so changing the password
+  also invalidates every outstanding session.
+- Page navigations without a session are redirected to `/login?next=…` and
+  land back where they were headed after signing in (`next` is validated to
+  be same-origin). API and thumbnail requests get a bare **401** instead — a
+  redirect to an HTML page would confuse `fetch()` and `<img>`.
+- The SPA knows about the gate: every API client that receives a 401 probes
+  `GET /auth/check` (a tiny endpoint that answers the session's validity and
+  expiry without touching Komga). If the probe says the session is gone, the
+  app redirects to the login page and returns to the exact view afterwards;
+  if the session is fine, the 401 came from Komga itself and is surfaced as
+  a normal error instead. In dev (no auth layer → probe 404s) nothing ever
+  redirects.
+- **Sign out** lives in the sidebar footer (a plain link to `/logout`, plus
+  an icon in the mobile top bar). Sessions are stateless, so logout deletes
+  the cookie client-side; a copy of it made before logout stays valid until
+  it expires (`SESSION_MAX_AGE`, default 30 days). Rotating `APP_PASSWORD` is
+  the force-revoke-everything button.
+- `/login` throttles wrong passwords: after 5 failures within 10 minutes from
+  one address, further wrong attempts get `429` until the window expires. A
+  correct password always gets through — typos never lock you out for good.
+- **Logout** at `/logout`. Sessions are stateless, so logout deletes the
+  cookie client-side; a copy of it made before logout stays valid until it
+  expires (`SESSION_MAX_AGE`, default 30 days). Rotating `APP_PASSWORD` is
+  the force-revoke-everything button.
+- The password is compared in constant time, but it lives in an environment
+  variable — anyone who can read the container's env can read it, same as
+  `KOMGA_API_KEY`. This is a fence for a private instance, not multi-user
+  auth.
 
 ## How ratings work
 
@@ -229,7 +274,8 @@ show them too, which duplicated them a few hundred pixels apart.
 
 Vite · React · TypeScript · Tailwind + shadcn/ui (dark mode) · TanStack Query
 (server state) · TanStack Virtual · React Router (URL state) · lucide-react ·
-Vitest + Testing Library.
+Vitest + Testing Library — served by a small dependency-free Go server
+(`server/`: password gate, static serving, Komga proxy).
 
 ## Roadmap
 
