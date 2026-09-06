@@ -45,6 +45,20 @@ describe('ActiveFilters', () => {
     expect(screen.getByText('≤ 2020')).toBeTruthy()
   })
 
+  it('renders point ranges as single values (1986, not 1986–1986)', () => {
+    const onChange = vi.fn()
+    render(<ActiveFilters filters={{ ...DEFAULT_FILTERS, yearMin: 1986, yearMax: 1986, ratingMin: 4, ratingMax: 4 }} onChange={onChange} />)
+    expect(screen.getByText('1986')).toBeTruthy()
+    expect(screen.getByText('4 ★')).toBeTruthy()
+    fireEvent.click(screen.getByLabelText('remove Year 1986'))
+    expect(onChange).toHaveBeenCalledWith(expect.objectContaining({ yearMin: undefined, yearMax: undefined }))
+  })
+
+  it('trims rating bounds to the tag grid in the chip label', () => {
+    render(<ActiveFilters filters={{ ...DEFAULT_FILTERS, ratingMin: 4.15, ratingMax: 4.5 }} onChange={vi.fn()} />)
+    expect(screen.getByText('4.15–4.5 ★')).toBeTruthy()
+  })
+
   it('hides series-only chips in the Issues dimension, keeps the shared ones', () => {
     const filters = { ...DEFAULT_FILTERS, publisher: ['Image'], genre: ['noir'], authors: ['Neil Gaiman'], readStatus: ['UNREAD' as const] }
     const { rerender } = render(<ActiveFilters filters={filters} onChange={vi.fn()} dim="series" />)

@@ -19,10 +19,15 @@ function chipsFor(f: Filters, dim: BrowseDim): Chip[] {
   f.format.forEach((k) => chips.push({ field: 'format', label: 'Format', value: k, display: FORMAT_LABEL[k] }))
   if (f.formatMixed) chips.push({ field: 'formatMixed', label: 'Format', value: 'mixed', display: 'Mixed' })
   if (f.ratingMin !== undefined || f.ratingMax !== undefined) {
-    chips.push({ field: 'ratingMin', label: 'Rating', value: `${(f.ratingMin ?? 1).toFixed(1)}–${(f.ratingMax ?? 5).toFixed(1)} ★` })
+    // Bounds are on the 0.05 tag grid, so template strings trim cleanly
+    // (4.15 → "4.15", 4.5 → "4.5", 4 → "4"). min === max renders as a point.
+    const lo = f.ratingMin ?? 1
+    const hi = f.ratingMax ?? 5
+    chips.push({ field: 'ratingMin', label: 'Rating', value: lo === hi ? `${lo} ★` : `${lo}–${hi} ★` })
   }
   if (f.yearMin !== undefined || f.yearMax !== undefined) {
-    const year = f.yearMin !== undefined && f.yearMax !== undefined ? `${f.yearMin}–${f.yearMax}`
+    const year = f.yearMin !== undefined && f.yearMin === f.yearMax ? String(f.yearMin)
+      : f.yearMin !== undefined && f.yearMax !== undefined ? `${f.yearMin}–${f.yearMax}`
       : f.yearMin !== undefined ? `≥ ${f.yearMin}`
       : `≤ ${f.yearMax}`
     chips.push({ field: 'yearMin', label: 'Year', value: year })

@@ -164,6 +164,11 @@ describe('rating filter', () => {
     expect(f.ratingMin).toBeUndefined()
     expect(f.ratingMax).toBeUndefined()
   })
+  it('snaps shared URL bounds onto the 0.05 tag grid', () => {
+    const f = searchParamsToFilters(new URLSearchParams('ratingMin=4.13&ratingMax=4'))
+    expect(f.ratingMin).toBe(4.15)
+    expect(f.ratingMax).toBe(4)
+  })
   it('no bounds → no condition', () => {
     expect(filtersToCondition(DEFAULT_FILTERS)).toEqual({})
   })
@@ -178,6 +183,11 @@ describe('rating filter', () => {
   it('a single grid step → bare tag node (no anyOf wrapper)', () => {
     expect(filtersToCondition({ ...DEFAULT_FILTERS, ratingMin: 4.0, ratingMax: 4.0 }))
       .toEqual({ condition: { tag: { operator: 'is', value: 'rating:4.00' } } })
+  })
+  it('snaps off-grid bounds inward so no phantom tag is enumerated', () => {
+    // [4.13, 4.17] is narrower than one grid step → the single grid point inside.
+    expect(filtersToCondition({ ...DEFAULT_FILTERS, ratingMin: 4.13, ratingMax: 4.17 }))
+      .toEqual({ condition: { tag: { operator: 'is', value: 'rating:4.15' } } })
   })
   it('min-only bound runs the grid up to 5.00 (≥ threshold)', () => {
     const body = filtersToCondition({ ...DEFAULT_FILTERS, ratingMin: 4.5 })

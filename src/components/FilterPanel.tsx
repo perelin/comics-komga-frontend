@@ -7,7 +7,7 @@ import { Slider } from '@/components/ui/slider'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { usePersistentState } from '@/hooks/usePersistentState'
 import { cn } from '@/lib/utils'
-import { resetFiltersKeepingSort, type Filters, type BrowseDim } from '@/lib/komga/filters'
+import { resetFiltersKeepingSort, snapRating, type Filters, type BrowseDim } from '@/lib/komga/filters'
 import type { FormatKind } from '@/lib/komga/format'
 import type { ReadStatus, SeriesStatus } from '@/lib/komga/types'
 import { useGenres, usePublishers, useAgeRatings, useReleaseYears, FALLBACK_YEAR_BOUNDS } from '@/lib/komga/queries'
@@ -76,12 +76,83 @@ function Opt({ label, checked, onToggle }: { label: string; checked: boolean; on
   )
 }
 
-/** Rating range slider (1–5 stars, half-star steps). Full range = filter inactive
- *  (both bounds undefined), so pulling the handles back to the edges clears it. */
+/** One numeric bound field. Empty = bound unset; Enter/blur commits, Escape
+ *  reverts the draft. While focused the field is uncontrolled so live slider
+ *  moves don't fight the caret. `parse` maps the raw entry to the committed
+ *  number (returning the current value rejects a malformed entry); an empty
+ *  input clears the bound. Unlike the slider gesture, a typed value at the
+ *  span edge is an explicit bound — that's how "GENAU <earliest year>" works. */
+function BoundsInput({ value, placeholder, label, parse, onCommit }: {
+  value?: number
+  placeholder: string
+  label: string
+  parse: (raw: string, current: number | undefined) => number | undefined
+  onCommit: (v: number | undefined) => void
+}) {
+  const [draft, setDraft] = useState<string | null>(null)
+  const commit = () => {
+    if (draft === null) return
+    setDraft(null)
+    const raw = draft.trim()
+    const next = raw === '' ? undefined : parse(raw, value)
+    if (next !== value) onCommit(next)
+  }
+  return (
+    <Input
+      value={draft ?? (value === undefined ? '' : String(value))}
+      inputMode="decimal"
+      placeholder={placeholder}
+      aria-label={label}
+      className="h-7 min-w-0 flex-1 border-border/60 bg-background/60 text-center text-xs"
+      onChange={(e) => setDraft(e.target.value)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') { e.preventDefault(); commit() }
+        else if (e.key === 'Escape') setDraft(null)
+      }}
+      onBlur={commit}
+    />
+  )
+}
+
+/** The von/bis entry row under a range slider. Both bounds equal = point range
+ *  (GENAU 1986 / GENAU 4 ★); a committed pair with min > max is swapped. */
+function BoundPair({ min, max, placeholderMin, placeholderMax, labelMin, labelMax, parse, onCommit }: {
+  min?: number
+  max?: number
+  placeholderMin: string
+  placeholderMax: string
+  labelMin: string
+  labelMax: string
+  parse: (raw: string, current: number | undefined, which: 'min' | 'max') => number | undefined
+  onCommit: (min: number | undefined, max: number | undefined) => void
+}) {
+  const commit = (v: number | undefined, which: 'min' | 'max') => {
+    let a = which === 'min' ? v : min
+    let b = which === 'max' ? v : max
+    if (a !== undefined && b !== undefined && a > b) [a, b] = [b, a]
+    onCommit(a, b)
+  }
+  return (
+    <div className="mt-1.5 flex items-center gap-1.5">
+      <BoundsInput value={min} placeholder={placeholderMin} label={labelMin}
+        parse={(raw, cur) => parse(raw, cur, 'min')} onCommit={(v) => commit(v, 'min')} />
+      <span aria-hidden="true" className="text-xs text-muted-foreground">–</span>
+      <BoundsInput value={max} placeholder={placeholderMax} label={labelMax}
+        parse={(raw, cur) => parse(raw, cur, 'max')} onCommit={(v) => commit(v, 'max')} />
+    </div>
+  )
+}
+
+/** Rating range (1–5 stars): a coarse 0.5-step slider plus exact numeric entry.
+ *  Typed bounds are snapped onto the 0.05 tag grid (4.13 → 4.15) — an off-grid
+ *  bound would enumerate tags no series carries. Full range = filter inactive
+ *  (both bounds undefined); pulling a slider handle to the edge clears that
+ *  bound, while a typed edge value is an explicit bound. */
 function RatingFacet({ min, max, onChange }: { min?: number; max?: number; onChange: (min?: number, max?: number) => void }) {
   const lo = min ?? 1
   const hi = max ?? 5
   const active = min !== undefined || max !== undefined
+  const point = min !== undefined && min === max
   return (
     <div className="px-1 pt-1">
       <Slider
@@ -95,19 +166,34 @@ function RatingFacet({ min, max, onChange }: { min?: number; max?: number; onCha
           onChange(a <= 1 ? undefined : a, b >= 5 ? undefined : b)
         }}
       />
+      <BoundPair
+        min={min}
+        max={max}
+        placeholderMin="1"
+        placeholderMax="5"
+        labelMin="Rating from"
+        labelMax="Rating to"
+        parse={(raw, cur) => {
+          const n = Number(raw)
+          return Number.isFinite(n) ? snapRating(n) : cur
+        }}
+        onCommit={(ratingMin, ratingMax) => onChange(ratingMin, ratingMax)}
+      />
       <div className="mt-1 text-xs text-muted-foreground">
-        {active ? `${lo.toFixed(1)} – ${hi.toFixed(1)} ★` : 'Any rating'}
+        {point ? `${min} ★ (exakt)` : active ? `${lo} – ${hi} ★` : 'Any rating'}
       </div>
     </div>
   )
 }
 
-/** Release-year range slider over the years actually present in the library.
+/** Release-year range over the years actually present in the library: a coarse
+ *  slider plus exact numeric entry; both bounds equal = exactly that year.
  *  Full span = filter inactive (both bounds undefined), mirroring the rating
  *  facet's convention. Series dim filters the aggregated series start year,
  *  issues dim the per-book release date. */
 function YearFacet({ min, max, lo, hi, onChange }: { min?: number; max?: number; lo: number; hi: number; onChange: (min?: number, max?: number) => void }) {
   const active = min !== undefined || max !== undefined
+  const point = min !== undefined && min === max
   return (
     <div className="px-1 pt-1">
       <Slider
@@ -121,8 +207,22 @@ function YearFacet({ min, max, lo, hi, onChange }: { min?: number; max?: number;
           onChange(a <= lo ? undefined : a, b >= hi ? undefined : b)
         }}
       />
+      <BoundPair
+        min={min}
+        max={max}
+        placeholderMin={String(lo)}
+        placeholderMax={String(hi)}
+        labelMin="Year from"
+        labelMax="Year to"
+        parse={(raw, cur) => {
+          const n = Number(raw)
+          // Non-integers / junk revert; anything outside the data span clamps in.
+          return Number.isInteger(n) ? Math.min(hi, Math.max(lo, n)) : cur
+        }}
+        onCommit={(yearMin, yearMax) => onChange(yearMin, yearMax)}
+      />
       <div className="mt-1 text-xs text-muted-foreground">
-        {active ? `${min ?? lo} – ${max ?? hi}` : 'Any year'}
+        {point ? `${min} (exakt)` : active ? `${min ?? lo} – ${max ?? hi}` : 'Any year'}
       </div>
     </div>
   )

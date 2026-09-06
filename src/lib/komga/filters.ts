@@ -24,12 +24,14 @@ export interface Filters {
   format: FormatKind[]
   /** true = only series flagged `format:mixed` (the data-quality cleanup list). */
   formatMixed?: boolean
-  /** Inclusive rating bounds (1–5 stars). Both undefined = no rating filter. */
+  /** Inclusive rating bounds (1–5 stars) on the 0.05 tag grid (snapRating).
+   *  Both undefined = no rating filter; min === max = point range (exact tag). */
   ratingMin?: number
   ratingMax?: number
   /** Inclusive release-year bounds. Series dim: the aggregated series start
    *  year (booksMetadata.releaseDate = MIN of its books — live-verified);
-   *  issues dim: per-book metadata.releaseDate. Both undefined = inactive. */
+   *  issues dim: per-book metadata.releaseDate. Both undefined = inactive;
+   *  min === max = exactly that year. */
   yearMin?: number
   yearMax?: number
   search?: string
@@ -84,11 +86,25 @@ const VALID_SORT_KEYS: SortKey[] = [
 ]
 const VALID_SORT_DIRS: SortDir[] = ['asc', 'desc']
 
-/** Parse a rating bound: a finite number within [1, 5], else undefined. */
+/** The granularity the `rating:X.XX` tags actually use is 0.05. Every rating
+ *  bound must sit on this grid: a bound like 4.13 would make ratingFacet
+ *  enumerate tags (`rating:4.13`, `rating:4.18`, …) that no series carries,
+ *  silently matching nothing.
+ *
+ *  Snap a rating bound onto the tag grid, clamped to [1, 5]. Arithmetic stays
+ *  on the integer-cent grid (snapped/100, never *0.05) so the result is the
+ *  exact nearest double: 4.13 → 4.15, not 4.1500000000000004. */
+export function snapRating(v: number): number {
+  const cents = Math.round(v * 100)
+  return Math.min(500, Math.max(100, Math.round(cents / 5) * 5)) / 100
+}
+
+/** Parse a rating bound: a finite number within [1, 5], snapped onto the 0.05
+ *  tag grid (shared URLs / chips may carry off-grid values). */
 function parseRatingBound(v: string | null): number | undefined {
   if (v === null) return undefined
   const n = parseFloat(v)
-  return Number.isFinite(n) && n >= 1 && n <= 5 ? n : undefined
+  return Number.isFinite(n) && n >= 1 && n <= 5 ? snapRating(n) : undefined
 }
 
 /** Parse a year bound: a finite integer in a sane window, else undefined.
@@ -197,16 +213,23 @@ function ageRatingFacet(values: string[]): Condition | null {
  *  Komga can't range-compare tag *values* (they're strings), so we enumerate the
  *  0.05 grid (the real tag granularity) and OR exact `tag is rating:X.XX` nodes —
  *  the only live-verified shape (POST /series/list, v1.23.6). Bounds default to the
- *  full 1–5 range; both undefined → no condition. The enumerated grid covers every
- *  real value in range (a 3.15-rated series falls in [3.0, 4.0]).
+ *  full 1–5 range; both undefined → no condition. min === max is a point range:
+ *  a single tag node (GENAU 4.0 matches only the exact `rating:4.00` tag). The
+ *  grid covers every real value in range (a 3.15-rated series falls in [3.0, 4.0]).
  *  Known minor gap: a stray 1-decimal tag `rating:3.8` (alongside `rating:3.80`)
  *  exists in the data; the 2-decimal grid only matches `rating:3.80`. ≤1 series. */
 function ratingFacet(min?: number, max?: number): Condition | null {
   if (min === undefined && max === undefined) return null
-  const lo = Math.round((min ?? 1) * 100)
-  const hi = Math.round((max ?? 5) * 100)
+  // Snap inward (ceil/floor) so the enumerated grid never exceeds the requested
+  // range even for off-grid bounds that bypassed snapRating. A range narrower
+  // than one grid step collapses to the grid point nearest its lower bound —
+  // never an empty OR (an empty anyOf would silently deactivate the filter).
+  const loC = Math.ceil(Math.round((min ?? 1) * 100) / 5) * 5
+  const hiC = Math.floor(Math.round((max ?? 5) * 100) / 5) * 5
+  const c0 = Math.min(loC, hiC)
+  const c1 = Math.max(loC, hiC)
   const tags: string[] = []
-  for (let c = lo; c <= hi; c += 5) tags.push(`rating:${(c / 100).toFixed(2)}`)
+  for (let c = c0; c <= c1; c += 5) tags.push(`rating:${(c / 100).toFixed(2)}`)
   return orFacet('tag', tags)
 }
 
