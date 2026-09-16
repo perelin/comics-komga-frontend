@@ -7,6 +7,7 @@ import { bookReadState, bookCoverUrl, bookDownloadUrl, bookProgressPct, releaseY
 import { komgaReaderUrl } from '@/lib/komga/reader'
 import { triggerDownload } from '@/lib/download'
 import { CoverImage } from './CoverImage'
+import { AddToReadListButton } from './AddToReadListButton'
 
 /** Where a click on the card navigates:
  *  - `reader` (default): the whole card is the Komga reader deep-link, as on the
@@ -92,6 +93,10 @@ export function BookCard({ book, seriesId, linkTarget = 'reader' }: {
             >
               <Download className="size-3.5" />
             </button>
+            <AddToReadListButton
+              target={{ type: 'book', bookId: book.id }}
+              className="pointer-events-auto inline-flex rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80"
+            />
           </div>
         )}
       </div>

@@ -1,10 +1,10 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, ChevronRight, ExternalLink, Check, RotateCcw, MoreVertical, LayoutGrid, List, BookmarkPlus, Download } from 'lucide-react'
+import { ArrowLeft, ChevronRight, ExternalLink, Check, RotateCcw, MoreVertical, LayoutGrid, List, Download } from 'lucide-react'
 import {
   useSeries, useSeriesBooks, useRelatedByPublisher, useLibraries,
 } from '@/lib/komga/queries'
-import { useMarkBook, useAddToReadList } from '@/lib/komga/mutations'
+import { useMarkBook } from '@/lib/komga/mutations'
 import { mapSeries, pickAuthor } from '@/lib/komga/mapping'
 import { bookReadState, bookCoverUrl, bookDownloadUrl, releaseYear } from '@/lib/komga/books'
 import { komgaReaderUrl, komgaSeriesUrl } from '@/lib/komga/reader'
@@ -27,6 +27,8 @@ import {
 import { SeriesHero } from '@/components/SeriesHero'
 import { SeriesMetaBand } from '@/components/SeriesMetaBand'
 import { MetaChips } from '@/components/MetaChips'
+import { AddToListSubmenu } from '@/components/AddToListSubmenu'
+import { ReadListCreateDialog } from '@/components/ReadListCreateDialog'
 import type { KomgaBookDto, KomgaSeriesDto } from '@/lib/komga/types'
 
 const READING_DIR: Record<string, string> = {
@@ -159,7 +161,7 @@ function BooksTab({ books, seriesId }: { books: KomgaBookDto[]; seriesId: string
 
 function BooksTable({ books, seriesId }: { books: KomgaBookDto[]; seriesId: string }) {
   const mark = useMarkBook(seriesId)
-  const addToList = useAddToReadList()
+  const [creatingFor, setCreatingFor] = useState<string | null>(null)
   if (books.length === 0) return <div className="text-sm text-muted-foreground">No volumes.</div>
   return (
     <div className="rounded-md border border-border">
@@ -223,9 +225,10 @@ function BooksTable({ books, seriesId }: { books: KomgaBookDto[]; seriesId: stri
                     <RotateCcw className="size-4" /> Mark unread
                   </DropdownMenuItem>
                 )}
-                <DropdownMenuItem onClick={() => addToList.mutate({ target: { type: 'book', bookId: b.id }, listId: 'default' })}>
-                  <BookmarkPlus className="size-4" /> Zu „To Read"
-                </DropdownMenuItem>
+                <AddToListSubmenu
+                  target={{ type: 'book', bookId: b.id }}
+                  onCreateNew={() => setCreatingFor(b.id)}
+                />
                 <DropdownMenuItem onClick={() => triggerDownload(bookDownloadUrl(b.id))}>
                   <Download className="size-4" /> Download
                 </DropdownMenuItem>
@@ -234,6 +237,12 @@ function BooksTable({ books, seriesId }: { books: KomgaBookDto[]; seriesId: stri
           </div>
         )
       })}
+      {creatingFor && (
+        <ReadListCreateDialog
+          target={{ type: 'book', bookId: creatingFor }}
+          onClose={() => setCreatingFor(null)}
+        />
+      )}
     </div>
   )
 }

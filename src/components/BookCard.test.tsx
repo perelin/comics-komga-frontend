@@ -64,6 +64,11 @@ describe('BookCard', () => {
     expect(triggerDownloadSpy).toHaveBeenCalledWith('/komga/api/v1/books/b1/file')
   })
 
+  it('exposes an add-to-list hover action for the single volume', () => {
+    render(<BookCard book={unread} seriesId="s1" />)
+    expect(screen.getByLabelText('Add to read list')).toBeInTheDocument()
+  })
+
   it('renders no hover quick-actions on mobile', () => {
     mockViewport(true)
     render(<BookCard book={unread} seriesId="s1" />)

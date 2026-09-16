@@ -40,15 +40,19 @@ vi.mock('@/lib/komga/queries', () => ({
   useSeriesBooks: () => ({ data: books, isLoading: false }),
   useRelatedByPublisher: () => ({ data: [], isLoading: false }),
   useLibraries: () => ({ data: [{ id: 'l1', name: 'xCat:Fra Comics' }], isLoading: false }),
+  useReadLists: () => ({ data: { content: [
+    { id: 'r1', name: 'To Read', bookIds: [] },
+    { id: 'r2', name: 'Sci-Fi', bookIds: ['b1'] },
+  ] } }),
 }))
 
-const { markSeriesMutate, markBookMutate } = vi.hoisted(() => ({
-  markSeriesMutate: vi.fn(), markBookMutate: vi.fn(),
+const { markSeriesMutate, markBookMutate, addToListMutate } = vi.hoisted(() => ({
+  markSeriesMutate: vi.fn(), markBookMutate: vi.fn(), addToListMutate: vi.fn(),
 }))
 vi.mock('@/lib/komga/mutations', () => ({
   useMarkSeries: () => ({ mutate: markSeriesMutate, isPending: false }),
   useMarkBook: () => ({ mutate: markBookMutate, isPending: false }),
-  useAddToReadList: () => ({ mutate: vi.fn() }),
+  useAddToReadList: () => ({ mutate: addToListMutate, isPending: false }),
 }))
 
 const { backSpy } = vi.hoisted(() => ({ backSpy: vi.fn() }))
@@ -171,6 +175,37 @@ describe('SeriesDetail', () => {
     await user.click(screen.getByRole('button', { name: 'Volume 2 actions' }))
     await user.click(await screen.findByRole('menuitem', { name: 'Download' }))
     expect(triggerDownloadSpy).toHaveBeenCalledWith('/komga/api/v1/books/b2/file')
+  })
+
+  it('a per-row submenu adds the volume to a specific list (list view)', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(screen.getByRole('button', { name: 'List' }))
+    await user.click(screen.getByRole('button', { name: 'Volume 3 actions' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Zu Liste' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Sci-Fi/ }))
+    expect(addToListMutate).toHaveBeenCalledWith({ target: { type: 'book', bookId: 'b3' }, listId: 'r2' })
+  })
+
+  it('a per-row submenu quick-adds the volume to the default queue (list view)', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(screen.getByRole('button', { name: 'List' }))
+    await user.click(screen.getByRole('button', { name: 'Volume 3 actions' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Zu Liste' }))
+    await user.click(await screen.findByRole('menuitem', { name: /Schnell zu „To Read"/ }))
+    expect(addToListMutate).toHaveBeenCalledWith({ target: { type: 'book', bookId: 'b3' }, listId: 'default' })
+  })
+
+  it('a per-row submenu opens the create-list dialog (list view)', async () => {
+    const user = userEvent.setup()
+    renderDetail()
+    await user.click(screen.getByRole('button', { name: 'List' }))
+    await user.click(screen.getByRole('button', { name: 'Volume 3 actions' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Zu Liste' }))
+    await user.click(await screen.findByRole('menuitem', { name: 'Neue Liste…' }))
+    expect(await screen.findByRole('dialog')).toBeInTheDocument()
+    expect(screen.getByText('Neue Liste')).toBeInTheDocument()
   })
 
   it('forces the Books card view and hides the view toggle on mobile', () => {
