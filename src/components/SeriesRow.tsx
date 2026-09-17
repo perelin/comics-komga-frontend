@@ -60,7 +60,7 @@ export function SeriesRow({ s, matchedCreators }: { s: SeriesVM; matchedCreators
           disabled={markSeries.isPending}
           aria-label={done ? 'Mark all unread' : 'Mark all read'}
           title={done ? 'Mark all unread' : 'Mark all read'}
-          className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100"
+          className="inline-flex size-7 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 group-hover:opacity-100 pointer-coarse:size-9 pointer-coarse:bg-accent/60 pointer-coarse:text-foreground pointer-coarse:opacity-100"
         >
           {done ? <RotateCcw className="size-3.5" /> : <CheckCheck className="size-3.5" />}
         </button>

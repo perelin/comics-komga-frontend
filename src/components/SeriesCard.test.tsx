@@ -146,6 +146,21 @@ describe('SeriesCard / SeriesRow', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Mark all unread' }))
     expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: false })
   })
+
+  // Touch devices report `pointer: coarse` and `hover: none`; Tailwind wraps
+  // `group-hover:` in @media (hover:hover), so without an explicit coarse
+  // rule the actions would never become visible there.
+  it('row quick-action is visible on coarse-pointer (touch) devices', () => {
+    render(<MemoryRouter><SeriesRow s={vm} /></MemoryRouter>)
+    expect(screen.getByRole('button', { name: 'Mark all read' }).className).toContain('pointer-coarse:opacity-100')
+  })
+
+  it('card quick-actions are visible on coarse-pointer (touch) devices, scrim stays hover-only', () => {
+    renderCard(vm)
+    const controls = screen.getByRole('button', { name: 'Mark all read' }).parentElement
+    expect(controls?.className).toContain('pointer-coarse:opacity-100')
+    expect(controls?.previousElementSibling?.className).not.toContain('pointer-coarse')
+  })
 })
 
 describe('SeriesCard / SeriesRow — creator match chips', () => {

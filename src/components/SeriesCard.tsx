@@ -38,22 +38,29 @@ export function SeriesCard({ s, matchedCreators }: { s: SeriesVM; matchedCreator
         )}
         {!done && <div className="absolute right-1.5 top-1.5"><ReadProgress variant="ring" progress={s.progress} /></div>}
         {!isMobile && (
-          <div className="pointer-events-none absolute inset-0 flex items-end gap-1.5 bg-gradient-to-t from-black/70 to-transparent p-2 opacity-0 transition-opacity group-hover:opacity-100">
-            <span className="rounded bg-primary p-1.5 text-primary-foreground"><Play className="size-3.5" /></span>
-            <button
-              type="button"
-              onClick={onMark}
-              disabled={markSeries.isPending}
-              aria-label={done ? 'Mark all unread' : 'Mark all read'}
-              className="pointer-events-auto rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80 disabled:opacity-50"
-            >
-              {done ? <RotateCcw className="size-3.5" /> : <CheckCheck className="size-3.5" />}
-            </button>
-            <AddToReadListButton
-              target={{ type: 'series', seriesId: s.id }}
-              className="pointer-events-auto inline-flex rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80"
-            />
-          </div>
+          <>
+            {/* Scrim is hover-only so touch devices don't get a permanent dark
+                band across every cover. */}
+            <div aria-hidden className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
+            {/* Controls sit above the scrim; on coarse pointers (touch) there is
+                no hover, so they stay visible and tappable. */}
+            <div className="pointer-events-none absolute inset-0 flex items-end gap-1.5 p-2 opacity-0 transition-opacity group-hover:opacity-100 pointer-coarse:opacity-100">
+              <span className="rounded bg-primary p-1.5 text-primary-foreground"><Play className="size-3.5" /></span>
+              <button
+                type="button"
+                onClick={onMark}
+                disabled={markSeries.isPending}
+                aria-label={done ? 'Mark all unread' : 'Mark all read'}
+                className="pointer-events-auto rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80 disabled:opacity-50 pointer-coarse:p-2.5"
+              >
+                {done ? <RotateCcw className="size-3.5" /> : <CheckCheck className="size-3.5" />}
+              </button>
+              <AddToReadListButton
+                target={{ type: 'series', seriesId: s.id }}
+                className="pointer-events-auto inline-flex rounded bg-black/60 p-1.5 text-white transition-colors hover:bg-black/80 pointer-coarse:p-2.5"
+              />
+            </div>
+          </>
         )}
       </div>
       <div className="mt-2">
