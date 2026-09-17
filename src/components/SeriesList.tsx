@@ -8,7 +8,7 @@ const ROW_H = 52
 const HEADERS: { label: string; sort?: SortKey; align?: 'right' }[] = [
   { label: '' }, { label: 'Title', sort: 'titleSort' }, { label: 'Author' }, { label: 'Publisher' },
   { label: 'Status' }, { label: 'Year', sort: 'releaseDate', align: 'right' }, { label: 'Books', align: 'right' },
-  { label: 'Pages', align: 'right' }, { label: 'Progress' }, { label: 'Rating' },
+  { label: 'Pages', align: 'right' }, { label: 'Progress' }, { label: 'Rating' }, { label: '' },
 ]
 
 export function SeriesList({ items, filters, onFiltersChange, hasNext, fetchNext, initialIndex, onTopIndex }: {

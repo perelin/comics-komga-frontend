@@ -126,6 +126,26 @@ describe('SeriesCard / SeriesRow', () => {
     expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: false })
     expect(screen.queryByText('SERIES PAGE')).not.toBeInTheDocument()
   })
+
+  it('row quick-action marks an unfinished series read without navigating', () => {
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <Routes>
+          <Route path="/" element={<SeriesRow s={vm} />} />
+          <Route path="/series/:id" element={<div>SERIES PAGE</div>} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Mark all read' }))
+    expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: true })
+    expect(screen.queryByText('SERIES PAGE')).not.toBeInTheDocument()
+  })
+
+  it('row quick-action marks a fully-read series unread', () => {
+    render(<MemoryRouter><SeriesRow s={doneVm} /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('button', { name: 'Mark all unread' }))
+    expect(markSeriesMutate).toHaveBeenCalledWith({ seriesId: 's1', read: false })
+  })
 })
 
 describe('SeriesCard / SeriesRow — creator match chips', () => {
